@@ -14,7 +14,7 @@ ml cuda/10.2.89
 ml py-numpy/1.18.5
 ml py-pip/20.2
 
-cd $HOME/data-avenka14/ravi/fac-via-ppg
+cd $HOME/data-avenka14/ravi/fac-ppg
 
 pip install --user -r fac_clone_reqs.txt
 pip install --user torch==1.9.0+cu111 torchvision==0.10.0+cu111 torchaudio==0.9.0 -f https://download.pytorch.org/whl/torch_stable.html
