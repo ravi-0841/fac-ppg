@@ -11,7 +11,7 @@ import soundfile as sf
 import torch
 import pylab
 
-from src.common.hparams_onflymixer import create_hparams
+from src.common.hparams_onflychopper import create_hparams
 from src.common.utils import load_filepaths
 
 class OnTheFlyChopper():
@@ -81,11 +81,15 @@ if __name__ == "__main__":
                                 )
 
     src_stft, l, src = dataloader[19]
+
+    print("STFT shape: ", src_stft.shape)
+    print("length_array: ", l)
+    print("audio shape: ", src.shape)
     
-    pylab.figure()
-    pylab.imshow(np.log10(src_stft[:,:,0]**2 + src_stft[:,:,1]**2), origin="lower")
-    pylab.figure()
-    pylab.plot(src)
+    # pylab.figure()
+    # pylab.imshow(np.log10(src_stft[:,:,0]**2 + src_stft[:,:,1]**2), origin="lower")
+    # pylab.figure()
+    # pylab.plot(src)
 
 
 

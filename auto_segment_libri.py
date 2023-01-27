@@ -20,7 +20,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         SparsityKLDivergence,
                                     )
 from src.common.logger_EncDec import EncDecLogger
-from src.common.hparams_onflygenerator import create_hparams
+from src.common.hparams_onflychopper import create_hparams
 from pprint import pprint
 
 
@@ -35,11 +35,13 @@ def batchnorm_to_float(module):
 
 def prepare_dataloaders(hparams):
     # Get data, data loaders and collate function ready
-    trainset = OnTheFlyChopper()
+    trainset = OnTheFlyChopper(utterance_paths_file=hparams.training_files,
+                                hparams=hparams)
     hparams.load_feats_from_disk = False
     hparams.is_cache_feats = False
     hparams.feats_cache_path = ''
-    valset = OnTheFlyChopper()
+    valset = OnTheFlyChopper(utterance_paths_file=hparams.validation_files,
+                                hparams=hparams)
 
     # collate_fn = acoustics_collate
     
@@ -51,7 +53,7 @@ def prepare_dataloaders(hparams):
                             batch_size=hparams.batch_size,
                             drop_last=True,
                             )
-    return train_loader, valset, collate_fn
+    return train_loader, valset
 
 
 def prepare_directories_and_logger(output_directory, log_directory, rank):
@@ -115,7 +117,7 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
 
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
-            x, l, _ = batch[0].to("cuda"), batch[1]
+            x, l, _ = batch[0].to("cuda"), batch[1], batch[2]
             x = x[:,:,:,0]**2 + x[:,:,:,1]**2
             posterior, mask_sample, y_pred = model(x)
             loss = criterion(y_pred, x, l)
@@ -166,7 +168,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     logger = prepare_directories_and_logger(
         output_directory, log_directory, rank)
 
-    train_loader, valset, collate_fn = prepare_dataloaders(hparams)
+    train_loader, valset = prepare_dataloaders(hparams)
 
     # Load checkpoint if one exists
     iteration = 0
@@ -195,14 +197,14 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 param_group['lr'] = learning_rate
 
             model.zero_grad()
-            x, l, _ = batch[0].to("cuda"), batch[1]
+            x, l, _ = batch[0].to("cuda"), batch[1], batch[2]
             # input_shape should be [#batch_size, #freq_channels, #time]
             x = x[:,:,:,0]**2 + x[:,:,:,1]**2
 
             posterior, mask_sample, y_pred = model(x)
 
             # loss = 0.2*criterion1(posterior.squeeze(), l) + criterion2(y_pred, x, l) + 0.00000025*torch.sum(torch.abs(posterior[:,:,1]))
-            loss = 0.01*criterion1(posterior.squeeze(), l) + 5*criterion2(y_pred, x, l) + 0.001*criterion3(posterior)
+            loss = 0.01*criterion1(posterior.squeeze(), l) + 2*criterion2(y_pred, x, l) + 0.0001*criterion3(posterior)
             reduced_loss = loss.item()
 
             loss.backward()
@@ -224,7 +226,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 validate(model, criterion2, valset, iteration,
                          hparams.batch_size, n_gpus, logger, 
                          hparams.distributed_run, rank)
-                if learning_rate > 1e-4:
+                if learning_rate > 1e-6:
                     learning_rate *= 0.97
                 if rank == 0:
                     checkpoint_path = os.path.join(

@@ -4,7 +4,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=6
 #SBATCH --gres=gpu:1
-#SBATCH -t 48:00:00
+#SBATCH -t 40:00:00
 #SBATCH -A avenka14_gpu
 
 ###load modules
@@ -24,4 +24,4 @@ pip install --user inflect
 pip install --user Unidecode
 pip install --user matplotlib
 
-python3 auto_segment.py
+python3 auto_segment_libri.py
