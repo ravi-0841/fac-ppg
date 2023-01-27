@@ -146,7 +146,7 @@ def create_hparams(**kwargs):
         # Optimization Hyperparameters #
         ################################
         "use_saved_learning_rate": False,
-        "learning_rate": 1e-3,
+        "learning_rate": 1e-1,
         "weight_decay": 1e-6,
         "grad_clip_thresh": 1.0,
         "batch_size": 8, #6
