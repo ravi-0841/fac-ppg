@@ -65,7 +65,7 @@ class OnTheFlyChopper():
     def __getitem__(self, index):
         speech_data = self.chop_signal(index)
         speech_stft = self.extract_stft_feats(speech_data)
-        return speech_stft, torch.from_numpy(speech_data).float()
+        return speech_stft, speech_stft.shape[2], torch.from_numpy(speech_data).float()
 
 
     def __len__(self):
@@ -80,7 +80,7 @@ if __name__ == "__main__":
                                 hparams=hparams,
                                 )
 
-    src_stft, src = dataloader[19]
+    src_stft, l, src = dataloader[19]
     
     pylab.figure()
     pylab.imshow(np.log10(src_stft[:,:,0]**2 + src_stft[:,:,1]**2), origin="lower")
