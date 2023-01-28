@@ -189,7 +189,7 @@ class ExpectedKLDivergence(nn.Module):
 
 
 class ExpectedKLDivergenceExtended(nn.Module):
-    def __init__(self, alpha=0.1, beta=0.95):
+    def __init__(self, alpha=0.1, beta=0.8):
         super(ExpectedKLDivergenceExtended, self).__init__()
         
         self.alpha = torch.tensor(alpha).float()

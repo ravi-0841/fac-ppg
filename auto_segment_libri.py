@@ -204,7 +204,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             posterior, mask_sample, y_pred = model(x)
 
             # loss = 0.2*criterion1(posterior.squeeze(), l) + criterion2(y_pred, x, l) + 0.00000025*torch.sum(torch.abs(posterior[:,:,1]))
-            loss = 0.01*criterion1(posterior.squeeze(), l) + 2*criterion2(y_pred, x, l) + 0.0001*criterion3(posterior)
+            loss = 0.0001*criterion1(posterior.squeeze(), l) + 5*criterion2(y_pred, x, l) #+ 0.0001*criterion3(posterior)
             reduced_loss = loss.item()
 
             loss.backward()
