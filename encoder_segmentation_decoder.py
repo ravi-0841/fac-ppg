@@ -275,7 +275,7 @@ class EncoderDecoder(nn.Module):
         e3_enc = e3_enc.permute(1,2,0)
         e3_enc = self.bn3_enc(e3_enc)
         posterior = self.encoder_linear(e3_enc.permute(0,2,1))
-        posterior = self.sigmoid_activation(posterior/10.)
+        posterior = self.sigmoid_activation(posterior)
         sampler = torch.distributions.continuous_bernoulli.ContinuousBernoulli(probs=posterior)
         print("3. posterior shape: ", posterior.shape)
 

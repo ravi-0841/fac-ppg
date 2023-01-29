@@ -196,7 +196,7 @@ class ExpectedKLDivergenceExtended(nn.Module):
         self.beta = torch.tensor(beta).float()
     
     def compute_expected_KL(self, past_posterior, curr_posterior):
-        divergence = past_posterior[1] * (curr_posterior[1]*(torch.log(curr_posterior[1]) - torch.log(self.beta)) + curr_posterior[0]*(torch.log(curr_posterior[0]) - torch.log(1.0 - self.beta)))
+        divergence = past_posterior[1]*(curr_posterior[1]*(torch.log(curr_posterior[1]) - torch.log(self.beta)) + curr_posterior[0]*(torch.log(curr_posterior[0]) - torch.log(1.0 - self.beta)))
         divergence += past_posterior[0]*(curr_posterior[1]*(torch.log(curr_posterior[1]) - torch.log(1.0 - self.beta)) + curr_posterior[0]*(torch.log(curr_posterior[0]) - torch.log(self.beta)))
         return divergence
     
