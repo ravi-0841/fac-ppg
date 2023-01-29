@@ -190,6 +190,8 @@ class EncoderDecoder(nn.Module):
     def __init__(self):
         super(EncoderDecoder, self).__init__()
 
+        self.temp_scale = 10.0
+
         self.conv1_enc = GluConv1d(in_channels=257, out_channels=128, 
                                    kernel_size=7, stride=1)
         self.conv2_enc = GluConv1d(in_channels=128, out_channels=256, 
@@ -275,7 +277,7 @@ class EncoderDecoder(nn.Module):
         e3_enc = e3_enc.permute(1,2,0)
         e3_enc = self.bn3_enc(e3_enc)
         posterior = self.encoder_linear(e3_enc.permute(0,2,1))
-        posterior = self.sigmoid_activation(10.0*posterior)
+        posterior = self.sigmoid_activation(self.temp_scale*posterior)
         sampler = torch.distributions.continuous_bernoulli.ContinuousBernoulli(probs=posterior)
         print("3. posterior shape: ", posterior.shape)
 
