@@ -159,33 +159,33 @@ class MaskedSpectrogramL2LossReduced(nn.Module):
         return loss / batch_size
 
 
-class ExpectedKLDivergence(nn.Module):
-    def __init__(self, alpha=0.1, beta=0.8):
-        super(ExpectedKLDivergence, self).__init__()
+# class ExpectedKLDivergence(nn.Module):
+#     def __init__(self, alpha=0.1, beta=0.8):
+#         super(ExpectedKLDivergence, self).__init__()
         
-        self.alpha = torch.tensor(alpha).float()
-        self.beta = torch.tensor(beta).float()
+#         self.alpha = torch.tensor(alpha).float()
+#         self.beta = torch.tensor(beta).float()
     
-    def compute_expected_KL(self, past_posterior, curr_posterior):
-        divergence = past_posterior * (curr_posterior*(torch.log(curr_posterior) - torch.log(self.beta)) + (1.0 - curr_posterior)*(torch.log(1.0 - curr_posterior) - torch.log(1.0 - self.beta)))
-        divergence += (1.0 - past_posterior) * (curr_posterior*(torch.log(curr_posterior) - torch.log(1.0 - self.beta)) + (1.0 - curr_posterior)*(torch.log(1.0 - curr_posterior) - torch.log(self.beta)))
-        return divergence
+#     def compute_expected_KL(self, past_posterior, curr_posterior):
+#         divergence = past_posterior * (curr_posterior*(torch.log(curr_posterior) - torch.log(self.beta)) + (1.0 - curr_posterior)*(torch.log(1.0 - curr_posterior) - torch.log(1.0 - self.beta)))
+#         divergence += (1.0 - past_posterior) * (curr_posterior*(torch.log(curr_posterior) - torch.log(1.0 - self.beta)) + (1.0 - curr_posterior)*(torch.log(1.0 - curr_posterior) - torch.log(self.beta)))
+#         return divergence
     
-    def forward(self, posterior, length):
-        # Expect posterior to be of shape [batch_size, padded_seq_length]
-        # posterior += 1e-10
-        total_loss = 0
-        (batch_len, _) = (posterior.shape[0], posterior.shape[1])
-        for b in range(batch_len):
-            actual_seq_len = length[b]
-            loss = posterior[b,0] * (torch.log(posterior[b,0]) - torch.log(self.alpha)) + (1.0 - posterior[b,0]) * (torch.log(1.0 - posterior[b,0]) - torch.log(1.0 - self.alpha))
-            for s in range(1, actual_seq_len):
-                loss += self.compute_expected_KL(posterior[b,s-1], posterior[b,s])
+#     def forward(self, posterior, length):
+#         # Expect posterior to be of shape [batch_size, padded_seq_length]
+#         # posterior += 1e-10
+#         total_loss = 0
+#         (batch_len, _) = (posterior.shape[0], posterior.shape[1])
+#         for b in range(batch_len):
+#             actual_seq_len = length[b]
+#             loss = posterior[b,0] * (torch.log(posterior[b,0]) - torch.log(self.alpha)) + (1.0 - posterior[b,0]) * (torch.log(1.0 - posterior[b,0]) - torch.log(1.0 - self.alpha))
+#             for s in range(1, actual_seq_len):
+#                 loss += self.compute_expected_KL(posterior[b,s-1], posterior[b,s])
             
-            total_loss += loss
+#             total_loss += loss
 
-        total_loss = total_loss / batch_len
-        return total_loss
+#         total_loss = total_loss / batch_len
+#         return total_loss
 
 
 class ExpectedKLDivergenceExtended(nn.Module):
@@ -228,6 +228,30 @@ class SparsityKLDivergence(nn.Module):
         return torch.mean(loss)
 
 
+class VectorizedExpectedKLDivergence(nn.Module):
+    def __init__(self, alpha=0.1, beta=0.8):
+        super(VectorizedExpectedKLDivergence, self).__init__()
+
+        self.alpha = torch.tensor(alpha).float()
+        self.beta = torch.tensor(beta).float()
+
+    def compute_vectorized_KL(self, past_posterior, curr_posterior):
+        divergence = past_posterior[:,1]*(curr_posterior[:,1]*(torch.log(curr_posterior[:,1]) - torch.log(self.beta)) + curr_posterior[:,0]*(torch.log(curr_posterior[:,0]) - torch.log(1.0 - self.beta)))
+        divergence += past_posterior[:,0]*(curr_posterior[:,1]*(torch.log(curr_posterior[:,1]) - torch.log(1.0 - self.beta)) + curr_posterior[:,0]*(torch.log(curr_posterior[:,0]) - torch.log(self.beta)))
+        return torch.sum(divergence)
+
+    def forward(self, posterior, length):
+        # Expect posterior to be of the shape [batch_size, padded_seq_length, 2]
+        total_loss = 0
+        batch_len = posterior.shape[0]
+        for b in range(batch_len):
+            real_seq_len = length[b]
+            loss = posterior[b,0,1]*(torch.log(posterior[b,0,1]) - torch.log(self.alpha)) + posterior[b,0,0]*(torch.log(posterior[b,0,0]) - torch.log(1.0 - self.alpha))
+            loss += self.compute_vectorized_KL(posterior[b,0:real_seq_len-1,:], posterior[b,1:real_seq_len,:])
+            total_loss += loss
+
+        total_loss /= batch_len
+        return total_loss
 
 
 

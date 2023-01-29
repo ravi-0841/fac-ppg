@@ -15,8 +15,9 @@ import numpy as np
 from torch.utils.data import DataLoader
 from gumbel_encoder_decoder import EncoderDecoder
 from on_the_fly_chopper import OnTheFlyChopper
-from src.common.loss_function import (MaskedSpectrogramL1LossReduced, 
-                                        ExpectedKLDivergenceExtended, 
+from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
+                                        ExpectedKLDivergenceExtended,
+                                        VectorizedExpectedKLDivergence, 
                                         SparsityKLDivergence,
                                     )
 from src.common.logger_EncDec import EncDecLogger
@@ -167,7 +168,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
 
-    criterion1 = ExpectedKLDivergenceExtended()
+    criterion1 = VectorizedExpectedKLDivergence()
     criterion2 = MaskedSpectrogramL1LossReduced()
     criterion3 = SparsityKLDivergence()
 
@@ -210,7 +211,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             posterior, mask_sample, y_pred = model(x)
 
             # loss = 0.2*criterion1(posterior.squeeze(), l) + criterion2(y_pred, x, l) + 0.00000025*torch.sum(torch.abs(posterior[:,:,1]))
-            loss = 0.0005*criterion1(posterior.squeeze(), l) + 5*criterion2(y_pred, x, l) + 0.000001*criterion3(posterior)
+            loss = 0.0005*criterion1(posterior.squeeze(), l) + 7*criterion2(y_pred, x, l) + 0.000002*criterion3(posterior)
             reduced_loss = loss.item()
 
             loss.backward()

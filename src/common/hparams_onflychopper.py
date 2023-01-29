@@ -54,7 +54,7 @@ def create_hparams(**kwargs):
         "dist_url": "tcp://localhost:54321",
         "cudnn_enabled": True,
         "cudnn_benchmark": False,
-        "output_directory": "./encoder_decoder_output/libri_5e-4_5_1e-6_no_temperature_scaling",  # Directory to save checkpoints.
+        "output_directory": "./encoder_decoder_output/libri_5e-4_7_2e-6_temperature_scaling_10",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
         "checkpoint_path": '',  # Path to a checkpoint file.
