@@ -176,8 +176,10 @@ class GluConvTranspose2d(nn.Module):
 
 
 class EncoderDecoder(nn.Module):
-    def __init__(self):
+    def __init__(self, temp_scale=0.1):
         super(EncoderDecoder, self).__init__()
+        
+        self.temp_scale = temp_scale
 
         self.conv1_enc = GluConv1d(in_channels=257, out_channels=128, 
                                    kernel_size=7, stride=1)
@@ -225,7 +227,7 @@ class EncoderDecoder(nn.Module):
         e3_enc = self.bn3_enc(e3_enc)
         posterior = self.relu(self.encoder_linear(e3_enc.permute(0,2,1)))
         # print("Posterior: ", posterior)
-        posterior = self.softmax(posterior/10.)
+        posterior = self.softmax(posterior*self.temp_scale)
         sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
         # sampler = torch.distributions.continuous_bernoulli.ContinuousBernoulli(probs=posterior)
         # print("3. sampled_val shape: ", posterior.shape)

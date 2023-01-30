@@ -206,12 +206,18 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             model.zero_grad()
             x, l, _ = batch[0].to("cuda"), batch[1], batch[2]
             # input_shape should be [#batch_size, #freq_channels, #time]
+
+            # Get the magnitude spectrogram
             x = x[:,:,:,0]**2 + x[:,:,:,1]**2
 
             posterior, mask_sample, y_pred = model(x)
 
             # loss = 0.2*criterion1(posterior.squeeze(), l) + criterion2(y_pred, x, l) + 0.00000025*torch.sum(torch.abs(posterior[:,:,1]))
-            loss = hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l) + hparams.lambda_recon*criterion2(y_pred, x, l) + hparams.lambda_sparse_KL*criterion3(posterior)
+            loss = (
+                    hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l) 
+                    + hparams.lambda_recon*criterion2(y_pred, x, l) 
+                    + hparams.lambda_sparse_KL*criterion3(posterior)
+                    )
             reduced_loss = loss.item()
 
             loss.backward()
