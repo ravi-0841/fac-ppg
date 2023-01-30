@@ -54,7 +54,7 @@ def create_hparams(**kwargs):
         "dist_url": "tcp://localhost:54321",
         "cudnn_enabled": True,
         "cudnn_benchmark": False,
-        "output_directory": "./encoder_decoder_output/libri_5e-4_7_2e-6_temperature_scaling_10",  # Directory to save checkpoints.
+        "output_directory": "./encoder_decoder_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
         "checkpoint_path": '',  # Path to a checkpoint file.
@@ -145,6 +145,10 @@ def create_hparams(**kwargs):
         ################################
         # Optimization Hyperparameters #
         ################################
+        "lambda_prior_KL": 5e-4,
+        "lambda_recon": 5,
+        "lambda_sparse_KL": 1e-6,
+        "temp_scale": 10.0,
         "use_saved_learning_rate": False,
         "learning_rate": 1e-3,
         "learning_rate_decay": 0.9, 

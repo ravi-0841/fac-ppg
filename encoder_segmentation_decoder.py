@@ -187,10 +187,10 @@ class EncoderDecoder(nn.Module):
     #     # self.relu = nn.ReLU(inplace=True)
 
 
-    def __init__(self):
+    def __init__(self, temp_scale=10.):
         super(EncoderDecoder, self).__init__()
 
-        self.temp_scale = 10.0
+        self.temp_scale = temp_scale
 
         self.conv1_enc = GluConv1d(in_channels=257, out_channels=128, 
                                    kernel_size=7, stride=1)

@@ -75,7 +75,7 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
 
 
 def load_model(hparams):
-    model = EncoderDecoder().cuda()
+    model = EncoderDecoder(hparams.temp_scale).cuda()
     return model
 
 
@@ -211,7 +211,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             posterior, mask_sample, y_pred = model(x)
 
             # loss = 0.2*criterion1(posterior.squeeze(), l) + criterion2(y_pred, x, l) + 0.00000025*torch.sum(torch.abs(posterior[:,:,1]))
-            loss = 0.0005*criterion1(posterior.squeeze(), l) + 7*criterion2(y_pred, x, l) + 0.000002*criterion3(posterior)
+            loss = hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l) + hparams.lambda_recon*criterion2(y_pred, x, l) + hparams.lambda_sparse_KL*criterion3(posterior)
             reduced_loss = loss.item()
 
             loss.backward()
@@ -246,6 +246,16 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
 if __name__ == '__main__':
     hparams = create_hparams()
+
+    hparams.output_directory = os.path.join(
+                                        hparams.output_directory, 
+                                        "libri_{}_{}_{}_{}".format(
+                                            hparams.lambda_prior_KL,
+                                            hparams.lambda_recon,
+                                            hparams.lambda_sparse_KL,
+                                            hparams.temp_scale,
+                                        )
+                                    )
 
     if not hparams.output_directory:
         raise FileExistsError('Please specify the output dir.')
