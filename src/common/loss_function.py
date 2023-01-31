@@ -189,7 +189,7 @@ class MaskedSpectrogramL2LossReduced(nn.Module):
 
 
 class ExpectedKLDivergence(nn.Module):
-    def __init__(self, alpha=0.1, beta=0.8):
+    def __init__(self, alpha=0.1, beta=0.9): #0.8
         super(ExpectedKLDivergence, self).__init__()
         
         self.alpha = torch.tensor(alpha).float()

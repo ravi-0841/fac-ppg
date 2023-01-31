@@ -241,11 +241,11 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                          hparams.distributed_run, rank)
                 if learning_rate > hparams.learning_rate_lb:
                     learning_rate *= hparams.learning_rate_decay
-                if rank == 0:
-                    checkpoint_path = os.path.join(
-                        output_directory, "checkpoint_{}".format(iteration))
-                    save_checkpoint(model, optimizer, learning_rate, iteration,
-                                    checkpoint_path)
+                # if rank == 0:
+                #     checkpoint_path = os.path.join(
+                #         output_directory, "checkpoint_{}".format(iteration))
+                #     save_checkpoint(model, optimizer, learning_rate, iteration,
+                #                     checkpoint_path)
 
             iteration += 1
 

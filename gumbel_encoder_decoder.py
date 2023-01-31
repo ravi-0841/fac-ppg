@@ -210,7 +210,7 @@ class EncoderDecoder(nn.Module):
         self.bn3_dec = nn.BatchNorm1d(256)
 
         self.elu = nn.ELU(inplace=True)
-        self.relu = nn.ReLU(inplace=True)
+        # self.relu = nn.ReLU(inplace=True)
         self.softmax = nn.Softmax(dim=-1)
     
     
@@ -225,11 +225,11 @@ class EncoderDecoder(nn.Module):
         # print("2. e3_enc shape: ", e3_enc.shape)
         e3_enc = e3_enc.permute(1,2,0)
         e3_enc = self.bn3_enc(e3_enc)
-        posterior = self.relu(self.encoder_linear(e3_enc.permute(0,2,1)))
+        posterior = self.elu(self.encoder_linear(e3_enc.permute(0,2,1)))
         # print("Posterior: ", posterior)
         posterior = self.softmax(posterior/self.temp_scale)
         sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
-        
+
         # sampler = torch.distributions.continuous_bernoulli.ContinuousBernoulli(probs=posterior)
         # print("3. sampled_val shape: ", posterior.shape)
 
