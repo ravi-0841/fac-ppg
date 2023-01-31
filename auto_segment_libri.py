@@ -16,8 +16,8 @@ from torch.utils.data import DataLoader
 from gumbel_encoder_decoder import EncoderDecoder
 from on_the_fly_chopper import OnTheFlyChopper
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
-                                        ExpectedKLDivergenceExtended,
-                                        VectorizedExpectedKLDivergence, 
+                                        ExpectedKLDivergence,
+                                        VecExpectedKLDivergence, 
                                         SparsityKLDivergence,
                                     )
 from src.common.logger_EncDec import EncDecLogger
@@ -168,7 +168,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
 
-    criterion1 = VectorizedExpectedKLDivergence()
+    criterion1 = ExpectedKLDivergence()
     criterion2 = MaskedSpectrogramL1LossReduced()
     criterion3 = SparsityKLDivergence()
 
@@ -217,7 +217,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                     hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l) 
                     + hparams.lambda_recon*criterion2(y_pred, x, l) 
                     + hparams.lambda_sparse_KL*criterion3(posterior)
-                    )
+                )
             reduced_loss = loss.item()
 
             loss.backward()
@@ -239,8 +239,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 validate(model, criterion2, valset, iteration,
                          hparams.batch_size, n_gpus, logger, 
                          hparams.distributed_run, rank)
-                if learning_rate > 1e-6:
-                    learning_rate *= 0.97
+                if learning_rate > hparams.learning_rate_lb:
+                    learning_rate *= hparams.learning_rate_decay
                 if rank == 0:
                     checkpoint_path = os.path.join(
                         output_directory, "checkpoint_{}".format(iteration))
@@ -255,11 +255,12 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "libri_{}_{}_{}_{}".format(
+                                        "libri_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_recon,
                                             hparams.lambda_sparse_KL,
                                             hparams.temp_scale,
+                                            hparams.extended_desc,
                                         )
                                     )
 
@@ -284,6 +285,13 @@ if __name__ == '__main__':
     print("cuDNN Enabled:", hparams.cudnn_enabled)
     print("cuDNN Benchmark:", hparams.cudnn_benchmark)
 
-    train(hparams.output_directory, hparams.log_directory,
-          hparams.checkpoint_path, hparams.warm_start, hparams.n_gpus,
-          hparams.rank, hparams.group_name, hparams)
+    train(
+        hparams.output_directory, 
+        hparams.log_directory,
+        hparams.checkpoint_path,
+        hparams.warm_start,
+        hparams.n_gpus,
+        hparams.rank,
+        hparams.group_name,
+        hparams,
+    )

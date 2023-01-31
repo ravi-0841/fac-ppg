@@ -188,9 +188,9 @@ class MaskedSpectrogramL2LossReduced(nn.Module):
 #         return total_loss
 
 
-class ExpectedKLDivergenceExtended(nn.Module):
+class ExpectedKLDivergence(nn.Module):
     def __init__(self, alpha=0.1, beta=0.8):
-        super(ExpectedKLDivergenceExtended, self).__init__()
+        super(ExpectedKLDivergence, self).__init__()
         
         self.alpha = torch.tensor(alpha).float()
         self.beta = torch.tensor(beta).float()
@@ -228,9 +228,9 @@ class SparsityKLDivergence(nn.Module):
         return torch.mean(loss)
 
 
-class VectorizedExpectedKLDivergence(nn.Module):
+class VecExpectedKLDivergence(nn.Module):
     def __init__(self, alpha=0.1, beta=0.8):
-        super(VectorizedExpectedKLDivergence, self).__init__()
+        super(VecExpectedKLDivergence, self).__init__()
 
         self.alpha = torch.tensor(alpha).float()
         self.beta = torch.tensor(beta).float()
