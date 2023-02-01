@@ -13,7 +13,7 @@ import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from gumbel_encoder_decoder import EncoderDecoder
+from gumbel_encoder_decoder_2 import EncoderDecoder
 from on_the_fly_chopper import OnTheFlyChopper
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
