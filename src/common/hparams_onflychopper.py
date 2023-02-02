@@ -148,11 +148,11 @@ def create_hparams(**kwargs):
         ################################
         "lambda_prior_KL": 0, # 5e-4
         "lambda_recon": 10.0, # 10
-        "lambda_sparse_KL": 0, # 1e-6
+        "lambda_sparse_KL": 1e-7, # 1e-6
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
-        "learning_rate": 1e-3,
-        "learning_rate_decay": 0.98,
+        "learning_rate": 1e-5,
+        "learning_rate_decay": 1.0,
         "learning_rate_lb": 1e-6,
         "weight_decay": 1e-6,
         "grad_clip_thresh": 1.0,

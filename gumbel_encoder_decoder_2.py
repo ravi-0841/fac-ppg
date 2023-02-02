@@ -225,6 +225,8 @@ class EncoderDecoder(nn.Module):
         # out = x
         projected_x = self.input_projection(x.permute(0,2,1))
         projected_x = projected_x.permute(0,2,1)
+        # print("0. proj_x shape: ", projected_x.shape)
+
         e1_enc = self.elu(self.bn1_enc(self.conv1_enc(projected_x)))
         e2_enc = self.elu(self.bn2_enc(self.conv2_enc(e1_enc)))
         # print("1. e2_enc shape: ", e2_enc.shape)
@@ -240,7 +242,6 @@ class EncoderDecoder(nn.Module):
         
         posterior = self.softmax(posterior/self.temp_scale)
         sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
-        
         mask = sampled_val[:,:,1:2].repeat(1,1,256)
         # print("4. mask shape: ", mask.shape)
 
@@ -249,16 +250,16 @@ class EncoderDecoder(nn.Module):
         # print("5. enc_out shape: ", enc_out.shape)
         
         e1_dec = self.transformer_decoder(projected_x.permute(2,0,1), enc_out)
+        e1_dec = e1_dec.permute(1,2,0)
         # print("6. e1_dec shape: ", e1_dec.shape)
 
-        e1_dec = e1_dec.permute(1,2,0)
         e2_dec = self.elu(self.bn1_dec(self.conv1_dec(e1_dec)))
         e3_dec = self.elu(self.bn2_dec(self.conv2_dec(e2_dec)))
         # print("7. e3_dec shape: ", e3_dec.shape)        
 
         e3_dec = self.bn3_dec(e3_dec)
         out = self.decoder_linear(e3_dec.permute(0,2,1))
-        print("8. out shape: ", out.shape)
+        # print("8. out shape: ", out.shape)
 
         return posterior, sampled_val, out.permute(0,2,1)
 

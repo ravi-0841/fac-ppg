@@ -229,7 +229,7 @@ class SparsityKLDivergence(nn.Module):
 
 
 class VecExpectedKLDivergence(nn.Module):
-    def __init__(self, alpha=0.1, beta=0.8):
+    def __init__(self, alpha=0.1, beta=0.95):
         super(VecExpectedKLDivergence, self).__init__()
 
         self.alpha = torch.tensor(alpha).float()

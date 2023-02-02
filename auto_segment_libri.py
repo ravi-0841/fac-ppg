@@ -168,7 +168,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
 
-    criterion1 = ExpectedKLDivergence()
+    criterion1 = VecExpectedKLDivergence()
     criterion2 = MaskedSpectrogramL1LossReduced()
     criterion3 = SparsityKLDivergence()
 
