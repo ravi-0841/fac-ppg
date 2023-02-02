@@ -117,7 +117,7 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
         val_loader = DataLoader(
                                 valset,
                                 sampler=None,
-                                num_workers=0,
+                                num_workers=4,
                                 shuffle=True,
                                 batch_size=batch_size,
                             )

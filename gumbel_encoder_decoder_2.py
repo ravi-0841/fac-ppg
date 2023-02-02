@@ -182,7 +182,9 @@ class EncoderDecoder(nn.Module):
         
         self.temp_scale = temp_scale
 
-        self.conv1_enc = GluConv1d(in_channels=257, out_channels=128, 
+        self.input_projection = nn.Linear(in_features=257, out_features=256)
+
+        self.conv1_enc = GluConv1d(in_channels=256, out_channels=128, 
                                     kernel_size=7, stride=1)
         self.conv2_enc = GluConv1d(in_channels=128, out_channels=256, 
                                     kernel_size=5, stride=1)
@@ -190,19 +192,17 @@ class EncoderDecoder(nn.Module):
         encoder_layer = nn.TransformerEncoderLayer(d_model=256, nhead=8,
                                                 dim_feedforward=256)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
-        
+
         self.encoder_linear = nn.Linear(in_features=256, out_features=2)
-        
-        self.sigmoid_activation = nn.Sigmoid()
-        
-        self.conv1_dec = GluConv1d(in_channels=257, out_channels=128, 
-                                    kernel_size=5, stride=1)
-        self.conv2_dec = GluConv1d(in_channels=128, out_channels=256, 
-                                    kernel_size=7, stride=1)
 
         decoder_layer = nn.TransformerDecoderLayer(d_model=256, nhead=8,
                                                 dim_feedforward=256)
         self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=2)
+        
+        self.conv1_dec = GluConv1d(in_channels=256, out_channels=128, 
+                                    kernel_size=5, stride=1)
+        self.conv2_dec = GluConv1d(in_channels=128, out_channels=256, 
+                                    kernel_size=7, stride=1)
         
         self.decoder_linear = nn.Linear(in_features=256, out_features=257)
 
@@ -214,6 +214,7 @@ class EncoderDecoder(nn.Module):
         self.bn2_dec = nn.BatchNorm1d(256)
         self.bn3_dec = nn.BatchNorm1d(256)
 
+        self.sigmoid_activation = nn.Sigmoid()
         self.elu = nn.ELU(inplace=True)
         # self.relu = nn.ReLU(inplace=True)
         self.softmax = nn.Softmax(dim=-1)
@@ -222,13 +223,15 @@ class EncoderDecoder(nn.Module):
     def forward(self, x):
 
         # out = x
-        e1_enc = self.elu(self.bn1_enc(self.conv1_enc(x)))
+        projected_x = self.input_projection(x.permute(0,2,1))
+        projected_x = projected_x.permute(0,2,1)
+        e1_enc = self.elu(self.bn1_enc(self.conv1_enc(projected_x)))
         e2_enc = self.elu(self.bn2_enc(self.conv2_enc(e1_enc)))
-        print("1. e2_enc shape: ", e2_enc.shape)
+        # print("1. e2_enc shape: ", e2_enc.shape)
         
         e2_enc = e2_enc.permute(2,0,1)
         e3_enc = self.transformer_encoder(e2_enc)
-        print("2. e3_enc shape: ", e3_enc.shape)
+        # print("2. e3_enc shape: ", e3_enc.shape)
         
         e3_enc = e3_enc.permute(1,2,0)
         e3_enc = self.bn3_enc(e3_enc)
@@ -237,28 +240,25 @@ class EncoderDecoder(nn.Module):
         
         posterior = self.softmax(posterior/self.temp_scale)
         sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
-
-        # sampler = torch.distributions.continuous_bernoulli.ContinuousBernoulli(probs=posterior)
-        print("3. sampled_val shape: ", posterior.shape)
-
-        # sampled_val = sampler.sample()
         
-        mask = sampled_val[:,:,1:2].repeat(1,1,257) #torch.argmax(sampled_val, -1, keepdim=True).repeat(1, 1, 257)
-        print("4. mask shape: ", mask.shape)
+        mask = sampled_val[:,:,1:2].repeat(1,1,256)
+        # print("4. mask shape: ", mask.shape)
 
-        enc_out = x * mask.permute(0,2,1)
-        e1_dec = self.elu(self.bn1_dec(self.conv1_dec(enc_out)))
-        e2_dec = self.elu(self.bn2_dec(self.conv2_dec(e1_dec)))
-        e2_dec = e2_dec.permute(2,0,1)
-        print("5. e2_dec shape: ", e2_dec.shape)
+        enc_out = projected_x * mask.permute(0,2,1)
+        enc_out = enc_out.permute(2,0,1)
+        # print("5. enc_out shape: ", enc_out.shape)
         
-        e3_dec = self.transformer_decoder(e2_dec, e3_enc.permute(2,0,1))
-        e3_dec = e3_dec.permute(1,2,0)
-        print("6. e3_dec shape: ", e3_dec.shape)
-        
+        e1_dec = self.transformer_decoder(projected_x.permute(2,0,1), enc_out)
+        # print("6. e1_dec shape: ", e1_dec.shape)
+
+        e1_dec = e1_dec.permute(1,2,0)
+        e2_dec = self.elu(self.bn1_dec(self.conv1_dec(e1_dec)))
+        e3_dec = self.elu(self.bn2_dec(self.conv2_dec(e2_dec)))
+        # print("7. e3_dec shape: ", e3_dec.shape)        
+
         e3_dec = self.bn3_dec(e3_dec)
         out = self.decoder_linear(e3_dec.permute(0,2,1))
-        print("7. out shape: ", out.shape)
+        print("8. out shape: ", out.shape)
 
         return posterior, sampled_val, out.permute(0,2,1)
 
