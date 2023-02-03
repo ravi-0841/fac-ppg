@@ -177,42 +177,84 @@ class GluConvTranspose2d(nn.Module):
 
 class EncoderDecoder(nn.Module):
 
+    # def __init__(self, temp_scale=10.0):
+    #     super(EncoderDecoder, self).__init__()
+        
+    #     self.temp_scale = temp_scale
+
+    #     self.input_projection = nn.Linear(in_features=257, out_features=256)
+
+    #     self.conv1_enc = GluConv1d(in_channels=256, out_channels=128, 
+    #                                 kernel_size=7, stride=1)
+    #     self.conv2_enc = GluConv1d(in_channels=128, out_channels=256, 
+    #                                 kernel_size=5, stride=1)
+
+    #     encoder_layer = nn.TransformerEncoderLayer(d_model=256, nhead=8,
+    #                                             dim_feedforward=256)
+    #     self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
+
+    #     self.encoder_linear = nn.Linear(in_features=256, out_features=2)
+
+    #     decoder_layer = nn.TransformerDecoderLayer(d_model=256, nhead=8,
+    #                                             dim_feedforward=256)
+    #     self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=2)
+        
+    #     self.conv1_dec = GluConv1d(in_channels=256, out_channels=128, 
+    #                                 kernel_size=5, stride=1)
+    #     self.conv2_dec = GluConv1d(in_channels=128, out_channels=256, 
+    #                                 kernel_size=7, stride=1)
+        
+    #     self.decoder_linear = nn.Linear(in_features=256, out_features=257)
+
+    #     self.bn1_enc = nn.BatchNorm1d(128)
+    #     self.bn2_enc = nn.BatchNorm1d(256)
+    #     self.bn3_enc = nn.BatchNorm1d(256)
+
+    #     self.bn1_dec = nn.BatchNorm1d(128)
+    #     self.bn2_dec = nn.BatchNorm1d(256)
+    #     self.bn3_dec = nn.BatchNorm1d(256)
+
+    #     self.sigmoid_activation = nn.Sigmoid()
+    #     self.elu = nn.ELU(inplace=True)
+    #     # self.relu = nn.ReLU(inplace=True)
+    #     self.softmax = nn.Softmax(dim=-1)
+
     def __init__(self, temp_scale=10.0):
         super(EncoderDecoder, self).__init__()
         
         self.temp_scale = temp_scale
 
-        self.input_projection = nn.Linear(in_features=257, out_features=256)
+        self.input_projection = nn.Linear(in_features=257, out_features=512)
 
-        self.conv1_enc = GluConv1d(in_channels=256, out_channels=128, 
+        self.conv1_enc = GluConv1d(in_channels=512, out_channels=1024, 
                                     kernel_size=7, stride=1)
-        self.conv2_enc = GluConv1d(in_channels=128, out_channels=256, 
+        self.conv2_enc = GluConv1d(in_channels=1024, out_channels=512, 
                                     kernel_size=5, stride=1)
 
-        encoder_layer = nn.TransformerEncoderLayer(d_model=256, nhead=8,
-                                                dim_feedforward=256)
+        encoder_layer = nn.TransformerEncoderLayer(d_model=512, nhead=8,
+                                                dim_feedforward=512)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
 
-        self.encoder_linear = nn.Linear(in_features=256, out_features=2)
+        self.encoder_linear = nn.Linear(in_features=512, out_features=2)
 
-        decoder_layer = nn.TransformerDecoderLayer(d_model=256, nhead=8,
-                                                dim_feedforward=256)
+        decoder_layer = nn.TransformerDecoderLayer(d_model=512, nhead=8,
+                                                dim_feedforward=512)
         self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=2)
         
-        self.conv1_dec = GluConv1d(in_channels=256, out_channels=128, 
+        self.conv1_dec = GluConv1d(in_channels=512, out_channels=1024, 
                                     kernel_size=5, stride=1)
-        self.conv2_dec = GluConv1d(in_channels=128, out_channels=256, 
+        self.conv2_dec = GluConv1d(in_channels=1024, out_channels=512, 
                                     kernel_size=7, stride=1)
         
-        self.decoder_linear = nn.Linear(in_features=256, out_features=257)
+        self.decoder_linear = nn.Linear(in_features=512, out_features=257)
 
-        self.bn1_enc = nn.BatchNorm1d(128)
-        self.bn2_enc = nn.BatchNorm1d(256)
-        self.bn3_enc = nn.BatchNorm1d(256)
+        self.bn1_enc = nn.BatchNorm1d(1024)
+        self.bn2_enc = nn.BatchNorm1d(512)
+        self.bn3_enc = nn.BatchNorm1d(512)
 
-        self.bn1_dec = nn.BatchNorm1d(128)
-        self.bn2_dec = nn.BatchNorm1d(256)
-        self.bn3_dec = nn.BatchNorm1d(256)
+        self.bn1_dec = nn.BatchNorm1d(1024)
+        self.bn2_dec = nn.BatchNorm1d(512)
+        self.bn3_dec = nn.BatchNorm1d(512)
 
         self.sigmoid_activation = nn.Sigmoid()
         self.elu = nn.ELU(inplace=True)
@@ -242,7 +284,7 @@ class EncoderDecoder(nn.Module):
         
         posterior = self.softmax(posterior/self.temp_scale)
         sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
-        mask = sampled_val[:,:,1:2].repeat(1,1,256)
+        mask = sampled_val[:,:,1:2].repeat(1,1,512)
         # print("4. mask shape: ", mask.shape)
 
         enc_out = projected_x * mask.permute(0,2,1)
@@ -264,11 +306,12 @@ class EncoderDecoder(nn.Module):
         return posterior, sampled_val, out.permute(0,2,1)
 
 
-
 if __name__ == "__main__":
 
     model = EncoderDecoder()
     model = model.cuda()
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print("Total number of trainable parameters are: ", num_params)
     x = torch.rand(4, 257, 300).to("cuda")
     p, s, o = model(x)
     print("posterior shape: ", p.shape)
