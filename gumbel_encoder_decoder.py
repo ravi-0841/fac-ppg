@@ -197,7 +197,7 @@ class EncoderDecoder(nn.Module):
                                     kernel_size=5, stride=1)
         self.conv2_dec = GluConv1d(in_channels=128, out_channels=256, 
                                     kernel_size=7, stride=1)
-        self.mha1_dec = nn.MultiheadAttention(embed_dim=256, num_heads=8,
+        self.mha1_dec = nn.MultiheadAttention(embed_dim=256, num_heads=8, 
                                                   dropout=0.2)
         
         self.decoder_linear = nn.Linear(in_features=256, out_features=257)

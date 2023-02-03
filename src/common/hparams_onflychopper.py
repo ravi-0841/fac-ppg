@@ -57,7 +57,7 @@ def create_hparams(**kwargs):
         "output_directory": "./encoder_decoder_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "transED_expand", # extra description for logging/identification
+        "extended_desc": "relu_transED_bigger", # extra description for logging/identification
         "checkpoint_path": '',  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
