@@ -53,8 +53,8 @@ class OnTheFlyAugmentor():
 
     
     def _get_random_sr(self, 
-                       lower_sr_factor=0.8, 
-                       upper_sr_factor=1.2):
+                       lower_sr_factor=0.85, 
+                       upper_sr_factor=1.15):
         act_sr = self.hparams.sampling_rate
         return int(act_sr * (lower_sr_factor + (upper_sr_factor - lower_sr_factor)*np.random.rand()))
 
@@ -67,10 +67,11 @@ class OnTheFlyAugmentor():
         
         if self.augment:
             random_sr = self._get_random_sr()
-            clean_data = librosa.resample(clean_data, sr, random_sr)
         else:
-            clean_data = librosa.resample(clean_data, sr, self.hparams.sampling_rate)
-        return clean_data
+            random_sr = self.hparams.sampling_rate
+
+        clean_data = librosa.resample(clean_data, sr, random_sr)
+        return clean_data, random_sr
     
     
     def _rating_structure(self, rating):
@@ -83,18 +84,20 @@ class OnTheFlyAugmentor():
     def __getitem__(self, index):
         path, rating = self.utterance_rating_paths[index].split(" ,")
         rating = ast.literal_eval(rating)
-        speech_data = self._get_signal(path)
+        speech_data, sr = self._get_signal(path)
         speech_stft = self._extract_stft_feats(speech_data)
+        speech_stft = torch.sqrt(speech_stft[:,:,0]**2 + speech_stft[:,:,1]**2)
         rating = self._rating_structure(rating)
         return (
                 speech_stft,
                 speech_stft.shape[1], 
-                torch.from_numpy(rating).float()
-            ) #torch.from_numpy(speech_data).float()
+                torch.from_numpy(rating).float(),
+                sr,
+        ) #torch.from_numpy(speech_data).float()
 
 
     def __len__(self):
-        return len(self.utterance_paths)
+        return len(self.utterance_rating_paths)
 
 
 if __name__ == "__main__":
