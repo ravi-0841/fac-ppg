@@ -216,7 +216,7 @@ class EncoderDecoder(nn.Module):
 
         self.sigmoid_activation = nn.Sigmoid()
         self.elu = nn.ELU(inplace=True)
-        # self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=True)
         self.softmax = nn.Softmax(dim=-1)
     
     
@@ -258,7 +258,7 @@ class EncoderDecoder(nn.Module):
         # print("7. e3_dec shape: ", e3_dec.shape)        
 
         e3_dec = self.bn3_dec(e3_dec)
-        out = self.decoder_linear(e3_dec.permute(0,2,1))
+        out = self.relu(self.decoder_linear(e3_dec.permute(0,2,1)))
         # print("8. out shape: ", out.shape)
 
         return posterior, sampled_val, out.permute(0,2,1)
