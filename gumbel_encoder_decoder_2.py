@@ -284,7 +284,7 @@ class EncoderDecoder(nn.Module):
         
         posterior = self.softmax(posterior/self.temp_scale)
         sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
-        mask = sampled_val[:,:,1:2].repeat(1,1,512)
+        mask = sampled_val[:,:,1:2].repeat(1,1,512) # 256 for smaller model
         # print("4. mask shape: ", mask.shape)
 
         enc_out = projected_x * mask.permute(0,2,1)
