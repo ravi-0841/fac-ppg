@@ -28,15 +28,13 @@ class OnTheFlyAugmentor():
                     utterance_paths_file,
                     hparams,
                     augment=True,
-                    cutoff_length=3,
-                    base_folder="./speechbrain_data"
+                    base_folder=""
                 ):
         
         self.utterance_rating_paths = load_filepaths(utterance_paths_file)
         self.base_folder = base_folder
         self.augment = augment
         self.hparams = hparams
-        self.max_wav_len = self.hparams.sampling_rate * cutoff_length
 
         
     def _extract_stft_feats(self, data):
@@ -145,6 +143,7 @@ if __name__ == "__main__":
     dataloader = OnTheFlyAugmentor(
                                 utterance_paths_file="./speechbrain_data/VESUS_saliency_training.txt",
                                 hparams=hparams,
+                                augment=False,
                                 )
 
     # src_stft, l, src = dataloader[19]
