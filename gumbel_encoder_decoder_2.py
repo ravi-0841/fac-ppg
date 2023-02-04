@@ -287,11 +287,13 @@ class EncoderDecoder(nn.Module):
         mask = sampled_val[:,:,1:2].repeat(1,1,512) # 256 for smaller model
         # print("4. mask shape: ", mask.shape)
 
-        enc_out = projected_x * mask.permute(0,2,1)
+        # enc_out = projected_x * mask.permute(0,2,1)
+        enc_out = e3_enc * mask.permute(0,2,1)
         enc_out = enc_out.permute(2,0,1)
         # print("5. enc_out shape: ", enc_out.shape)
         
-        e1_dec = self.transformer_decoder(projected_x.permute(2,0,1), enc_out)
+        # e1_dec = self.transformer_decoder(projected_x.permute(2,0,1), enc_out)
+        e1_dec = self.transformer_decoder(enc_out, enc_out)
         e1_dec = e1_dec.permute(1,2,0)
         # print("6. e1_dec shape: ", e1_dec.shape)
 
