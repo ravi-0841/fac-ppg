@@ -100,11 +100,50 @@ class OnTheFlyAugmentor():
         return len(self.utterance_rating_paths)
 
 
+def acoustics_collate(batch):
+    """Zero-pad the acoustic sequences in a mini-batch.
+
+    Args:
+        batch: An array with B elements, each is a tuple 
+        (stft, len(stft), tar_rating, sampling_rate).
+
+    Returns:
+        src_stft_padded: A (batch_size, feature_dim_1, num_frames_1)
+        tensor.
+        lengths: A batch_size array, each containing the actual length
+        of the input sequence.
+    """
+    # Right zero-pad all PPG sequences to max input length.
+    # x is (PPG, acoustic), x[0] is PPG, which is an (L(varied), D) tensor.
+    input_lengths, ids_sorted_decreasing = torch.sort(
+        torch.LongTensor([x[0].shape[1] for x in batch]), dim=0,
+        descending=True)
+    max_input_len = input_lengths[0]
+    stft_dim = batch[0][0].shape[0]
+
+    src_stft_padded = torch.FloatTensor(len(batch), stft_dim, max_input_len)
+    tar_ratings = torch.FloatTensor(len(batch), 5)
+    
+    src_stft_padded.zero_()
+    tar_ratings.zero_()
+    
+    for i in range(len(ids_sorted_decreasing)):
+        curr_src_stft = batch[ids_sorted_decreasing[i]][0]
+        curr_tar_rate = batch[ids_sorted_decreasing[i]][2]
+
+        src_stft_padded[i, :, :curr_src_stft.shape[1]] = curr_src_stft
+        src_stft_padded[i, :, curr_src_stft.shape[1]:] = curr_src_stft[:, -2:-1]
+
+        tar_ratings[i, :] = curr_tar_rate
+
+    return src_stft_padded, tar_ratings, input_lengths
+
+
 if __name__ == "__main__":
     hparams = create_hparams()
 
     dataloader = OnTheFlyAugmentor(
-                                utterance_paths_file="/home/ravi/Desktop/VESUS_saliency.txt",
+                                utterance_paths_file="./speechbrain_data/VESUS_saliency_training.txt",
                                 hparams=hparams,
                                 )
 
@@ -118,3 +157,24 @@ if __name__ == "__main__":
     # pylab.imshow(np.log10(src_stft[:,:,0]**2 + src_stft[:,:,1]**2), origin="lower")
     # pylab.figure()
     # pylab.plot(src)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
