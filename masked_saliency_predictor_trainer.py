@@ -13,7 +13,7 @@ import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from gumbel_encoder_decoder_2 import EncoderDecoder
+from saliency_predictor import SaliencyPredictor
 from on_the_fly_augmentor import OnTheFlyAugmentor, acoustics_collate
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -76,7 +76,7 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
 
 
 def load_model(hparams):
-    model = EncoderDecoder(hparams.temp_scale).cuda()
+    model = SaliencyPredictor(hparams.temp_scale).cuda()
     return model
 
 
