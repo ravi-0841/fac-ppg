@@ -189,11 +189,11 @@ class SaliencyPredictor(nn.Module):
         
         lstm_out, _ = self.recurrent_layer(enc_out)
         lstm_out = lstm_out[-1, :, :]
-        print("6. lstm_out shape: ", lstm_out.shape)
+        # print("6. lstm_out shape: ", lstm_out.shape)
 
         lstm_out = self.bn1_dec(lstm_out)
         out = self.softmax(self.decoder_linear(lstm_out))
-        print("8. out shape: ", out.shape)
+        # print("8. out shape: ", out.shape)
 
         return posterior, sampled_val, out
 
