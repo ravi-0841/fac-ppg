@@ -56,11 +56,12 @@ class SaliencyPredictorLogger(SummaryWriter):
         self.add_scalar("grad.norm", grad_norm, iteration)
         self.add_scalar("learning.rate", learning_rate, iteration)
 
-    def log_validation(self, reduced_loss, model, x, y_pred, posterior, 
+    def log_validation(self, reduced_loss, model, x, y, y_pred, posterior, 
                         mask_sample, iteration):
         self.add_scalar("validation.loss", reduced_loss, iteration)
         mel_inputs = x
-        saliency_outputs = y_pred
+        saliency_targets = y
+        saliency_predicted = y_pred
         
         mel_inputs = torch.log10(mel_inputs)
 
@@ -83,6 +84,14 @@ class SaliencyPredictorLogger(SummaryWriter):
         self.add_figure(
             "Sampled Mask",
             plot_posterior_to_numpy(mask_sample[idx].data.cpu().numpy()),
+            iteration)
+        self.add_figure(
+            "Saliency Target",
+            plot_saliency_to_numpy(saliency_targets[idx].data.cpu().numpy()),
+            iteration)
+        self.add_figure(
+            "Saliency Predicted",
+            plot_saliency_to_numpy(saliency_predicted[idx].data.cpu().numpy()),
             iteration)
 
 

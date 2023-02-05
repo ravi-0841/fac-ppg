@@ -119,3 +119,16 @@ def plot_gate_outputs_to_numpy(gate_targets, gate_outputs):
     data = save_figure_to_numpy(fig)
     plt.close()
     return data
+
+
+def plot_saliency_to_numpy(saliency):
+    fig, ax = plt.subplots(figsize=(12, 3))
+    im = ax.bar(np.arange(len(saliency)), saliency)
+    plt.xlabel("Classes")
+    plt.ylabel("Scores")
+    plt.tight_layout()
+
+    fig.canvas.draw()
+    # data = save_figure_to_numpy(fig)
+    # plt.close()
+    return fig
