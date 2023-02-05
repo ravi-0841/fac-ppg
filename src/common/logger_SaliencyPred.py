@@ -42,8 +42,12 @@ import random
 import torch
 import torch.nn.functional as F
 from tensorboardX import SummaryWriter
-from src.common.plotting_utils import plot_alignment_to_numpy, \
-    plot_spectrogram_to_numpy, plot_posterior_to_numpy
+from src.common.plotting_utils import (
+        plot_alignment_to_numpy,
+        plot_spectrogram_to_numpy,
+        plot_posterior_to_numpy,
+        plot_saliency_to_numpy,
+    ) 
 
 
 class SaliencyPredictorLogger(SummaryWriter):
