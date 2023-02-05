@@ -20,7 +20,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         VecExpectedKLDivergence, 
                                         SparsityKLDivergence,
                                     )
-from src.common.logger_EncDec import EncDecLogger
+from src.common.logger_SaliencyPred import SaliencyPredictorLogger
 from src.common.hparams_onflyaugmentor import create_hparams
 from pprint import pprint
 
@@ -69,7 +69,8 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
         if not os.path.isdir(output_directory):
             os.makedirs(output_directory)
             os.chmod(output_directory, 0o775)
-        logger = EncDecLogger(os.path.join(output_directory, log_directory))
+        logger = SaliencyPredictorLogger(os.path.join(output_directory, 
+                                                        log_directory))
     else:
         logger = None
     return logger
@@ -126,9 +127,9 @@ def validate(model, criterion, valset, collate_fn, iteration,
 
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
-            x, l, _ = batch[0].to("cuda"), batch[1], batch[2]
+            x, y, l = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
             posterior, mask_sample, y_pred = model(x)
-            loss = criterion(y_pred, x, l)
+            loss = criterion(y_pred, y)
             reduced_val_loss = loss.item()
             val_loss += reduced_val_loss
         val_loss = val_loss / (i + 1)
@@ -170,7 +171,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                                  weight_decay=hparams.weight_decay)
 
     criterion1 = VecExpectedKLDivergence()
-    criterion2 = MaskedSpectrogramL1LossReduced()
+    criterion2 = torch.nn.MSELoss()
     criterion3 = SparsityKLDivergence()
 
     logger = prepare_directories_and_logger(
@@ -205,14 +206,14 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 param_group['lr'] = learning_rate
 
             model.zero_grad()
-            x, l, _ = batch[0].to("cuda"), batch[1], batch[2]
+            x, y, l = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
             # input_shape should be [#batch_size, #freq_channels, #time]
 
             posterior, mask_sample, y_pred = model(x)
 
             loss = (
                     hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l) 
-                    + hparams.lambda_recon*criterion2(y_pred, x, l) 
+                    + hparams.lambda_predict*criterion2(y_pred, y)
                     + hparams.lambda_sparse_KL*criterion3(posterior)
                 )
             reduced_loss = loss.item()
@@ -256,7 +257,7 @@ if __name__ == '__main__':
                                         hparams.output_directory, 
                                         "libri_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
-                                            hparams.lambda_recon,
+                                            hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
                                             hparams.temp_scale,
                                             hparams.extended_desc,

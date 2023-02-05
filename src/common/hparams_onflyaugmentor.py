@@ -151,7 +151,7 @@ def create_hparams(**kwargs):
         # Optimization Hyperparameters #
         ################################
         "lambda_prior_KL": 1e-5, # 5e-4
-        "lambda_recon": 10.0, # 10
+        "lambda_predict": 10.0, # 10
         "lambda_sparse_KL": 0, # 1e-6
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,

@@ -24,4 +24,4 @@ pip install --user inflect
 pip install --user Unidecode
 pip install --user matplotlib
 
-python3 auto_segment_libri.py
+python3 masked_saliency_predictor_trainer.py
