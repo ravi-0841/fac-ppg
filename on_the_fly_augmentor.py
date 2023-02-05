@@ -68,7 +68,7 @@ class OnTheFlyAugmentor():
         else:
             random_sr = self.hparams.sampling_rate
 
-        clean_data = librosa.resample(clean_data, sr, random_sr)
+        clean_data = librosa.resample(clean_data, orig_sr=sr, target_sr=random_sr)
         return clean_data, random_sr
     
     
