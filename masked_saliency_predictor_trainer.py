@@ -171,7 +171,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
 
-    criterion1 = VecExpectedKLDivergence()
+    criterion1 = VecExpectedKLDivergence(alpha=hparams.alpha, 
+                                        beta=hparams.beta)
     criterion2 = torch.nn.L1Loss() #MSELoss
     criterion3 = SparsityKLDivergence()
 

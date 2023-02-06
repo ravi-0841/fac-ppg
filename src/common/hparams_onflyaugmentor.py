@@ -54,7 +54,7 @@ def create_hparams(**kwargs):
         # Experiment Parameters        #
         ################################
         "epochs": 200,
-        "iters_per_checkpoint": 200,
+        "iters_per_checkpoint": 1000,
         "seed": 1107,
         "dynamic_loss_scaling": True,
         "fp16_run": False,
@@ -66,7 +66,7 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "saving_model", # extra description for logging/identification
+        "extended_desc": "layers_2_saving_model", # extra description for logging/identification
         "checkpoint_path": '',  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
@@ -152,7 +152,7 @@ def create_hparams(**kwargs):
         ################################
         "lambda_prior_KL": 1e-5, # 5e-4
         "lambda_predict": 10.0, # 10
-        "lambda_sparse_KL": 0, # 1e-6
+        "lambda_sparse_KL": 1e-7, # 0
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
         "learning_rate": 1e-5,
@@ -162,8 +162,8 @@ def create_hparams(**kwargs):
         "grad_clip_thresh": 1.0,
         "batch_size": 4, #6
         "mask_padding": True, # set model's padded outputs to padded values
-        "mel_weight": 1, #1
-        "gate_weight": 0.005 #0.005
+        "alpha": 0.1, # Bernoulli parameter for sampling 1st entry of the mask
+        "beta": 0.95, # Bernoulli parameter for mask persistence
     }
 
     for key, val in kwargs.items():
