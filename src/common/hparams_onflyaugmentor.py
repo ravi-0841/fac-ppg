@@ -53,8 +53,8 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 100,
-        "iters_per_checkpoint": 500,
+        "epochs": 200,
+        "iters_per_checkpoint": 1000,
         "seed": 1107,
         "dynamic_loss_scaling": True,
         "fp16_run": False,
@@ -66,7 +66,7 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "batchsize_4", # extra description for logging/identification
+        "extended_desc": "saving_model", # extra description for logging/identification
         "checkpoint_path": '',  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs

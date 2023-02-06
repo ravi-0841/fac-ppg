@@ -123,7 +123,8 @@ def plot_gate_outputs_to_numpy(gate_targets, gate_outputs):
 
 def plot_saliency_to_numpy(saliency):
     fig, ax = plt.subplots(figsize=(12, 3))
-    im = ax.bar(np.arange(len(saliency)), saliency)
+    # im = ax.bar(np.arange(len(saliency)), saliency)
+    im = ax.bar(["neu", "ang", "hap", "sad", "fea"], saliency)
     plt.xlabel("Classes")
     plt.ylabel("Scores")
     plt.tight_layout()

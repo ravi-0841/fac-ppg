@@ -172,7 +172,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                                  weight_decay=hparams.weight_decay)
 
     criterion1 = VecExpectedKLDivergence()
-    criterion2 = torch.nn.MSELoss()
+    criterion2 = torch.nn.L1Loss() #MSELoss
     criterion3 = SparsityKLDivergence()
 
     logger = prepare_directories_and_logger(
@@ -242,11 +242,11 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                     learning_rate *= hparams.learning_rate_decay
                 
                 # Saving the model
-                # if rank == 0:
-                #     checkpoint_path = os.path.join(
-                #         output_directory, "checkpoint_{}".format(iteration))
-                #     save_checkpoint(model, optimizer, learning_rate, iteration,
-                #                     checkpoint_path)
+                if rank == 0:
+                    checkpoint_path = os.path.join(
+                        output_directory, "checkpoint_{}".format(iteration))
+                    save_checkpoint(model, optimizer, learning_rate, iteration,
+                                    checkpoint_path)
 
             iteration += 1
 

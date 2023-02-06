@@ -183,7 +183,6 @@ class SaliencyPredictor(nn.Module):
         # print("4. mask shape: ", mask.shape)
 
         enc_out = projected_x * mask.permute(0,2,1)
-        # enc_out = e3_enc * mask.permute(0,2,1)
         enc_out = enc_out.permute(2,0,1)
         # print("5. enc_out shape: ", enc_out.shape)
         
@@ -192,8 +191,8 @@ class SaliencyPredictor(nn.Module):
         # print("6. lstm_out shape: ", lstm_out.shape)
 
         lstm_out = self.bn1_dec(lstm_out)
-        out = self.softmax(self.decoder_linear(lstm_out))
-        # print("8. out shape: ", out.shape)
+        out = self.softmax(self.decoder_linear(lstm_out)/10.0)
+        # print("7. out shape: ", out.shape)
 
         return posterior, sampled_val, out
 
