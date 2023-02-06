@@ -54,7 +54,7 @@ def create_hparams(**kwargs):
         # Experiment Parameters        #
         ################################
         "epochs": 200,
-        "iters_per_checkpoint": 1000,
+        "iters_per_checkpoint": 200,
         "seed": 1107,
         "dynamic_loss_scaling": True,
         "fp16_run": False,

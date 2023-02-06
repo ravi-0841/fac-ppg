@@ -127,7 +127,7 @@ def validate(model, criterion, valset, collate_fn, iteration,
 
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
-            x, y, l = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
+            x, y, _ = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
             posterior, mask_sample, y_pred = model(x)
             loss = criterion(y_pred, y)
             reduced_val_loss = loss.item()
@@ -213,7 +213,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             posterior, mask_sample, y_pred = model(x)
 
             loss = (
-                    hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l) 
+                    hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l)
                     + hparams.lambda_predict*criterion2(y_pred, y)
                     + hparams.lambda_sparse_KL*criterion3(posterior)
                 )
