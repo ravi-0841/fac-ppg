@@ -184,7 +184,36 @@ def load_waveglow_model(path):
 
 def median_mask_filtering(mask):
     mask = np.asarray(mask).reshape(-1,)
-    return medfilt(mask, kernel_size=3)
+    return medfilt(mask, kernel_size=7)
+
+
+def refining_mask_sample(mask, threshold=5):
+    start_pointer = None
+    end_pointer = None
+    
+    chunk_length = []
+    
+    for i, m in enumerate(mask):
+        if m > 0 and start_pointer is None:
+            start_pointer = i
+            end_pointer = None
+        elif m < 1 and start_pointer is not None:
+            end_pointer = i-1
+            chunk_length.append((start_pointer, end_pointer, end_pointer - start_pointer + 1))
+            if (end_pointer - start_pointer + 1) < threshold:
+                mask[start_pointer:end_pointer+1] = 0
+            start_pointer = None
+    
+    if m > 0 and start_pointer is not None:
+        end_pointer = len(mask)-1
+        chunk_length.append((start_pointer, end_pointer, end_pointer - start_pointer + 1))
+        if (end_pointer - start_pointer + 1) < threshold:
+            mask[start_pointer:end_pointer+1] = 0
+        start_pointer = None
+    
+    return chunk_length, mask
+        
+        
 
 
 

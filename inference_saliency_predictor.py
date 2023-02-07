@@ -21,7 +21,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         VecExpectedKLDivergence, 
                                         SparsityKLDivergence,
                                     )
-from src.common.utils import median_mask_filtering
+from src.common.utils import median_mask_filtering, refining_mask_sample
 from src.common.logger_SaliencyPred import SaliencyPredictorLogger
 from src.common.hparams_onflyaugmentor import create_hparams
 from pprint import pprint
@@ -121,6 +121,8 @@ def test(output_directory, checkpoint_path, hparams):
     model, _, _, _ = load_checkpoint(checkpoint_path, model, optimizer)
 
     model.eval()
+
+    chunk_array = []
     # ================ MAIN TESTING LOOP! ===================
     for i, batch in enumerate(test_loader):
         start = time.perf_counter()
@@ -137,9 +139,14 @@ def test(output_directory, checkpoint_path, hparams):
         y = y.squeeze().cpu().numpy()
         posterior = posterior.squeeze().detach().cpu().numpy()
         mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-        mask_sample = median_mask_filtering(mask_sample)
-        mask_sample = median_mask_filtering(mask_sample)
         y_pred = y_pred.squeeze().detach().cpu().numpy()
+        
+        for _ in range(21):
+            mask_sample = median_mask_filtering(mask_sample)
+        
+        chunks, mask_sample = refining_mask_sample(mask_sample)
+        # print("\t Chunks: ", chunks)
+        chunk_array += [c[-1] for c in chunks]
 
         pylab.figure(figsize=(15,12)), pylab.subplot(211)
         pylab.imshow(np.log10(x + 1e-10), origin="lower")
@@ -159,6 +166,8 @@ def test(output_directory, checkpoint_path, hparams):
                 iteration, reduced_loss, duration))
 
         iteration += 1
+    
+    return chunk_array
 
 
 if __name__ == '__main__':
@@ -185,8 +194,8 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
 
-    test(
-        hparams.output_directory,
-        hparams.checkpoint_path,
-        hparams,
-    )
+    chunk_array = test(
+                        hparams.output_directory,
+                        hparams.checkpoint_path,
+                        hparams,
+                    )
