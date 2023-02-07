@@ -39,7 +39,7 @@ def batchnorm_to_float(module):
 def prepare_dataloaders(hparams):
     # Get data, data loaders and collate function ready
     testset = OnTheFlyAugmentor(
-                        utterance_paths_file=hparams.testing_files,
+                        utterance_paths_file=hparams.validation_files,
                         hparams=hparams,
                         augment=False,
                     )
