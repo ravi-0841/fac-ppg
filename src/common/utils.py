@@ -32,6 +32,7 @@
 
 import numpy as np
 from scipy.io.wavfile import read
+from scipy.signal import medfilt
 import torch
 from scipy import signal
 
@@ -179,3 +180,38 @@ def load_waveglow_model(path):
     model = model.remove_weightnorm(model)
     model.cuda().eval()
     return model
+
+
+def median_mask_filtering(mask):
+    mask = np.asarray(mask).reshape(-1,)
+    return medfilt(mask, kernel_size=3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

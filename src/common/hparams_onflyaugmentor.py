@@ -67,7 +67,7 @@ def create_hparams(**kwargs):
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
         "extended_desc": "layers_2_saving_model", # extra description for logging/identification
-        "checkpoint_path": '',  # Path to a checkpoint file.
+        "checkpoint_path": "/home/ravi/Desktop/fac-ppg/masked_predictor_output/libri_1e-05_10.0_1e-07_5.0_layers_2_saving_model/checkpoint_338000",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
@@ -79,11 +79,8 @@ def create_hparams(**kwargs):
         # Passed as a txt file, see data/filelists/training-set.txt for an
         # example.
         "training_files": './speechbrain_data/VESUS_saliency_training.txt',
-        # Passed as a txt file, see data/filelists/validation-set.txt for an
-        # example.
         "validation_files": './speechbrain_data/VESUS_saliency_validation.txt',
-        "noise_files": '/home/ravi/Desktop/fac-via-ppg/speechbrain_data/noise.txt',
-        "config_path": '/home/ravi/Desktop/Meta_Internship/models/wav2vec_small.pt',
+        "testing_files": "./speechbrain_data/VESUS_saliency_testing.txt",
         "is_full_ppg": True,  # Whether to use the full PPG or not.
         "is_append_f0": False,  # Currently only effective at sentence level
         "ppg_subsampling_factor": 1,  # Sub-sample the ppg & acoustic sequence.
