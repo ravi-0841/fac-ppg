@@ -147,22 +147,25 @@ def test(output_directory, checkpoint_path, hparams):
 
         x = x.squeeze().cpu().numpy()
         y = y.squeeze().cpu().numpy()
-        posterior = posterior.squeeze().detach().cpu().numpy()
+        posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
         mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
         y_pred = y_pred.squeeze().detach().cpu().numpy()
         
-        chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
+        chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=9, threshold=5) # 7, 5
         # print("\t Chunks: ", chunks)
         chunk_array += [c[-1] for c in chunks]
 
-        pylab.figure(figsize=(15,12)), pylab.subplot(211)
+        pylab.figure(figsize=(18,15)), pylab.subplot(311)
         pylab.imshow(np.log10(x + 1e-10), origin="lower")
-        pylab.plot(150*mask_sample, "w", linewidth=2.0)
+        pylab.plot(101*mask_sample, "w", linewidth=2.0)
         pylab.tight_layout()
-        pylab.subplot(212)
+        pylab.subplot(312)
         pylab.bar(np.arange(5), y, alpha=0.5, label="target")
         pylab.bar(np.arange(5), y_pred, alpha=0.5, label="pred")
         pylab.tight_layout(), pylab.legend(loc=1)
+        pylab.subplot(313)
+        pylab.plot(posterior, linewidth=2.5)
+        pylab.tight_layout()
         pylab.suptitle("Utterance {}".format(iteration+1))
         pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration+1)))
         pylab.close()
