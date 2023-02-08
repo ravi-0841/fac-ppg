@@ -99,6 +99,61 @@ def load_checkpoint(checkpoint_path, model, optimizer):
     return model, optimizer, learning_rate, iteration
 
 
+def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
+    # Plotting details
+    pylab.xticks(fontsize=18)
+    pylab.yticks(fontsize=18)
+    fig, ax = pylab.subplots(3, 1, figsize=(27, 18))
+    ax[0].imshow(np.log10(spectrogram + 1e-10), aspect="auto", origin="lower",
+                   interpolation='none')
+    ax[0].plot(151*mask, "w", linewidth=4.0)
+    ax[0].set_xlabel('Time',fontsize = 20) #xlabel
+    ax[0].set_ylabel('Frequency', fontsize = 20)#ylabel
+    # pylab.tight_layout()
+    
+    ax[1].bar(np.arange(5), y, alpha=0.5, label="target")
+    ax[1].bar(np.arange(5), y_pred, alpha=0.5, label="pred")
+    ax[1].legend(loc=1)
+    ax[1].set_xlabel('Classes',fontsize = 20) #xlabel
+    ax[1].set_ylabel('Softmax Score', fontsize = 20)#ylabel
+    # pylab.tight_layout()
+    
+    ax[2].plot(posterior, linewidth=2.5)
+    ax[2].set_xlabel('Time',fontsize = 20) #xlabel
+    ax[2].set_ylabel('Probability', fontsize = 20)#ylabel
+    # pylab.tight_layout()
+    pylab.suptitle("Utterance {}".format(iteration), fontsize=24)
+    
+    pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration+1)))
+    pylab.close()
+
+
+def multi_sampling(model, x, y, criterion):
+    mask_samples = []
+    posterior, mask, y_pred = model(x)
+    loss = criterion(y_pred, y)
+    reduced_loss = loss.item()
+
+    y = y.squeeze().cpu().numpy()
+    posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
+    mask = mask.squeeze().detach().cpu().numpy()[:,1]
+    y_pred = y_pred.squeeze().detach().cpu().numpy()
+    
+    mask_samples.append(refining_mask_sample(mask)[1])
+    
+    for _ in range(10):
+        _, m, _ = model(x)
+        m = m.squeeze().detach().cpu().numpy()[:,1]
+        mask_samples.append(refining_mask_sample(m)[1])
+    
+    mask_intersect = np.multiply(np.logical_and(mask_samples[0], mask_samples[1]), 1)
+    for i in range(2, 10):
+        mask_intersect = np.multiply(np.logical_and(mask_intersect, mask_samples[i]), 1)
+    
+    x = x.squeeze().cpu().numpy()
+    return x, y, y_pred, posterior, mask_intersect, reduced_loss
+
+
 def test(output_directory, checkpoint_path, hparams):
     """Training and validation logging results to tensorboard and stdout
 
@@ -138,6 +193,10 @@ def test(output_directory, checkpoint_path, hparams):
 
         x, y, _ = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
         # input_shape should be [#batch_size, #freq_channels, #time]
+        
+        # Sampling masks multiple times for same utterance
+        # x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion2)
+        # loss_array.append(reduced_loss)
 
         posterior, mask_sample, y_pred = model(x)
 
@@ -151,24 +210,12 @@ def test(output_directory, checkpoint_path, hparams):
         mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
         y_pred = y_pred.squeeze().detach().cpu().numpy()
         
-        chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=9, threshold=5) # 7, 5
-        # print("\t Chunks: ", chunks)
-        chunk_array += [c[-1] for c in chunks]
-
-        pylab.figure(figsize=(18,15)), pylab.subplot(311)
-        pylab.imshow(np.log10(x + 1e-10), origin="lower")
-        pylab.plot(101*mask_sample, "w", linewidth=2.0)
-        pylab.tight_layout()
-        pylab.subplot(312)
-        pylab.bar(np.arange(5), y, alpha=0.5, label="target")
-        pylab.bar(np.arange(5), y_pred, alpha=0.5, label="pred")
-        pylab.tight_layout(), pylab.legend(loc=1)
-        pylab.subplot(313)
-        pylab.plot(posterior, linewidth=2.5)
-        pylab.tight_layout()
-        pylab.suptitle("Utterance {}".format(iteration+1))
-        pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration+1)))
-        pylab.close()
+        chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
+        # # print("\t Chunks: ", chunks)
+        # chunk_array += [c[-1] for c in chunks]
+        
+        # Plotting
+        plot_figures(x, posterior, mask_sample, y, y_pred, iteration+1, hparams)
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -194,7 +241,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images"
+                                        "images_2"
                                     )
 
     if not hparams.output_directory:

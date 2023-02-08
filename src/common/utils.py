@@ -189,7 +189,8 @@ def median_mask_filtering(mask, kernel_size=5):
 
 def refining_mask_sample(mask, kernel_size=5, threshold=5):
 
-    for _ in range(11):
+    mask = median_mask_filtering(mask, kernel_size=3)
+    for _ in range(10):
         mask = median_mask_filtering(mask, kernel_size=kernel_size)
 
     start_pointer = None
