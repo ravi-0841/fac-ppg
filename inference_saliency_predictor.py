@@ -36,13 +36,21 @@ def batchnorm_to_float(module):
     return module
 
 
-def prepare_dataloaders(hparams):
+def prepare_dataloaders(hparams, valid=True):
     # Get data, data loaders and collate function ready
-    testset = OnTheFlyAugmentor(
-                        utterance_paths_file=hparams.validation_files,
-                        hparams=hparams,
-                        augment=False,
-                    )
+    if valid:
+        testset = OnTheFlyAugmentor(
+                            utterance_paths_file=hparams.validation_files,
+                            hparams=hparams,
+                            augment=False,
+                        )
+    else:
+        testset = OnTheFlyAugmentor(
+                            utterance_paths_file=hparams.testing_files,
+                            hparams=hparams,
+                            augment=False,
+                        )
+
     hparams.load_feats_from_disk = False
     hparams.is_cache_feats = False
     hparams.feats_cache_path = ''
@@ -123,6 +131,7 @@ def test(output_directory, checkpoint_path, hparams):
     model.eval()
 
     chunk_array = []
+    loss_array = []
     # ================ MAIN TESTING LOOP! ===================
     for i, batch in enumerate(test_loader):
         start = time.perf_counter()
@@ -134,6 +143,7 @@ def test(output_directory, checkpoint_path, hparams):
 
         loss = criterion2(y_pred, y)
         reduced_loss = loss.item()
+        loss_array.append(reduced_loss)
 
         x = x.squeeze().cpu().numpy()
         y = y.squeeze().cpu().numpy()
@@ -141,7 +151,7 @@ def test(output_directory, checkpoint_path, hparams):
         mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
         y_pred = y_pred.squeeze().detach().cpu().numpy()
         
-        chunks, mask_sample = refining_mask_sample(mask_sample)
+        chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
         # print("\t Chunks: ", chunks)
         chunk_array += [c[-1] for c in chunks]
 
@@ -154,7 +164,7 @@ def test(output_directory, checkpoint_path, hparams):
         pylab.bar(np.arange(5), y_pred, alpha=0.5, label="pred")
         pylab.tight_layout(), pylab.legend(loc=1)
         pylab.suptitle("Utterance {}".format(iteration+1))
-        pylab.savefig("/home/ravi/Desktop/saliency_images/{}.png".format(iteration+1))
+        pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration+1)))
         pylab.close()
 
         if not math.isnan(reduced_loss):
@@ -163,6 +173,8 @@ def test(output_directory, checkpoint_path, hparams):
                 iteration, reduced_loss, duration))
 
         iteration += 1
+    
+    print("Avg. Loss: {:.3f}".format(np.mean(loss_array)))
     
     return chunk_array
 
@@ -179,14 +191,14 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "wavs"
+                                        "images"
                                     )
 
     if not hparams.output_directory:
         raise FileExistsError('Please specify the output dir.')
     else:
         if not os.path.exists(hparams.output_directory):
-            os.mkdir(hparams.output_directory)
+            os.makedirs(hparams.output_directory)
 
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
