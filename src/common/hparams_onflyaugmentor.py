@@ -66,8 +66,8 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "layers_2_saving_model", # extra description for logging/identification
-        "checkpoint_path": "/home/ravi/Desktop/fac-ppg/masked_predictor_output/libri_1e-05_10.0_1e-07_5.0_layers_2_saving_model/checkpoint_338000",  # Path to a checkpoint file.
+        "extended_desc": "layers_2_bigger_validation", # extra description for logging/identification
+        "checkpoint_path": "",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
