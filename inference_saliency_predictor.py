@@ -141,9 +141,6 @@ def test(output_directory, checkpoint_path, hparams):
         mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
         y_pred = y_pred.squeeze().detach().cpu().numpy()
         
-        for _ in range(21):
-            mask_sample = median_mask_filtering(mask_sample)
-        
         chunks, mask_sample = refining_mask_sample(mask_sample)
         # print("\t Chunks: ", chunks)
         chunk_array += [c[-1] for c in chunks]

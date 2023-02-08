@@ -182,12 +182,16 @@ def load_waveglow_model(path):
     return model
 
 
-def median_mask_filtering(mask):
+def median_mask_filtering(mask, kernel_size=5):
     mask = np.asarray(mask).reshape(-1,)
-    return medfilt(mask, kernel_size=7)
+    return medfilt(mask, kernel_size=kernel_size)
 
 
-def refining_mask_sample(mask, threshold=5):
+def refining_mask_sample(mask, kernel_size=5, threshold=5):
+
+    for _ in range(21):
+        mask = median_mask_filtering(mask, kernel_size=kernel_size)
+
     start_pointer = None
     end_pointer = None
     
