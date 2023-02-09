@@ -13,6 +13,7 @@ import math
 import torch
 import pylab
 import numpy as np
+from scipy.signal import medfilt
 from torch.utils.data import DataLoader
 from saliency_predictor import SaliencyPredictor
 from on_the_fly_augmentor import OnTheFlyAugmentor, acoustics_collate
@@ -139,16 +140,26 @@ def multi_sampling(model, x, y, criterion):
     mask = mask.squeeze().detach().cpu().numpy()[:,1]
     y_pred = y_pred.squeeze().detach().cpu().numpy()
     
-    mask_samples.append(refining_mask_sample(mask)[1])
+    # for _ in range(11):
+    #     mask = medfilt(mask, kernel_size=5)
     
-    for _ in range(10):
+    # mask_samples.append(refining_mask_sample(mask)[1])
+    mask_samples.append(mask)
+    
+    for _ in range(2):
         _, m, _ = model(x)
         m = m.squeeze().detach().cpu().numpy()[:,1]
-        mask_samples.append(refining_mask_sample(m)[1])
+        # for _ in range(11):
+        #     m = medfilt(m, kernel_size=5)
+        mask_samples.append(medfilt(m, kernel_size=5))
+        # mask_samples.append(refining_mask_sample(m)[1])
     
     mask_intersect = np.multiply(np.logical_and(mask_samples[0], mask_samples[1]), 1)
-    for i in range(2, 10):
+    for i in range(2, 3):
         mask_intersect = np.multiply(np.logical_and(mask_intersect, mask_samples[i]), 1)
+    
+    for _ in range(11):
+        mask_intersect = medfilt(mask_intersect, kernel_size=9)
     
     x = x.squeeze().cpu().numpy()
     return x, y, y_pred, posterior, mask_intersect, reduced_loss
@@ -193,13 +204,13 @@ def test(output_directory, checkpoint_path, hparams):
 
         x, y, _ = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
         # input_shape should be [#batch_size, #freq_channels, #time]
-        
-        # Sampling masks multiple times for same utterance
+
+        #%% Sampling masks multiple times for same utterance
         # x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion2)
         # loss_array.append(reduced_loss)
-
+        
+        #%% Sampling the mask only once
         posterior, mask_sample, y_pred = model(x)
-
         loss = criterion2(y_pred, y)
         reduced_loss = loss.item()
         loss_array.append(reduced_loss)
@@ -241,7 +252,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_2"
+                                        "images"
                                     )
 
     if not hparams.output_directory:
