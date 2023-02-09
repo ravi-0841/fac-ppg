@@ -124,7 +124,7 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     # pylab.tight_layout()
     pylab.suptitle("Utterance {}".format(iteration), fontsize=24)
     
-    pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration+1)))
+    pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration)))
     pylab.close()
 
 
@@ -211,7 +211,7 @@ def test(output_directory, checkpoint_path, hparams):
         y_pred = y_pred.squeeze().detach().cpu().numpy()
         
         chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
-        print("\t Chunks: ", chunks)
+        # print("\t Chunks: ", chunks)
         chunk_array += [c[-1] for c in chunks]
         
         # Plotting
