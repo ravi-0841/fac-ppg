@@ -157,7 +157,9 @@ class SaliencyPredictor(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
     
     
-    def forward(self, x):
+    def forward(self, x, pre_computed_mask=None):
+        # x shape - [batch, #freq, #time]
+        # pre_computed_mask shape - [batch, #time, 512]
 
         # out = x
         projected_x = self.input_projection(x.permute(0,2,1))
@@ -181,6 +183,9 @@ class SaliencyPredictor(nn.Module):
         sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
         mask = sampled_val[:,:,1:2].repeat(1,1,512) # 256 for smaller model
         # print("4. mask shape: ", mask.shape)
+        
+        if pre_computed_mask is not None:
+            mask = pre_computed_mask
 
         enc_out = projected_x * mask.permute(0,2,1)
         enc_out = enc_out.permute(2,0,1)
