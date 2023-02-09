@@ -202,18 +202,25 @@ def refining_mask_sample(mask, kernel_size=5, threshold=5):
         if m > 0 and start_pointer is None:
             start_pointer = i
             end_pointer = None
+        
         elif m < 1 and start_pointer is not None:
             end_pointer = i-1
-            chunk_length.append((start_pointer, end_pointer, end_pointer - start_pointer + 1))
+    
             if (end_pointer - start_pointer + 1) < threshold:
                 mask[start_pointer:end_pointer+1] = 0
+            else:
+                chunk_length.append((start_pointer, end_pointer, end_pointer - start_pointer + 1))
+            
             start_pointer = None
     
     if m > 0 and start_pointer is not None:
         end_pointer = len(mask)-1
-        chunk_length.append((start_pointer, end_pointer, end_pointer - start_pointer + 1))
+
         if (end_pointer - start_pointer + 1) < threshold:
             mask[start_pointer:end_pointer+1] = 0
+        else:
+            chunk_length.append((start_pointer, end_pointer, end_pointer - start_pointer + 1))
+
         start_pointer = None
     
     return chunk_length, mask

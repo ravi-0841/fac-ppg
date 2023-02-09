@@ -211,8 +211,8 @@ def test(output_directory, checkpoint_path, hparams):
         y_pred = y_pred.squeeze().detach().cpu().numpy()
         
         chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
-        # # print("\t Chunks: ", chunks)
-        # chunk_array += [c[-1] for c in chunks]
+        print("\t Chunks: ", chunks)
+        chunk_array += [c[-1] for c in chunks]
         
         # Plotting
         plot_figures(x, posterior, mask_sample, y, y_pred, iteration+1, hparams)
