@@ -225,7 +225,62 @@ def refining_mask_sample(mask, kernel_size=5, threshold=5):
     
     return chunk_length, mask
         
+
+def multi_sampling(model, x, y, criterion, num_samples=10):
+    mask_samples = []
+    posterior, mask, y_pred = model(x)
+    loss = criterion(y_pred, y)
+    reduced_loss = loss.item()
+
+    y = y.squeeze().cpu().numpy()
+    posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
+    mask = mask.squeeze().detach().cpu().numpy()[:,1]
+    y_pred = y_pred.squeeze().detach().cpu().numpy()
+    
+    # for _ in range(11):
+    #     mask = medfilt(mask, kernel_size=5)
+    
+    # mask_samples.append(refining_mask_sample(mask)[1])
+    mask_samples.append(mask)
+    
+    for _ in range(num_samples-1):
+        _, m, _ = model(x)
+        m = m.squeeze().detach().cpu().numpy()[:,1]
+        # for _ in range(11):
+        #     m = medfilt(m, kernel_size=5)
+        mask_samples.append(m)
+        # mask_samples.append(refining_mask_sample(m)[1])
+    
+    mask_intersect = np.multiply(np.logical_and(mask_samples[0], mask_samples[1]), 1)
+    for i in range(2, num_samples):
+        mask_intersect = np.multiply(np.logical_and(mask_intersect, mask_samples[i]), 1)
+    
+    for _ in range(11):
+        mask_intersect = medfilt(mask_intersect, kernel_size=7)
+    
+    x = x.squeeze().cpu().numpy()
+    return x, y, y_pred, posterior, mask_intersect, reduced_loss
+
+
+def random_mask_thresholding(mask, threshold=5):
+    start_pointer = None
+    end_pointer = None
+
+    for i, m in enumerate(mask):
+        if m > 0 and start_pointer is None:
+            start_pointer = i
+            end_pointer = None
         
+        elif m < 1 and start_pointer is not None:
+            end_pointer = i-1
+    
+            if (end_pointer - start_pointer + 1) < threshold:
+                mask[start_pointer:end_pointer+1] = 0
+                # break
+            
+            start_pointer = None
+
+    return mask        
 
 
 

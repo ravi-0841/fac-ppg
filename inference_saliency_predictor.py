@@ -22,19 +22,13 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         VecExpectedKLDivergence, 
                                         SparsityKLDivergence,
                                     )
-from src.common.utils import median_mask_filtering, refining_mask_sample
-from src.common.logger_SaliencyPred import SaliencyPredictorLogger
+from src.common.utils import (median_mask_filtering, 
+                              refining_mask_sample,
+                              multi_sampling,
+                              random_mask_thresholding,
+                              )
 from src.common.hparams_onflyaugmentor import create_hparams
 from pprint import pprint
-
-
-def batchnorm_to_float(module):
-    """Converts batch norm modules to FP32"""
-    if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
-        module.float()
-    for child in module.children():
-        batchnorm_to_float(child)
-    return module
 
 
 def prepare_dataloaders(hparams, valid=True):
@@ -68,18 +62,6 @@ def prepare_dataloaders(hparams, valid=True):
                             collate_fn=collate_fn,
                             )
     return test_loader, collate_fn
-
-
-def prepare_directories_and_logger(output_directory, log_directory, rank):
-    if rank == 0:
-        if not os.path.isdir(output_directory):
-            os.makedirs(output_directory)
-            os.chmod(output_directory, 0o775)
-        logger = SaliencyPredictorLogger(os.path.join(output_directory, 
-                                                        log_directory))
-    else:
-        logger = None
-    return logger
 
 
 def load_model(hparams):
@@ -129,62 +111,6 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     pylab.close()
 
 
-def multi_sampling(model, x, y, criterion, num_samples=3):
-    mask_samples = []
-    posterior, mask, y_pred = model(x)
-    loss = criterion(y_pred, y)
-    reduced_loss = loss.item()
-
-    y = y.squeeze().cpu().numpy()
-    posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-    mask = mask.squeeze().detach().cpu().numpy()[:,1]
-    y_pred = y_pred.squeeze().detach().cpu().numpy()
-    
-    # for _ in range(11):
-    #     mask = medfilt(mask, kernel_size=5)
-    
-    # mask_samples.append(refining_mask_sample(mask)[1])
-    mask_samples.append(mask)
-    
-    for _ in range(num_samples-1):
-        _, m, _ = model(x)
-        m = m.squeeze().detach().cpu().numpy()[:,1]
-        # for _ in range(11):
-        #     m = medfilt(m, kernel_size=5)
-        mask_samples.append(medfilt(m, kernel_size=5))
-        # mask_samples.append(refining_mask_sample(m)[1])
-    
-    mask_intersect = np.multiply(np.logical_and(mask_samples[0], mask_samples[1]), 1)
-    for i in range(2, num_samples):
-        mask_intersect = np.multiply(np.logical_and(mask_intersect, mask_samples[i]), 1)
-    
-    for _ in range(11):
-        mask_intersect = medfilt(mask_intersect, kernel_size=7)
-    
-    x = x.squeeze().cpu().numpy()
-    return x, y, y_pred, posterior, mask_intersect, reduced_loss
-
-
-def random_mask_thresholding(mask, threshold=5):
-    start_pointer = None
-    end_pointer = None
-
-    for i, m in enumerate(mask):
-        if m > 0 and start_pointer is None:
-            start_pointer = i
-            end_pointer = None
-        
-        elif m < 1 and start_pointer is not None:
-            end_pointer = i-1
-    
-            if (end_pointer - start_pointer + 1) < threshold:
-                mask[start_pointer:end_pointer+1] = 0
-                # break
-            
-            start_pointer = None
-
-    return mask
-
 def test(output_directory, checkpoint_path, hparams):
     """Training and validation logging results to tensorboard and stdout
 
@@ -227,8 +153,8 @@ def test(output_directory, checkpoint_path, hparams):
 
         #%% Sampling masks multiple times for same utterance
         
-        # x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion2)
-        # loss_array.append(reduced_loss)
+        x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion2)
+        loss_array.append(reduced_loss)
         
         #%% Sampling the mask only once
         
@@ -249,27 +175,27 @@ def test(output_directory, checkpoint_path, hparams):
         
         #%% Removing segments of length < 5
         
-        posterior, mask_sample, _ = model(x)
-        mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-        mask_sample = random_mask_thresholding(mask_sample)
+        # posterior, mask_sample, _ = model(x)
+        # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
+        # mask_sample = random_mask_thresholding(mask_sample)
         
-        mask_sample = torch.from_numpy(mask_sample).unsqueeze(dim=0).unsqueeze(dim=-1).to("cuda")
-        mask_sample = mask_sample.repeat(1,1,512)
-        # mask_sample = torch.zeros_like(mask_sample).to("cuda") # Zeroing out mask
-        _, _, y_pred = model(x, pre_computed_mask=mask_sample)
-        loss = criterion2(y_pred, y)
-        reduced_loss = loss.item()
-        loss_array.append(reduced_loss)
+        # mask_sample = torch.from_numpy(mask_sample).unsqueeze(dim=0).unsqueeze(dim=-1).to("cuda")
+        # mask_sample = mask_sample.repeat(1,1,512)
+        # # mask_sample = torch.zeros_like(mask_sample).to("cuda") # Zeroing out mask
+        # _, _, y_pred = model(x, pre_computed_mask=mask_sample)
+        # loss = criterion2(y_pred, y)
+        # reduced_loss = loss.item()
+        # loss_array.append(reduced_loss)
 
-        x = x.squeeze().cpu().numpy()
-        y = y.squeeze().cpu().numpy()
-        y_pred = y_pred.squeeze().detach().cpu().numpy()
-        posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-        mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,0]
+        # x = x.squeeze().cpu().numpy()
+        # y = y.squeeze().cpu().numpy()
+        # y_pred = y_pred.squeeze().detach().cpu().numpy()
+        # posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
+        # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,0]
         
-        chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
-        # print("\t Chunks: ", chunks)
-        chunk_array += [c[-1] for c in chunks]
+        # chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
+        # # print("\t Chunks: ", chunks)
+        # chunk_array += [c[-1] for c in chunks]
         
         #%% Plotting
         plot_figures(x, posterior, mask_sample, y, y_pred, iteration+1, hparams)
@@ -315,3 +241,32 @@ if __name__ == '__main__':
                         hparams.checkpoint_path,
                         hparams,
                     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
