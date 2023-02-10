@@ -129,7 +129,7 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     pylab.close()
 
 
-def multi_sampling(model, x, y, criterion):
+def multi_sampling(model, x, y, criterion, num_samples=3):
     mask_samples = []
     posterior, mask, y_pred = model(x)
     loss = criterion(y_pred, y)
@@ -146,7 +146,7 @@ def multi_sampling(model, x, y, criterion):
     # mask_samples.append(refining_mask_sample(mask)[1])
     mask_samples.append(mask)
     
-    for _ in range(2):
+    for _ in range(num_samples-1):
         _, m, _ = model(x)
         m = m.squeeze().detach().cpu().numpy()[:,1]
         # for _ in range(11):
@@ -155,11 +155,11 @@ def multi_sampling(model, x, y, criterion):
         # mask_samples.append(refining_mask_sample(m)[1])
     
     mask_intersect = np.multiply(np.logical_and(mask_samples[0], mask_samples[1]), 1)
-    for i in range(2, 3):
+    for i in range(2, num_samples):
         mask_intersect = np.multiply(np.logical_and(mask_intersect, mask_samples[i]), 1)
     
     for _ in range(11):
-        mask_intersect = medfilt(mask_intersect, kernel_size=9)
+        mask_intersect = medfilt(mask_intersect, kernel_size=7)
     
     x = x.squeeze().cpu().numpy()
     return x, y, y_pred, posterior, mask_intersect, reduced_loss
@@ -226,32 +226,12 @@ def test(output_directory, checkpoint_path, hparams):
         # input_shape should be [#batch_size, #freq_channels, #time]
 
         #%% Sampling masks multiple times for same utterance
+        
         # x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion2)
         # loss_array.append(reduced_loss)
         
-        #%% Randomly removing some segments of length < 5
-        posterior, mask_sample, y_pred = model(x)
-        mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-        mask_sample = random_mask_thresholding(mask_sample)
-        
-        mask_sample = torch.from_numpy(mask_sample).unsqueeze(dim=0).unsqueeze(dim=-1).to("cuda")
-        mask_sample = mask_sample.repeat(1,1,512)
-        _, _, y_pred = model(x, pre_computed_mask=mask_sample)
-        loss = criterion2(y_pred, y)
-        reduced_loss = loss.item()
-        loss_array.append(reduced_loss)
-
-        x = x.squeeze().cpu().numpy()
-        y = y.squeeze().cpu().numpy()
-        posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-        mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,0]
-        y_pred = y_pred.squeeze().detach().cpu().numpy()
-        
-        chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
-        # print("\t Chunks: ", chunks)
-        chunk_array += [c[-1] for c in chunks]
-        
         #%% Sampling the mask only once
+        
         # posterior, mask_sample, y_pred = model(x)
         # loss = criterion2(y_pred, y)
         # reduced_loss = loss.item()
@@ -259,15 +239,39 @@ def test(output_directory, checkpoint_path, hparams):
 
         # x = x.squeeze().cpu().numpy()
         # y = y.squeeze().cpu().numpy()
+        # y_pred = y_pred.squeeze().detach().cpu().numpy()
         # posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
         # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-        # y_pred = y_pred.squeeze().detach().cpu().numpy()
         
         # chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
         # # print("\t Chunks: ", chunks)
         # chunk_array += [c[-1] for c in chunks]
         
-        # Plotting
+        #%% Removing segments of length < 5
+        
+        posterior, mask_sample, _ = model(x)
+        mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
+        mask_sample = random_mask_thresholding(mask_sample)
+        
+        mask_sample = torch.from_numpy(mask_sample).unsqueeze(dim=0).unsqueeze(dim=-1).to("cuda")
+        mask_sample = mask_sample.repeat(1,1,512)
+        # mask_sample = torch.zeros_like(mask_sample).to("cuda") # Zeroing out mask
+        _, _, y_pred = model(x, pre_computed_mask=mask_sample)
+        loss = criterion2(y_pred, y)
+        reduced_loss = loss.item()
+        loss_array.append(reduced_loss)
+
+        x = x.squeeze().cpu().numpy()
+        y = y.squeeze().cpu().numpy()
+        y_pred = y_pred.squeeze().detach().cpu().numpy()
+        posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
+        mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,0]
+        
+        chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
+        # print("\t Chunks: ", chunks)
+        chunk_array += [c[-1] for c in chunks]
+        
+        #%% Plotting
         plot_figures(x, posterior, mask_sample, y, y_pred, iteration+1, hparams)
 
         if not math.isnan(reduced_loss):
