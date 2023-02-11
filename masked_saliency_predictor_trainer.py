@@ -211,7 +211,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             x, y, l = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
             # input_shape should be [#batch_size, #freq_channels, #time]
 
-            posterior, mask_sample, y_pred = model(x)
+            posterior, mask_sample, y_pred = model(x, pre_computed_mask=None)
 
             loss = (
                     hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l)

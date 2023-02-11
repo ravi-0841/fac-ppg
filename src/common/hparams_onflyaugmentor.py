@@ -53,7 +53,7 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 200,
+        "epochs": 250,
         "iters_per_checkpoint": 1000,
         "seed": 1107,
         "dynamic_loss_scaling": True,
@@ -66,8 +66,8 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "layers_2_bigger_validation", # extra description for logging/identification
-        "checkpoint_path": "/home/ravi/Desktop/fac-ppg/masked_predictor_output/libri_1e-05_10.0_1e-07_5.0_layers_2_bigger_validation/checkpoint_585000",  # Path to a checkpoint file.
+        "extended_desc": "layers_2_train_small_batchsize_8", # extra description for logging/identification
+        "checkpoint_path": "",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
@@ -78,7 +78,7 @@ def create_hparams(**kwargs):
         ################################
         # Passed as a txt file, see data/filelists/training-set.txt for an
         # example.
-        "training_files": './speechbrain_data/VESUS_saliency_training.txt',
+        "training_files": './speechbrain_data/VESUS_saliency_training_small.txt',
         "validation_files": './speechbrain_data/VESUS_saliency_validation.txt',
         "testing_files": "./speechbrain_data/VESUS_saliency_testing.txt",
         "is_full_ppg": True,  # Whether to use the full PPG or not.
@@ -157,7 +157,7 @@ def create_hparams(**kwargs):
         "learning_rate_lb": 1e-6,
         "weight_decay": 1e-6,
         "grad_clip_thresh": 1.0,
-        "batch_size": 4, #6
+        "batch_size": 8, #6
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.1, # Bernoulli parameter for sampling 1st entry of the mask
         "beta": 0.95, # Bernoulli parameter for mask persistence
