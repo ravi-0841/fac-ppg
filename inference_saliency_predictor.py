@@ -84,32 +84,43 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
-    fig, ax = pylab.subplots(3, 1, figsize=(27, 18))
+    fig, ax = pylab.subplots(4, 1, figsize=(32, 18))
     ax[0].imshow(np.log10(spectrogram + 1e-10), aspect="auto", origin="lower",
                    interpolation='none')
     ax[0].plot(151*mask, "w", linewidth=4.0)
     ax[0].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[0].set_ylabel('Frequency', fontsize = 20)#ylabel
+    ax[0].set_ylabel('Frequency', fontsize = 20) #ylabel
     # pylab.tight_layout()
-    
-    ax[1].bar(np.arange(5), y, alpha=0.5, label="target")
-    ax[1].bar(np.arange(5), y_pred, alpha=0.5, label="pred")
-    ax[1].legend(loc=1)
-    ax[1].set_xlabel('Classes',fontsize = 20) #xlabel
-    ax[1].set_ylabel('Softmax Score', fontsize = 20)#ylabel
+
+    energy = np.sum(spectrogram**2, axis=0)
+    ax[1].plot(energy, linewidth=2.5)
+    ax[1].set_xlabel('Time',fontsize = 20) #xlabel
+    ax[1].set_ylabel('Energy', fontsize = 20) #ylabel
     # pylab.tight_layout()
-    
+
     ax[2].plot(posterior, linewidth=2.5)
     ax[2].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[2].set_ylabel('Probability', fontsize = 20)#ylabel
+    ax[2].set_ylabel('Probability', fontsize = 20) #ylabel
     # pylab.tight_layout()
-    pylab.suptitle("Utterance {}".format(iteration), fontsize=24)
+    
+    ax[3].bar(np.arange(5), y, alpha=0.5, label="target")
+    ax[3].bar(np.arange(5), y_pred, alpha=0.5, label="pred")
+    ax[3].legend(loc=1)
+    ax[3].set_xlabel('Classes',fontsize = 20) #xlabel
+    ax[3].set_ylabel('Softmax Score', fontsize = 20) #ylabel
+    # pylab.tight_layout()
+
+    correlation = np.corrcoef(energy, posterior)[0,1]
+
+    pylab.suptitle("Utterance- {}, correlation (energy/posterior)- {}".format(iteration, 
+                    np.round(correlation, 2)), 
+                    fontsize=24)
     
     pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration)))
     pylab.close("all")
 
 
-def multi_sampling(model, x, y, criterion, num_samples=5):
+def multi_sampling(model, x, y, criterion, num_samples=3):
     
     assert num_samples >= 3, "Sample at least 3 times"
     
@@ -127,14 +138,14 @@ def multi_sampling(model, x, y, criterion, num_samples=5):
     #     mask = medfilt(mask, kernel_size=5)
     
     # mask_samples.append(refining_mask_sample(mask)[1])
-    mask_samples.append(medfilt(mask, kernel_size=5))
+    mask_samples.append(medfilt(mask, kernel_size=1))
     
     for _ in range(num_samples-1):
         _, m, _ = model(x)
         m = m.squeeze().detach().cpu().numpy()[:,1]
         # for _ in range(11):
         #     m = medfilt(m, kernel_size=5)
-        mask_samples.append(medfilt(m, kernel_size=5))
+        mask_samples.append(medfilt(m, kernel_size=1))
         # mask_samples.append(refining_mask_sample(m)[1])
     
     mask_intersect = np.multiply(np.logical_and(mask_samples[0], mask_samples[1]), 1)
@@ -169,7 +180,7 @@ def random_mask_thresholding(mask, threshold=5):
     return mask        
 
 
-def test(output_directory, checkpoint_path, hparams):
+def test(output_directory, checkpoint_path, hparams, valid=True):
     """Training and validation logging results to tensorboard and stdout
 
     Params
@@ -192,7 +203,7 @@ def test(output_directory, checkpoint_path, hparams):
     criterion2 = torch.nn.L1Loss() #MSELoss
     # criterion3 = SparsityKLDivergence()
 
-    test_loader, collate_fn = prepare_dataloaders(hparams)
+    test_loader, collate_fn = prepare_dataloaders(hparams, valid=valid)
 
     # Load checkpoint
     iteration = 0
@@ -202,6 +213,7 @@ def test(output_directory, checkpoint_path, hparams):
 
     chunk_array = []
     loss_array = []
+    pred_array = []
     # ================ MAIN TESTING LOOP! ===================
     for i, batch in enumerate(test_loader):
         start = time.perf_counter()
@@ -213,7 +225,8 @@ def test(output_directory, checkpoint_path, hparams):
         
         x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion2)
         loss_array.append(reduced_loss)
-        
+        pred_array.append(y_pred)
+
         #%% Sampling the mask only once
         
         # posterior, mask_sample, y_pred = model(x)
@@ -236,10 +249,11 @@ def test(output_directory, checkpoint_path, hparams):
         # posterior, mask_sample, _ = model(x)
         # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
         # mask_sample = random_mask_thresholding(mask_sample)
+        # # _, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5)
         
         # mask_sample = torch.from_numpy(mask_sample).unsqueeze(dim=0).unsqueeze(dim=-1).to("cuda")
         # mask_sample = mask_sample.repeat(1,1,512)
-        # # mask_sample = torch.zeros_like(mask_sample).to("cuda") # Zeroing out mask
+        # mask_sample = torch.zeros_like(mask_sample).to("cuda") # Zeroing out mask
         # _, _, y_pred = model(x, pre_computed_mask=mask_sample)
         # loss = criterion2(y_pred, y)
         # reduced_loss = loss.item()
@@ -253,7 +267,7 @@ def test(output_directory, checkpoint_path, hparams):
         
         # chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
         # # print("\t Chunks: ", chunks)
-        # chunk_array += [c[-1] for c in chunks]
+        # # chunk_array += [c[-1] for c in chunks]
         
         #%% Plotting
         plot_figures(x, posterior, mask_sample, y, y_pred, iteration+1, hparams)
@@ -267,7 +281,7 @@ def test(output_directory, checkpoint_path, hparams):
     
     print("Avg. Loss: {:.3f}".format(np.mean(loss_array)))
     
-    return chunk_array
+    return chunk_array, pred_array
 
 
 if __name__ == '__main__':
@@ -282,7 +296,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_check"
+                                        "images_3"
                                     )
 
     if not hparams.output_directory:
@@ -294,11 +308,12 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
 
-    chunk_array = test(
-                        hparams.output_directory,
-                        hparams.checkpoint_path,
-                        hparams,
-                    )
+    chunk_array, pred_array = test(
+                                    hparams.output_directory,
+                                    hparams.checkpoint_path,
+                                    hparams,
+                                    valid=True,
+                                )
 
 
 

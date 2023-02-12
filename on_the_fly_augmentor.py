@@ -141,7 +141,7 @@ if __name__ == "__main__":
     hparams = create_hparams()
 
     dataloader = OnTheFlyAugmentor(
-                                utterance_paths_file="./speechbrain_data/VESUS_saliency_testing.txt",
+                                utterance_paths_file="./speechbrain_data/VESUS_saliency_validation.txt",
                                 hparams=hparams,
                                 augment=False,
                                 )
