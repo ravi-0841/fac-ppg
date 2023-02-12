@@ -136,7 +136,7 @@ class SaliencyPredictor(nn.Module):
 
         encoder_layer = nn.TransformerEncoderLayer(d_model=512, nhead=8,
                                                 dim_feedforward=512)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=4)
 
         self.encoder_linear = nn.Linear(in_features=512, out_features=2)
         
