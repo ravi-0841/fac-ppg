@@ -6,9 +6,13 @@ Created on Mon Feb 13 16:09:01 2023
 @author: ravi
 """
 
+import os
+import librosa
 
 import pandas as pd
 import numpy as np
+import soundfile as sf
+import scipy.io.wavfile as scwav
 
 from torch.utils.data import DataLoader
 from src.common.hparams_onflyaugmentor import create_hparams
@@ -58,10 +62,20 @@ def prepare_dataloaders(hparams, valid=True):
 
 if __name__ == "__main__":
     hparams = create_hparams()
-    data_object, dataloader, _ = prepare_dataloaders(hparams)
+    data_object, _, _ = prepare_dataloaders(hparams)
+    lookup_dict = prepare_dialog_lookup()
     
     x = data_object.utterance_rating_paths[0].split(" ,")[0].split("/")[-3:]
     lookup_key = "/" + ("/").join(x)
+    text = lookup_dict[lookup_key][0]
+
+    with open("/home/ravi/tmp/textfile.txt", "w") as f:
+        f.writelines(text)
+        f.close()
     
-    
+    data, sr = sf.read(data_object.utterance_rating_paths[0].split(" ,")[0])
+    data = librosa.resample(data, orig_sr=sr, target_sr=16000)
+    scwav.write("/home/ravi/tmp/audiofile.wav", 16000, np.asarray(data, np.int16))
+
+    os.system("python2 /home/ravi/Penn_fa/aligner/align.py /home/ravi/tmp/audiofile.wav /home/ravi/tmp/textfile.txt /home/ravi/tmp/textgridfile.textgrid")
     
