@@ -120,6 +120,7 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     
     pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration)))
     pylab.close("all")
+    return correlation
 
 
 def multi_sampling(model, x, y, criterion, num_samples=5):
@@ -182,6 +183,13 @@ def random_mask_thresholding(mask, threshold=5):
     return mask        
 
 
+def best_k_class_metric(y_true, y_pred, k=0):
+    if np.argsort(y_true)[k] == np.argsort(y_pred)[k]:
+        return 1
+    else:
+        return 0
+
+
 def test(output_directory, checkpoint_path, hparams, valid=True):
     """Training and validation logging results to tensorboard and stdout
 
@@ -213,9 +221,12 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
 
     model.eval()
 
-    chunk_array = []
+    cunk_array = []
     loss_array = []
     pred_array = []
+    targ_array = []
+    corr_array = []
+    
     # ================ MAIN TESTING LOOP! ===================
     for i, batch in enumerate(test_loader):
         start = time.perf_counter()
@@ -228,6 +239,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion2)
         loss_array.append(reduced_loss)
         pred_array.append(y_pred)
+        targ_array.append(y)
 
         #%% Sampling the mask only once
         
@@ -244,7 +256,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         
         # chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
         # # print("\t Chunks: ", chunks)
-        # chunk_array += [c[-1] for c in chunks]
+        # cunk_array += [c[-1] for c in chunks]
         
         #%% Removing segments of length < 5
         
@@ -269,10 +281,11 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         
         # chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
         # # print("\t Chunks: ", chunks)
-        # # chunk_array += [c[-1] for c in chunks]
+        # # cunk_array += [c[-1] for c in chunks]
         
         #%% Plotting
-        plot_figures(x, posterior, mask_sample, y, y_pred, iteration+1, hparams)
+        corr_array.append(plot_figures(x, posterior, mask_sample, y, 
+                                       y_pred, iteration+1, hparams))
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -283,7 +296,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     
     print("Avg. Loss: {:.3f}".format(np.mean(loss_array)))
     
-    return chunk_array, pred_array
+    return cunk_array, targ_array, pred_array
 
 
 if __name__ == '__main__':
@@ -310,12 +323,19 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
 
-    chunk_array, pred_array = test(
-                                    hparams.output_directory,
-                                    hparams.checkpoint_path,
-                                    hparams,
-                                    valid=True,
-                                )
+    chunk_array, targ_array, pred_array = test(
+                                                hparams.output_directory,
+                                                hparams.checkpoint_path,
+                                                hparams,
+                                                valid=True,
+                                            )
+    
+    pred_array = np.asarray(pred_array)
+    targ_array = np.asarray(targ_array)
+    
+    top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
+    top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
+    top_3 = [best_k_class_metric(t, p, k=2) for (t, p) in zip(targ_array, pred_array)]
 
 
 

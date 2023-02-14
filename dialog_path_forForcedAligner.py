@@ -27,6 +27,16 @@ def prepare_dialog_lookup():
     return file_dialog_dict
 
 
+def cleanup_text(text):
+    chars2int = [ord(i) for i in text]
+    for i, c in enumerate(chars2int):
+        if c == 8217:
+            chars2int[i] = 39
+    
+    int2chars = [chr(i) for i in chars2int]
+    return ("").join(int2chars)
+
+
 def prepare_dataloaders(hparams, valid=True):
     # Get data, data loaders and collate function ready
     if valid:
@@ -65,17 +75,43 @@ if __name__ == "__main__":
     data_object, _, _ = prepare_dataloaders(hparams)
     lookup_dict = prepare_dialog_lookup()
     
-    x = data_object.utterance_rating_paths[0].split(" ,")[0].split("/")[-3:]
-    lookup_key = "/" + ("/").join(x)
-    text = lookup_dict[lookup_key][0]
-
-    with open("/home/ravi/tmp/textfile.txt", "w") as f:
-        f.writelines(text)
-        f.close()
+    temp_dir = "/home/ravi/Desktop/fac-ppg/temp"
+    temp_audio_loc = os.path.join(temp_dir, "audiofile.wav")
+    temp_txt_loc = os.path.join(temp_dir, "textfile.txt")
+    # temp_grd_loc = os.path.join(temp_dir, "textgridfile.textgrid")
     
-    data, sr = sf.read(data_object.utterance_rating_paths[0].split(" ,")[0])
-    data = librosa.resample(data, orig_sr=sr, target_sr=16000)
-    scwav.write("/home/ravi/tmp/audiofile.wav", 16000, np.asarray(data, np.int16))
+    for i in range(len(data_object)):
+        temp_grd_loc = os.path.join(temp_dir, "{}_textgridfile.textgrid".format(i))
+        data, sr = sf.read(data_object.utterance_rating_paths[i].split(" ,")[0])
+        data = librosa.resample(data, orig_sr=sr, target_sr=16000)
+        new_data = (data * 32767).astype(np.int16)
+        scwav.write(temp_audio_loc, 16000, new_data)
 
-    os.system("python2 /home/ravi/Penn_fa/aligner/align.py /home/ravi/tmp/audiofile.wav /home/ravi/tmp/textfile.txt /home/ravi/tmp/textgridfile.textgrid")
+        x = data_object.utterance_rating_paths[i].split(" ,")[0].split("/")[-3:]
+        lookup_key = "/" + ("/").join(x)
+        text = lookup_dict[lookup_key][0]
+        text = cleanup_text(text)
+
+        with open(temp_txt_loc, "w") as f:
+            f.writelines(text)
+            f.close()
+
+        os.system("python2 /home/ravi/Penn_fa/aligner/align.py {0} {1} {2}".format(temp_audio_loc, 
+                                                                                   temp_txt_loc, 
+                                                                                   temp_grd_loc))
+        # break
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
