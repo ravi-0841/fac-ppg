@@ -97,7 +97,7 @@ def format_audio_text(data_object, index, lookup_dict):
     new_data = (data * 32767).astype(np.int16)
     scwav.write(temp_audio_loc, 16000, new_data)
 
-    with open(temp_txt_loc, "w") as f:
+    with open(temp_text_loc, "w") as f:
         f.writelines(text)
         f.close()
     

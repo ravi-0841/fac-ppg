@@ -15,10 +15,12 @@ import pylab
 import numpy as np
 import textgrid
 
+from pprint import pprint
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
 from saliency_predictor import SaliencyPredictor
 from on_the_fly_augmentor import OnTheFlyAugmentor, acoustics_collate
+from src.common.hparams_onflyaugmentor import create_hparams
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
                                         VecExpectedKLDivergence, 
@@ -27,14 +29,16 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
                               )
-from src.common.hparams_onflyaugmentor import create_hparams
-from pprint import pprint
 from dialog_path_forForcedAligner import (format_audio_text,
                                           prepare_dialog_lookup,
                                           )
+from inference_saliency_predictor import (load_model,
+                                          load_checkpoint,
+                                          multi_sampling,
+                                          )
 
 
-def prepare_dataloaders(hparams, valid=True):
+def prepare_dataloaders_and_lookup_dict(hparams, valid=True):
     # Get data, data loaders and collate function ready
     if valid:
         testset = OnTheFlyAugmentor(
@@ -64,25 +68,10 @@ def prepare_dataloaders(hparams, valid=True):
                             drop_last=False,
                             collate_fn=collate_fn,
                             )
-    return testset, test_loader, collate_fn
+    
+    lookup_dict = prepare_dialog_lookup()
 
-
-def load_model(hparams):
-    model = SaliencyPredictor(hparams.temp_scale).cuda()
-    return model
-
-
-def load_checkpoint(checkpoint_path, model, optimizer):
-    assert os.path.isfile(checkpoint_path)
-    print("Loading checkpoint '{}'".format(checkpoint_path))
-    checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
-    model.load_state_dict(checkpoint_dict['state_dict'])
-    optimizer.load_state_dict(checkpoint_dict['optimizer'])
-    learning_rate = checkpoint_dict['learning_rate']
-    iteration = checkpoint_dict['iteration']
-    print("Loaded checkpoint '{}' from iteration {}" .format(
-        checkpoint_path, iteration))
-    return model, optimizer, learning_rate, iteration
+    return lookup_dict, testset, test_loader, collate_fn
 
 
 def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
@@ -128,73 +117,6 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     return correlation
 
 
-def multi_sampling(model, x, y, criterion, num_samples=5):
-    
-    assert num_samples >= 3, "Sample at least 3 times"
-    
-    mask_samples = []
-    posterior, mask, y_pred = model(x)
-    loss = criterion(y_pred, y)
-    reduced_loss = loss.item()
-
-    y = y.squeeze().cpu().numpy()
-    posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-    mask = mask.squeeze().detach().cpu().numpy()[:,1]
-    y_pred = y_pred.squeeze().detach().cpu().numpy()
-    
-    # for _ in range(11):
-    #     mask = medfilt(mask, kernel_size=5)
-    
-    # mask_samples.append(refining_mask_sample(mask)[1])
-    mask_samples.append(medfilt(mask, kernel_size=3))
-    
-    for _ in range(num_samples-1):
-        _, m, _ = model(x)
-        m = m.squeeze().detach().cpu().numpy()[:,1]
-        # for _ in range(11):
-        #     m = medfilt(m, kernel_size=5)
-        mask_samples.append(medfilt(m, kernel_size=3))
-        # mask_samples.append(refining_mask_sample(m)[1])
-    
-    mask_intersect = np.multiply(np.logical_and(mask_samples[0], mask_samples[1]), 1)
-    for i in range(2, num_samples):
-        mask_intersect = np.multiply(np.logical_and(mask_intersect, mask_samples[i]), 1)
-    
-    for _ in range(7): #11
-        mask_intersect = medfilt(mask_intersect, kernel_size=7) #7
-    
-    x = x.squeeze().cpu().numpy()
-    return x, y, y_pred, posterior, mask_intersect, reduced_loss
-
-
-def random_mask_thresholding(mask, threshold=5):
-    start_pointer = None
-    end_pointer = None
-
-    for i, m in enumerate(mask):
-        if m > 0 and start_pointer is None:
-            start_pointer = i
-            end_pointer = None
-        
-        elif m < 1 and start_pointer is not None:
-            end_pointer = i-1
-    
-            if (end_pointer - start_pointer + 1) < threshold:
-                mask[start_pointer:end_pointer+1] = 0
-                # break
-            
-            start_pointer = None
-
-    return mask        
-
-
-def best_k_class_metric(y_true, y_pred, k=0):
-    if np.argsort(y_true)[k] == np.argsort(y_pred)[k]:
-        return 1
-    else:
-        return 0
-
-
 def test(output_directory, checkpoint_path, hparams, valid=True):
     """Training and validation logging results to tensorboard and stdout
 
@@ -213,12 +135,10 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
 
-    # criterion1 = VecExpectedKLDivergence(alpha=hparams.alpha, 
-                                        # beta=hparams.beta)
-    criterion2 = torch.nn.L1Loss() #MSELoss
-    # criterion3 = SparsityKLDivergence()
+    criterion = torch.nn.L1Loss()
 
-    testset, test_loader, _ = prepare_dataloaders(hparams, valid=valid)
+    (lookup_dict, testset, 
+     test_loader, _) = prepare_dataloaders_and_lookup_dict(hparams, valid=valid)
 
     # Load checkpoint
     iteration = 0
@@ -231,62 +151,29 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     pred_array = []
     targ_array = []
     corr_array = []
+    text_grid_array = []
     
     # ================ MAIN TESTING LOOP! ===================
-    for i, batch in enumerate(test_loader):
+    for i in range(len(testset)):
         start = time.perf_counter()
-
-        x, y, _ = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
+        
+        x, _, y, _ = testset[i]
+        x, y = x.unsqueeze(dim=0).to("cuda"), y.to("cuda")
         # input_shape should be [#batch_size, #freq_channels, #time]
 
         #%% Sampling masks multiple times for same utterance
         
-        x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion2)
+        (x, y, y_pred, posterior, 
+         mask_sample, reduced_loss) = multi_sampling(model, x, y, criterion)
+
+        text_grid = format_audio_text(data_object=testset, 
+                                                 index=i, 
+                                                 lookup_dict=lookup_dict,
+                                                 )
         loss_array.append(reduced_loss)
         pred_array.append(y_pred)
         targ_array.append(y)
-
-        #%% Sampling the mask only once
-        
-        # posterior, mask_sample, y_pred = model(x)
-        # loss = criterion2(y_pred, y)
-        # reduced_loss = loss.item()
-        # loss_array.append(reduced_loss)
-
-        # x = x.squeeze().cpu().numpy()
-        # y = y.squeeze().cpu().numpy()
-        # y_pred = y_pred.squeeze().detach().cpu().numpy()
-        # posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-        # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-        
-        # chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
-        # # print("\t Chunks: ", chunks)
-        # cunk_array += [c[-1] for c in chunks]
-        
-        #%% Removing segments of length < 5
-        
-        # posterior, mask_sample, _ = model(x)
-        # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-        # mask_sample = random_mask_thresholding(mask_sample)
-        # # _, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5)
-        
-        # mask_sample = torch.from_numpy(mask_sample).unsqueeze(dim=0).unsqueeze(dim=-1).to("cuda")
-        # mask_sample = mask_sample.repeat(1,1,512)
-        # mask_sample = torch.zeros_like(mask_sample).to("cuda") # Zeroing out mask
-        # _, _, y_pred = model(x, pre_computed_mask=mask_sample)
-        # loss = criterion2(y_pred, y)
-        # reduced_loss = loss.item()
-        # loss_array.append(reduced_loss)
-
-        # x = x.squeeze().cpu().numpy()
-        # y = y.squeeze().cpu().numpy()
-        # y_pred = y_pred.squeeze().detach().cpu().numpy()
-        # posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-        # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,0]
-        
-        # chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
-        # # print("\t Chunks: ", chunks)
-        # # cunk_array += [c[-1] for c in chunks]
+        text_grid_array.append(text_grid)
         
         #%% Plotting
         corr_array.append(plot_figures(x, posterior, mask_sample, y, 
@@ -301,7 +188,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     
     print("Avg. Loss: {:.3f}".format(np.mean(loss_array)))
     
-    return cunk_array, targ_array, pred_array
+    return cunk_array, targ_array, pred_array, text_grid_array
 
 
 if __name__ == '__main__':
@@ -316,7 +203,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_2"
+                                        "images_destroy"
                                     )
 
     if not hparams.output_directory:
@@ -328,7 +215,7 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
 
-    chunk_array, targ_array, pred_array = test(
+    _, targ_array, pred_array, grid_array = test(
                                                 hparams.output_directory,
                                                 hparams.checkpoint_path,
                                                 hparams,
@@ -337,10 +224,6 @@ if __name__ == '__main__':
     
     pred_array = np.asarray(pred_array)
     targ_array = np.asarray(targ_array)
-    
-    top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
-    top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
-    top_3 = [best_k_class_metric(t, p, k=2) for (t, p) in zip(targ_array, pred_array)]
 
 
 
