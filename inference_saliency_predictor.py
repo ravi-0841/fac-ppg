@@ -85,26 +85,28 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
     fig, ax = pylab.subplots(4, 1, figsize=(32, 18))
-    ax[0].imshow(np.log10(spectrogram + 1e-10), aspect="auto", origin="lower",
-                   interpolation='none')
-    ax[0].plot(151*mask, "w", linewidth=4.0)
-    ax[0].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[0].set_ylabel('Frequency', fontsize = 20) #ylabel
-    # pylab.tight_layout()
-
+    
     energy = np.sum(spectrogram**2, axis=0)
-    ax[1].plot(energy, linewidth=2.5)
+    ax[0].plot(energy, linewidth=2.5, color='r')
+    ax[0].set_xlabel('Time',fontsize = 20) #xlabel
+    ax[0].set_ylabel('Energy', fontsize = 20) #ylabel
+    # pylab.tight_layout()
+    
+    ax[1].imshow(np.log10(spectrogram + 1e-10), aspect="auto", origin="lower",
+                   interpolation='none')
+    ax[1].plot(151*mask, "w", linewidth=4.0)
     ax[1].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[1].set_ylabel('Energy', fontsize = 20) #ylabel
+    ax[1].set_ylabel('Frequency', fontsize = 20) #ylabel
     # pylab.tight_layout()
 
-    ax[2].plot(posterior, linewidth=2.5)
+    ax[2].plot(posterior, linewidth=2.5, color='k')
     ax[2].set_xlabel('Time',fontsize = 20) #xlabel
     ax[2].set_ylabel('Probability', fontsize = 20) #ylabel
     # pylab.tight_layout()
     
-    ax[3].bar(np.arange(5), y, alpha=0.5, label="target")
-    ax[3].bar(np.arange(5), y_pred, alpha=0.5, label="pred")
+    classes = ["neu", "ang", "hap", "sad", "fea"]
+    ax[3].bar(classes, y, alpha=0.5, label="target")
+    ax[3].bar(classes, y_pred, alpha=0.5, label="pred")
     ax[3].legend(loc=1)
     ax[3].set_xlabel('Classes',fontsize = 20) #xlabel
     ax[3].set_ylabel('Softmax Score', fontsize = 20) #ylabel
@@ -120,7 +122,7 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     pylab.close("all")
 
 
-def multi_sampling(model, x, y, criterion, num_samples=3):
+def multi_sampling(model, x, y, criterion, num_samples=5):
     
     assert num_samples >= 3, "Sample at least 3 times"
     
@@ -138,14 +140,14 @@ def multi_sampling(model, x, y, criterion, num_samples=3):
     #     mask = medfilt(mask, kernel_size=5)
     
     # mask_samples.append(refining_mask_sample(mask)[1])
-    mask_samples.append(medfilt(mask, kernel_size=1))
+    mask_samples.append(medfilt(mask, kernel_size=3))
     
     for _ in range(num_samples-1):
         _, m, _ = model(x)
         m = m.squeeze().detach().cpu().numpy()[:,1]
         # for _ in range(11):
         #     m = medfilt(m, kernel_size=5)
-        mask_samples.append(medfilt(m, kernel_size=1))
+        mask_samples.append(medfilt(m, kernel_size=3))
         # mask_samples.append(refining_mask_sample(m)[1])
     
     mask_intersect = np.multiply(np.logical_and(mask_samples[0], mask_samples[1]), 1)
@@ -296,7 +298,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_3"
+                                        "images_2"
                                     )
 
     if not hparams.output_directory:
