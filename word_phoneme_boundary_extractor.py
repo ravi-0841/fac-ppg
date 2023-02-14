@@ -13,6 +13,8 @@ import math
 import torch
 import pylab
 import numpy as np
+import textgrid
+
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
 from saliency_predictor import SaliencyPredictor
@@ -27,6 +29,9 @@ from src.common.utils import (median_mask_filtering,
                               )
 from src.common.hparams_onflyaugmentor import create_hparams
 from pprint import pprint
+from dialog_path_forForcedAligner import (format_audio_text,
+                                          prepare_dialog_lookup,
+                                          )
 
 
 def prepare_dataloaders(hparams, valid=True):
@@ -59,7 +64,7 @@ def prepare_dataloaders(hparams, valid=True):
                             drop_last=False,
                             collate_fn=collate_fn,
                             )
-    return test_loader, collate_fn
+    return testset, test_loader, collate_fn
 
 
 def load_model(hparams):
@@ -184,7 +189,7 @@ def random_mask_thresholding(mask, threshold=5):
 
 
 def best_k_class_metric(y_true, y_pred, k=0):
-    if np.argsort(y_true)[0] == np.argsort(y_pred)[k]:
+    if np.argsort(y_true)[k] == np.argsort(y_pred)[k]:
         return 1
     else:
         return 0
@@ -213,7 +218,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     criterion2 = torch.nn.L1Loss() #MSELoss
     # criterion3 = SparsityKLDivergence()
 
-    test_loader, collate_fn = prepare_dataloaders(hparams, valid=valid)
+    testset, test_loader, _ = prepare_dataloaders(hparams, valid=valid)
 
     # Load checkpoint
     iteration = 0
@@ -296,7 +301,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     
     print("Avg. Loss: {:.3f}".format(np.mean(loss_array)))
     
-    return cunk_array, corr_array, targ_array, pred_array
+    return cunk_array, targ_array, pred_array
 
 
 if __name__ == '__main__':
@@ -311,7 +316,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_destroy"
+                                        "images_2"
                                     )
 
     if not hparams.output_directory:
@@ -323,12 +328,12 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
 
-    chunk_array, corr_array, targ_array, pred_array = test(
-                                                            hparams.output_directory,
-                                                            hparams.checkpoint_path,
-                                                            hparams,
-                                                            valid=True,
-                                                        )
+    chunk_array, targ_array, pred_array = test(
+                                                hparams.output_directory,
+                                                hparams.checkpoint_path,
+                                                hparams,
+                                                valid=True,
+                                            )
     
     pred_array = np.asarray(pred_array)
     targ_array = np.asarray(targ_array)
@@ -336,10 +341,6 @@ if __name__ == '__main__':
     top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
     top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
     top_3 = [best_k_class_metric(t, p, k=2) for (t, p) in zip(targ_array, pred_array)]
-    pylab.figure(), pylab.hist(corr_array, alpha=0.5, density=True)
-    pylab.title("Correlation between posterior and energy contour")
-    pylab.savefig(os.path.join(hparams.output_directory, "correlation.png"))
-    pylab.close("all")
 
 
 

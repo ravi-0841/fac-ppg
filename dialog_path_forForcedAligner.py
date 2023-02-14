@@ -13,6 +13,7 @@ import pandas as pd
 import numpy as np
 import soundfile as sf
 import scipy.io.wavfile as scwav
+import textgrid
 
 from torch.utils.data import DataLoader
 from src.common.hparams_onflyaugmentor import create_hparams
@@ -70,6 +71,44 @@ def prepare_dataloaders(hparams, valid=True):
     return testset, test_loader, collate_fn
 
 
+def get_textgrid(audio_path, text_path, textgrid_path):
+    os.system("python2 /home/ravi/Penn_fa/aligner/align.py {0} {1} {2}".format(
+                                                            audio_path,
+                                                            text_path,
+                                                            textgrid_path,
+                                                            ))
+    tgd = textgrid.TextGrid.fromFile(textgrid_path)
+    return tgd
+
+
+def format_audio_text(data_object, index, lookup_dict):
+    utterance_path = data_object.utterance_rating_paths[index].split(" ,")[0]
+    text_key = data_object.utterance_rating_paths[index].split(" ,")[0].split("/")[-3:]
+    lookup_key = "/" + ("/").join(text_key)
+    text = lookup_dict[lookup_key][0]
+    text = cleanup_text(text)
+    
+    temp_audio_loc = "/home/ravi/Desktop/fac-ppg/temp/audio.wav"
+    temp_text_loc = "/home/ravi/Desktop/fac-ppg/temp/text.txt"
+    temp_grid_loc = "/home/ravi/Desktop/fac-ppg/temp/grid.textgrid"
+    
+    data, sr = sf.read(utterance_path)
+    data = librosa.resample(data, orig_sr=sr, target_sr=16000)
+    new_data = (data * 32767).astype(np.int16)
+    scwav.write(temp_audio_loc, 16000, new_data)
+
+    with open(temp_txt_loc, "w") as f:
+        f.writelines(text)
+        f.close()
+    
+    txt_grid = get_textgrid(audio_path=temp_audio_loc, 
+                            text_path=temp_text_loc, 
+                            textgrid_path=temp_grid_loc,
+                            )
+    
+    return txt_grid
+
+
 if __name__ == "__main__":
     hparams = create_hparams()
     data_object, _, _ = prepare_dataloaders(hparams)
@@ -82,7 +121,8 @@ if __name__ == "__main__":
     
     for i in range(len(data_object)):
         temp_grd_loc = os.path.join(temp_dir, "{}_textgridfile.textgrid".format(i))
-        data, sr = sf.read(data_object.utterance_rating_paths[i].split(" ,")[0])
+        utterance_path = data_object.utterance_rating_paths[i].split(" ,")[0]
+        data, sr = sf.read(utterance_path)
         data = librosa.resample(data, orig_sr=sr, target_sr=16000)
         new_data = (data * 32767).astype(np.int16)
         scwav.write(temp_audio_loc, 16000, new_data)
@@ -95,11 +135,16 @@ if __name__ == "__main__":
         with open(temp_txt_loc, "w") as f:
             f.writelines(text)
             f.close()
+        
+        txt_grid = get_textgrid(audio_path=temp_audio_loc, 
+                                text_path=temp_txt_loc, 
+                                textgrid_path=temp_grd_loc,
+                                )
 
-        os.system("python2 /home/ravi/Penn_fa/aligner/align.py {0} {1} {2}".format(temp_audio_loc, 
-                                                                                   temp_txt_loc, 
-                                                                                   temp_grd_loc))
-        # break
+        # os.system("python2 /home/ravi/Penn_fa/aligner/align.py {0} {1} {2}".format(temp_audio_loc, 
+        #                                                                            temp_txt_loc, 
+        #                                                                            temp_grd_loc))
+        break
     
 
 
