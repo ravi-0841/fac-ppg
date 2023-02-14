@@ -66,7 +66,7 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "lstmlayers_1_batchsize_8", # extra description for logging/identification
+        "extended_desc": "lstmlayers_3_batchsize_8", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs

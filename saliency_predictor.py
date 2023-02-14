@@ -141,7 +141,7 @@ class SaliencyPredictor(nn.Module):
         self.encoder_linear = nn.Linear(in_features=512, out_features=2)
         
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
-                               num_layers=1, bidirectional=True, dropout=0.2)
+                               num_layers=3, bidirectional=True, dropout=0.2)
 
         self.decoder_linear = nn.Linear(in_features=512, out_features=5)
 
