@@ -87,6 +87,7 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     fig, ax = pylab.subplots(4, 1, figsize=(32, 18))
     
     energy = np.sum(spectrogram**2, axis=0)
+    energy_grad = np.gradient(energy)
     ax[0].plot(energy, linewidth=2.5, color='r')
     ax[0].set_xlabel('Time',fontsize = 20) #xlabel
     ax[0].set_ylabel('Energy', fontsize = 20) #ylabel
@@ -112,15 +113,16 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     ax[3].set_ylabel('Softmax Score', fontsize = 20) #ylabel
     # pylab.tight_layout()
 
-    correlation = np.corrcoef(energy, posterior)[0,1]
+    correlation_sign = np.corrcoef(energy, posterior)[0,1]
+    correlation_grad = np.corrcoef(energy_grad, posterior)[0,1]
 
-    pylab.suptitle("Utterance- {}, correlation (energy/posterior)- {}".format(iteration, 
-                    np.round(correlation, 2)), 
+    pylab.suptitle("Utterance- {}, correlation (energy/post)- {}, correlation (energy grad/post)- {}".format(iteration, 
+                    np.round(correlation_sign, 2), np.round(correlation_grad, 2)), 
                     fontsize=24)
     
     pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration)))
     pylab.close("all")
-    return correlation
+    return correlation_sign, correlation_grad
 
 
 def multi_sampling(model, x, y, criterion, num_samples=5):
@@ -302,8 +304,9 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # # cunk_array += [c[-1] for c in chunks]
         
         #%% Plotting
-        # corr_array.append(plot_figures(x, posterior, mask_sample, y, 
-        #                                 y_pred, iteration+1, hparams))
+        corr_sign, corr_grad = plot_figures(x, posterior, mask_sample, y, 
+                                        y_pred, iteration+1, hparams)
+        corr_array.append([corr_sign, corr_grad])
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -314,7 +317,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     
     print("Avg. Loss: {:.3f}".format(np.mean(loss_array)))
     
-    return cunk_array, corr_array, targ_array, pred_array
+    return cunk_array, np.asarray(corr_array), targ_array, pred_array
 
 
 if __name__ == '__main__':
@@ -355,10 +358,14 @@ if __name__ == '__main__':
     top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
     top_3 = [best_k_class_metric(t, p, k=2) for (t, p) in zip(targ_array, pred_array)]
     
-    # pylab.figure(), pylab.hist(corr_array, alpha=0.5, density=True)
-    # pylab.title("Correlation between posterior and energy contour")
-    # pylab.savefig(os.path.join(hparams.output_directory, "correlation.png"))
-    # pylab.close("all")
+    pylab.figure(), pylab.hist(corr_array[:,0], alpha=0.5, density=True)
+    pylab.title("Correlation between posterior and energy contour")
+    pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy.png"))
+
+    pylab.figure(), pylab.hist(corr_array[:,1], alpha=0.5, density=True)
+    pylab.title("Correlation between posterior and energy contour")
+    pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy_gradient.png"))
+    pylab.close("all")
 
 
 
