@@ -194,7 +194,7 @@ def best_k_class_metric(y_true, y_pred, k=0):
     # max_val = np.max(y_true)
     # targ_idxs = [index for index, value in enumerate(y_true) if value == max_val]
 
-    # max_val = y_pred[np.argsort(y_pred)[k]]
+    # max_val = y_pred[np.flip(np.argsort(y_pred))[k]]
     # pred_idxs = [index for index, value in enumerate(y_pred) if value == max_val]
 
     # list_intersection = intersection(targ_idxs, pred_idxs)
@@ -304,9 +304,9 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # # cunk_array += [c[-1] for c in chunks]
         
         #%% Plotting
-        corr_sign, corr_grad = plot_figures(x, posterior, mask_sample, y, 
-                                        y_pred, iteration+1, hparams)
-        corr_array.append([corr_sign, corr_grad])
+        # corr_sign, corr_grad = plot_figures(x, posterior, mask_sample, y, 
+        #                                 y_pred, iteration+1, hparams)
+        # corr_array.append([corr_sign, corr_grad])
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -356,16 +356,19 @@ if __name__ == '__main__':
     
     top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
     top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
-    top_3 = [best_k_class_metric(t, p, k=2) for (t, p) in zip(targ_array, pred_array)]
+    # top_3 = [best_k_class_metric(t, p, k=2) for (t, p) in zip(targ_array, pred_array)]
     
-    pylab.figure(), pylab.hist(corr_array[:,0], alpha=0.5, density=True)
-    pylab.title("Correlation between posterior and energy contour")
-    pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy.png"))
+    print("Top-1 Accuracy is: {}".format(np.sum(top_1)/len(top_1)))
+    print("Top-2 Accuracy is: {}".format((np.sum(top_1) + np.sum(top_2))/len(top_1)))
+    
+    # pylab.figure(), pylab.hist(corr_array[:,0], alpha=0.5, density=True)
+    # pylab.title("Correlation between posterior and energy contour")
+    # pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy.png"))
 
-    pylab.figure(), pylab.hist(corr_array[:,1], alpha=0.5, density=True)
-    pylab.title("Correlation between posterior and energy contour")
-    pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy_gradient.png"))
-    pylab.close("all")
+    # pylab.figure(), pylab.hist(corr_array[:,1], alpha=0.5, density=True)
+    # pylab.title("Correlation between posterior and energy contour")
+    # pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy_gradient.png"))
+    # pylab.close("all")
 
 
 
