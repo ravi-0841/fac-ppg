@@ -14,6 +14,7 @@ import torch
 import pylab
 import numpy as np
 import textgrid
+import librosa
 
 from pprint import pprint
 from scipy.signal import medfilt
@@ -74,23 +75,33 @@ def prepare_dataloaders_and_lookup_dict(hparams, valid=True):
     return lookup_dict, testset, test_loader, collate_fn
 
 
-def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
+def plot_figures(spectrogram, posterior, mask, 
+                 y, y_pred, iteration, hparams, 
+                 phones=None, words=None):
+
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
     fig, ax = pylab.subplots(4, 1, figsize=(32, 18))
     
-    energy = np.sum(spectrogram**2, axis=0)
-    ax[0].plot(energy, linewidth=2.5, color='r')
-    ax[0].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[0].set_ylabel('Energy', fontsize = 20) #ylabel
-    # pylab.tight_layout()
-    
-    ax[1].imshow(np.log10(spectrogram + 1e-10), aspect="auto", origin="lower",
+    ax[0].imshow(np.log10(spectrogram + 1e-10), aspect="auto", origin="lower",
                    interpolation='none')
-    ax[1].plot(151*mask, "w", linewidth=4.0)
+    ax[0].plot(151*mask, "w", linewidth=4.0)
+    ax[0].set_xlabel('Time',fontsize = 20) #xlabel
+    ax[0].set_ylabel('Frequency', fontsize = 20) #ylabel
+    if phones is not None:
+        for p in phones:
+            ax[0].axvline(x=p[4], linewidth=2.5, color="k")
+            ax[0].text(x=int((p[4]+p[3])/2), y=257, s=p[0], fontsize="large")
+    if words is not None:
+        for w in words:
+            ax[0].text(x=int((w[4]+w[3])/2), y=275, s=w[0], fontsize="large")
+    # pylab.tight_layout()
+
+    energy = np.sum(spectrogram**2, axis=0)
+    ax[1].plot(energy, linewidth=2.5, color='r')
     ax[1].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[1].set_ylabel('Frequency', fontsize = 20) #ylabel
+    ax[1].set_ylabel('Energy', fontsize = 20) #ylabel
     # pylab.tight_layout()
 
     ax[2].plot(posterior, linewidth=2.5, color='k')
@@ -117,7 +128,7 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     return correlation
 
 
-def get_phones_and_words(textgrid_object):
+def get_phones_and_words(textgrid_object, hparams):
     phone_tiers = textgrid_object.getList("phone")[0]
     word_tiers = textgrid_object.getList("word")[0]
     
@@ -125,10 +136,18 @@ def get_phones_and_words(textgrid_object):
     word_info = []
     
     for p in phone_tiers:
-        phone_info.append((p.mark, p.minTime, p.maxTime))
+        frames = librosa.time_to_frames([p.minTime, p.maxTime], 
+                                        sr=hparams.sampling_rate,
+                                        hop_length=hparams.hop_length,
+                                        )
+        phone_info.append([p.mark, p.minTime, p.maxTime, frames[0], frames[1]])
     
     for w in word_tiers:
-        word_info.append((w.mark, w.minTime, w.maxTime))
+        frames = librosa.time_to_frames([w.minTime, w.maxTime], 
+                                        sr=hparams.sampling_rate,
+                                        hop_length=hparams.hop_length,
+                                        )
+        word_info.append([w.mark, w.minTime, w.maxTime, frames[0], frames[1]])
     
     return phone_info, word_info
 
@@ -186,7 +205,11 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
                                                  index=i, 
                                                  lookup_dict=lookup_dict,
                                                  )
-        phones, words = get_phones_and_words(text_grid)
+        phones, words = get_phones_and_words(text_grid, hparams)
+        phones[0][3] = 0
+        phones[-1][4] = x.shape[1]-1
+        words[0][3] = 0
+        words[-1][4] = x.shape[1]-1
 
         loss_array.append(reduced_loss)
         pred_array.append(y_pred)
@@ -194,8 +217,9 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         text_grid_array.append(text_grid)
         
         #%% Plotting
-        # corr_array.append(plot_figures(x, posterior, mask, y, 
-        #                                y_pred, iteration+1, hparams))
+        corr_array.append(plot_figures(x, posterior, mask, y, 
+                                        y_pred, iteration+1, hparams,
+                                        phones, words))
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -221,7 +245,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_destroy"
+                                        "images_phones_words"
                                     )
 
     if not hparams.output_directory:
