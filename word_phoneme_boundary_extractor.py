@@ -117,6 +117,22 @@ def plot_figures(spectrogram, posterior, mask, y, y_pred, iteration, hparams):
     return correlation
 
 
+def get_phones_and_words(textgrid_object):
+    phone_tiers = textgrid_object.getList("phone")[0]
+    word_tiers = textgrid_object.getList("word")[0]
+    
+    phone_info = []
+    word_info = []
+    
+    for p in phone_tiers:
+        phone_info.append((p.mark, p.minTime, p.maxTime))
+    
+    for w in word_tiers:
+        word_info.append((w.mark, w.minTime, w.maxTime))
+    
+    return phone_info, word_info
+
+
 def test(output_directory, checkpoint_path, hparams, valid=True):
     """Training and validation logging results to tensorboard and stdout
 
@@ -164,20 +180,22 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         #%% Sampling masks multiple times for same utterance
         
         (x, y, y_pred, posterior, 
-         mask_sample, reduced_loss) = multi_sampling(model, x, y, criterion)
+         mask, reduced_loss) = multi_sampling(model, x, y, criterion)
 
         text_grid = format_audio_text(data_object=testset, 
                                                  index=i, 
                                                  lookup_dict=lookup_dict,
                                                  )
+        phones, words = get_phones_and_words(text_grid)
+
         loss_array.append(reduced_loss)
         pred_array.append(y_pred)
         targ_array.append(y)
         text_grid_array.append(text_grid)
         
         #%% Plotting
-        corr_array.append(plot_figures(x, posterior, mask_sample, y, 
-                                       y_pred, iteration+1, hparams))
+        # corr_array.append(plot_figures(x, posterior, mask, y, 
+        #                                y_pred, iteration+1, hparams))
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
