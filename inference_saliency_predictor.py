@@ -183,8 +183,26 @@ def random_mask_thresholding(mask, threshold=5):
     return mask        
 
 
+def intersection(lst1, lst2):
+    lst3 = [value for value in lst1 if value in lst2]
+    return lst3
+
+
 def best_k_class_metric(y_true, y_pred, k=0):
-    if np.argsort(y_true)[0] == np.argsort(y_pred)[k]:
+    # max_val = np.max(y_true)
+    # targ_idxs = [index for index, value in enumerate(y_true) if value == max_val]
+
+    # max_val = y_pred[np.argsort(y_pred)[k]]
+    # pred_idxs = [index for index, value in enumerate(y_pred) if value == max_val]
+
+    # list_intersection = intersection(targ_idxs, pred_idxs)
+
+    # if len(list_intersection)>0:
+    #     return 1
+    # else:
+    #     return 0
+
+    if np.flip(np.argsort(y_true))[0] == np.flip(np.argsort(y_pred))[k]:
         return 1
     else:
         return 0
@@ -284,8 +302,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # # cunk_array += [c[-1] for c in chunks]
         
         #%% Plotting
-        corr_array.append(plot_figures(x, posterior, mask_sample, y, 
-                                        y_pred, iteration+1, hparams))
+        # corr_array.append(plot_figures(x, posterior, mask_sample, y, 
+        #                                 y_pred, iteration+1, hparams))
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
