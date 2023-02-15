@@ -141,7 +141,7 @@ class SaliencyPredictor(nn.Module):
         self.encoder_linear = nn.Linear(in_features=512, out_features=2)
         
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
-                               num_layers=2, bidirectional=True, dropout=0.2)
+                               num_layers=3, bidirectional=True, dropout=0.2)
 
         self.decoder_linear = nn.Linear(in_features=512, out_features=5)
 
@@ -164,15 +164,15 @@ class SaliencyPredictor(nn.Module):
         # out = x
         projected_x = self.input_projection(x.permute(0,2,1))
         projected_x = projected_x.permute(0,2,1)
-        print("0. proj_x shape: ", projected_x.shape)
+        # print("0. proj_x shape: ", projected_x.shape)
 
         e1_enc = self.elu(self.bn1_enc(self.conv1_enc(projected_x)))
         e2_enc = self.elu(self.bn2_enc(self.conv2_enc(e1_enc)))
-        print("1. e2_enc shape: ", e2_enc.shape)
+        # print("1. e2_enc shape: ", e2_enc.shape)
         
         e2_enc = e2_enc.permute(2,0,1)
         e3_enc = self.transformer_encoder(e2_enc)
-        print("2. e3_enc shape: ", e3_enc.shape)
+        # print("2. e3_enc shape: ", e3_enc.shape)
         
         e3_enc = e3_enc.permute(1,2,0)
         e3_enc = self.bn3_enc(e3_enc)
@@ -182,22 +182,22 @@ class SaliencyPredictor(nn.Module):
         posterior = self.softmax(posterior/self.temp_scale)
         sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
         mask = sampled_val[:,:,1:2].repeat(1,1,5) # 5 classes
-        print("4. mask shape: ", mask.shape)
+        # print("4. mask shape: ", mask.shape)
         
         if pre_computed_mask is not None:
             mask = pre_computed_mask
         
         lstm_out, _ = self.recurrent_layer(e3_enc.permute(2,0,1))
         # lstm_out = lstm_out[-1, :, :]
-        print("5. lstm_out shape: ", lstm_out.shape)
+        # print("5. lstm_out shape: ", lstm_out.shape)
 
         lstm_out = self.bn1_dec(lstm_out.permute(1,2,0))
         out = self.softmax(self.decoder_linear(lstm_out.permute(2,0,1)))
-        print("6. out shape: ", out.shape)
+        # print("6. out shape: ", out.shape)
 
         out = out.permute(1,2,0)
         masked_out = out * mask.permute(0,2,1)
-        print("7. masked_out shape:", masked_out.shape)
+        # print("7. masked_out shape:", masked_out.shape)
 
         masked_out = torch.mean(masked_out, dim=-1)
 

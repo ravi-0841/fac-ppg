@@ -285,7 +285,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         
         #%% Plotting
         corr_array.append(plot_figures(x, posterior, mask_sample, y, 
-                                       y_pred, iteration+1, hparams))
+                                        y_pred, iteration+1, hparams))
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -336,10 +336,11 @@ if __name__ == '__main__':
     top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
     top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
     top_3 = [best_k_class_metric(t, p, k=2) for (t, p) in zip(targ_array, pred_array)]
-    pylab.figure(), pylab.hist(corr_array, alpha=0.5, density=True)
-    pylab.title("Correlation between posterior and energy contour")
-    pylab.savefig(os.path.join(hparams.output_directory, "correlation.png"))
-    pylab.close("all")
+    
+    # pylab.figure(), pylab.hist(corr_array, alpha=0.5, density=True)
+    # pylab.title("Correlation between posterior and energy contour")
+    # pylab.savefig(os.path.join(hparams.output_directory, "correlation.png"))
+    # pylab.close("all")
 
 
 
