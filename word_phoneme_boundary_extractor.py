@@ -12,16 +12,20 @@ import time
 import math
 import torch
 import pylab
-import numpy as np
 import textgrid
 import librosa
+
+import numpy as np
+import pyworld as pw
+import seaborn as sns
 
 from pprint import pprint
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
 from saliency_predictor import SaliencyPredictor
-from on_the_fly_augmentor import OnTheFlyAugmentor, acoustics_collate
 from src.common.hparams_onflyaugmentor import create_hparams
+
+from on_the_fly_augmentor import OnTheFlyAugmentor, acoustics_collate
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
                                         VecExpectedKLDivergence, 
@@ -154,6 +158,16 @@ def get_phones_and_words(textgrid_object, hparams):
     return phone_info, word_info
 
 
+def get_posterior_pitch_correlation(speech, sr, posterior, hparams):
+    f, _, _ = pw.wav2world(speech, sr, 
+                           frame_period=int(hparams.hop_length/(sr/1000)))
+    corr_sign = np.corrcoef(f, posterior)[0,1]
+    
+    f_grad = np.gradient(f)
+    corr_grad = np.corrcoef(f_grad, posterior)[0,1]
+    return corr_sign, corr_grad
+
+
 def test(output_directory, checkpoint_path, hparams, valid=True):
     """Training and validation logging results to tensorboard and stdout
 
@@ -190,12 +204,13 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     corr_array = []
     phones_array = []
     words_array = []
+    pitch_post_array = []
     
     # ================ MAIN TESTING LOOP! ===================
     for i in range(len(testset)):
         start = time.perf_counter()
         
-        x, _, y, _ = testset[i]
+        x, speech, y, sr = testset[i]
         x, y = x.unsqueeze(dim=0).to("cuda"), y.to("cuda")
         # input_shape should be [#batch_size, #freq_channels, #time]
 
@@ -213,6 +228,14 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         phones[-1][4] = x.shape[1]-1
         words[0][3] = 0
         words[-1][4] = x.shape[1]-1
+        
+        corr_sign, corr_grad = get_posterior_pitch_correlation(
+                                                                speech,
+                                                                sr,
+                                                                posterior,
+                                                                hparams,
+                                                            )
+        pitch_post_array.append([corr_sign, corr_grad])
 
         loss_array.append(reduced_loss)
         # pred_array.append(y_pred)
@@ -236,7 +259,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     
     print("Avg. Loss: {:.3f}".format(np.mean(loss_array)))
     
-    return cunk_array, phones_array, words_array
+    return cunk_array, phones_array, words_array, np.asarray(pitch_post_array)
 
 
 if __name__ == '__main__':
@@ -263,12 +286,25 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
 
-    cunk_array, phones_array, words_array = test(
-                                                hparams.output_directory,
-                                                hparams.checkpoint_path,
-                                                hparams,
-                                                valid=True,
-                                            )
+    cunk_array, phones_array, words_array, pitch_posterior = test(
+                                                                hparams.output_directory,
+                                                                hparams.checkpoint_path,
+                                                                hparams,
+                                                                valid=True,
+                                                            )
+    
+    pylab.figure(figsize=(10,10)), sns.histplot(pitch_posterior[:,0], bins=30, kde=True)
+    pylab.title("Correlation between posterior and F0 contour, median- {}".format(
+                                                        np.round(np.median(pitch_posterior[:,0]), 2)
+                                                        ))
+    pylab.savefig(os.path.join(hparams.output_directory, "correlation_pitch.png"))
+
+    pylab.figure(figsize=(10,10)), sns.histplot(pitch_posterior[:,1], bins=30, kde=True)
+    pylab.title("Correlation between posterior and F0 contour gradient, median- {}".format(
+                                                        np.round(np.median(pitch_posterior[:,1]), 2)
+                                                        ))
+    pylab.savefig(os.path.join(hparams.output_directory, "correlation_pitch_gradient.png"))
+    pylab.close("all")
 
 
 

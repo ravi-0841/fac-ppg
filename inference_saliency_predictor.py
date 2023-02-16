@@ -246,7 +246,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     learning_rate = hparams.learning_rate
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
-    criterion2 = torch.nn.L1Loss()
+    criterion = torch.nn.L1Loss()
 
     test_loader, collate_fn = prepare_dataloaders(hparams, valid=valid)
 
@@ -271,7 +271,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
 
         #%% Sampling masks multiple times for same utterance
         
-        x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion2)
+        x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion)
         loss_array.append(reduced_loss)
         pred_array.append(y_pred)
         targ_array.append(y)
@@ -279,7 +279,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         #%% Sampling the mask only once
         
         # posterior, mask_sample, y_pred = model(x)
-        # loss = criterion2(y_pred, y)
+        # loss = criterion(y_pred, y)
         # reduced_loss = loss.item()
         # loss_array.append(reduced_loss)
 
@@ -304,7 +304,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # mask_sample = mask_sample.repeat(1,1,512)
         # mask_sample = torch.zeros_like(mask_sample).to("cuda") # Zeroing out mask
         # _, _, y_pred = model(x, pre_computed_mask=mask_sample)
-        # loss = criterion2(y_pred, y)
+        # loss = criterion(y_pred, y)
         # reduced_loss = loss.item()
         # loss_array.append(reduced_loss)
 
@@ -375,13 +375,13 @@ if __name__ == '__main__':
     print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),2)))
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),2)))
     
-    pylab.figure(figsize=(10,10)), pylab.hist(corr_array[:,0], alpha=0.5, density=True)
+    pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)
     pylab.title("Correlation between posterior and energy contour, median- {}".format(
                                                         np.round(np.median(corr_array[:,0]), 2)
                                                         ))
     pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy.png"))
 
-    pylab.figure(figsize=(10,10)), pylab.hist(corr_array[:,1], alpha=0.5, density=True)
+    pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,1], bins=30, kde=True)
     pylab.title("Correlation between posterior and energy contour gradient, median- {}".format(
                                                         np.round(np.median(corr_array[:,1]), 2)
                                                         ))
