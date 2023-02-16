@@ -191,8 +191,14 @@ def intersection(lst1, lst2):
 
 
 def best_k_class_metric(y_true, y_pred, k=0):
-    # max_val = np.max(y_true)
-    # targ_idxs = [index for index, value in enumerate(y_true) if value == max_val]
+    max_val = np.max(y_true)
+    targ_idxs = [index for index, value in enumerate(y_true) if value == max_val]
+    
+    chek_idx = np.flip(np.argsort(y_pred))[k]
+    if chek_idx in targ_idxs:
+        return 1
+    else:
+        return 0
 
     # max_val = y_pred[np.flip(np.argsort(y_pred))[k]]
     # pred_idxs = [index for index, value in enumerate(y_pred) if value == max_val]
@@ -204,10 +210,10 @@ def best_k_class_metric(y_true, y_pred, k=0):
     # else:
     #     return 0
 
-    if np.flip(np.argsort(y_true))[0] == np.flip(np.argsort(y_pred))[k]:
-        return 1
-    else:
-        return 0
+    # if np.flip(np.argsort(y_true))[0] == np.flip(np.argsort(y_pred))[k]:
+    #     return 1
+    # else:
+    #     return 0
 
 
 def test(output_directory, checkpoint_path, hparams, valid=True):
