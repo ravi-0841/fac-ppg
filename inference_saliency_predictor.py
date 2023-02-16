@@ -140,25 +140,20 @@ def multi_sampling(model, x, y, criterion, num_samples=5):
     mask = mask.squeeze().detach().cpu().numpy()[:,1]
     y_pred = y_pred.squeeze().detach().cpu().numpy()
     
-    # for _ in range(11):
-    #     mask = medfilt(mask, kernel_size=5)
-    
     # mask_samples.append(refining_mask_sample(mask)[1])
     mask_samples.append(medfilt(mask, kernel_size=3))
     
     for _ in range(num_samples-1):
         _, m, _ = model(x)
         m = m.squeeze().detach().cpu().numpy()[:,1]
-        # for _ in range(11):
-        #     m = medfilt(m, kernel_size=5)
-        mask_samples.append(medfilt(m, kernel_size=3))
         # mask_samples.append(refining_mask_sample(m)[1])
+        mask_samples.append(medfilt(m, kernel_size=3))
     
     mask_intersect = np.multiply(np.logical_and(mask_samples[0], mask_samples[1]), 1)
     for i in range(2, num_samples):
         mask_intersect = np.multiply(np.logical_and(mask_intersect, mask_samples[i]), 1)
     
-    for _ in range(7): #11
+    for _ in range(7): #7
         mask_intersect = medfilt(mask_intersect, kernel_size=7) #7
     
     x = x.squeeze().cpu().numpy()
@@ -242,11 +237,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     learning_rate = hparams.learning_rate
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
-
-    # criterion1 = VecExpectedKLDivergence(alpha=hparams.alpha, 
-                                        # beta=hparams.beta)
-    criterion2 = torch.nn.L1Loss() #MSELoss
-    # criterion3 = SparsityKLDivergence()
+    criterion2 = torch.nn.L1Loss()
 
     test_loader, collate_fn = prepare_dataloaders(hparams, valid=valid)
 
@@ -319,9 +310,9 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # # cunk_array += [c[-1] for c in chunks]
         
         #%% Plotting
-        # corr_sign, corr_grad = plot_figures(x, posterior, mask_sample, y, 
-        #                                 y_pred, iteration+1, hparams)
-        # corr_array.append([corr_sign, corr_grad])
+        corr_sign, corr_grad = plot_figures(x, posterior, mask_sample, y, 
+                                        y_pred, iteration+1, hparams)
+        corr_array.append([corr_sign, corr_grad])
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -347,7 +338,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_3"
+                                        "images_test"
                                     )
 
     if not hparams.output_directory:
@@ -363,7 +354,7 @@ if __name__ == '__main__':
                                                             hparams.output_directory,
                                                             hparams.checkpoint_path,
                                                             hparams,
-                                                            valid=True,
+                                                            valid=False,
                                                         )
     
     pred_array = np.asarray(pred_array)
