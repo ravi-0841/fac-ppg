@@ -13,6 +13,7 @@ import math
 import torch
 import pylab
 import numpy as np
+import seaborn as sns
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
 from saliency_predictor import SaliencyPredictor
@@ -216,6 +217,14 @@ def best_k_class_metric(y_true, y_pred, k=0):
     #     return 0
 
 
+def compute_MI(marg1, marg2, joint):
+    mi = 0
+    for r in range(joint.shape[0]):
+        for c in range(joint.shape[1]):
+            mi += (joint[r,c]*np.log(joint[r,c]/(marg1[r]*marg2[c])))         
+    return mi
+
+
 def test(output_directory, checkpoint_path, hparams, valid=True):
     """Training and validation logging results to tensorboard and stdout
 
@@ -338,7 +347,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_destroy"
+                                        "images_3"
                                     )
 
     if not hparams.output_directory:
@@ -367,15 +376,50 @@ if __name__ == '__main__':
     print("Top-1 Accuracy is: {}".format(np.sum(top_1)/len(top_1)))
     print("Top-2 Accuracy is: {}".format((np.sum(top_1) + np.sum(top_2))/len(top_1)))
     
-    # pylab.figure(), pylab.hist(corr_array[:,0], alpha=0.5, density=True)
-    # pylab.title("Correlation between posterior and energy contour")
-    # pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy.png"))
+    pylab.figure(), pylab.hist(corr_array[:,0], alpha=0.5, density=True)
+    pylab.title("Correlation between posterior and energy contour, median- {}".format(
+                                                        np.round(np.median(corr_array[:,0]), 2)
+                                                        ))
+    pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy.png"))
 
-    # pylab.figure(), pylab.hist(corr_array[:,1], alpha=0.5, density=True)
-    # pylab.title("Correlation between posterior and energy contour")
-    # pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy_gradient.png"))
-    # pylab.close("all")
+    pylab.figure(), pylab.hist(corr_array[:,1], alpha=0.5, density=True)
+    pylab.title("Correlation between posterior and energy contour, median- {}".format(
+                                                        np.round(np.median(corr_array[:,1]), 2)
+                                                        ))
+    pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy_gradient.png"))
+    pylab.close("all")
+    
+    #%%
+    # Joint density plot
+    epsilon = 1e-3
+    corn_mat = np.zeros((5,5))
+    for (t,p) in zip(targ_array, pred_array):
+        for et in range(5):
+            for ep in range(5):
+                if t[et]>epsilon and p[ep]>epsilon:
+                    corn_mat[ep, et] += 1
+                    
+    corn_mat = corn_mat / np.sum(corn_mat)
+    x = np.arange(0, 6, 1)
+    y = np.arange(0, 6, 1)
+    x_center = 0.5 * (x[:-1] + x[1:])
+    y_center = 0.5 * (y[:-1] + y[1:])
+    X, Y = np.meshgrid(x_center, y_center)
+    plot = pylab.pcolormesh(x, y, corn_mat, cmap='RdBu', shading='flat')
+    cset = pylab.contour(X, Y, corn_mat, cmap='gray')
+    pylab.clabel(cset, inline=True)
+    pylab.colorbar(plot)
+    pylab.title("Joint density estimate")
+    pylab.savefig(os.path.join(hparams.output_directory, "joint_density_plot.png"))
+    pylab.close("all")
 
+    # Mutual Info
+    mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
+    sns.histplot(mi_array, bins=30, kde=True)
+    pylab.title("Mutual Information distribution")
+    pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
+    pylab.close("all")
+    
 
 
 
