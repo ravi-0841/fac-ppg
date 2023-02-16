@@ -187,14 +187,23 @@ def intersection(lst1, lst2):
 
 
 def best_k_class_metric(y_true, y_pred, k=0):
+    # k is either 0 or 1
     max_val = np.max(y_true)
     targ_idxs = [index for index, value in enumerate(y_true) if value == max_val]
     
-    chek_idx = np.flip(np.argsort(y_pred))[k]
-    if chek_idx in targ_idxs:
-        return 1
+    if k == 0:
+        chek_idx = np.flip(np.argsort(y_pred))[0]
+        if chek_idx in targ_idxs:
+            return 1
+        else:
+            return 0
     else:
-        return 0
+        ignore_idx = np.flip(np.argsort(y_pred))[0]
+        chek_idx = np.flip(np.argsort(y_pred))[k]
+        if (chek_idx in targ_idxs) and (ignore_idx not in targ_idxs):
+            return 1
+        else:
+            return 0
 
     # max_val = y_pred[np.flip(np.argsort(y_pred))[k]]
     # pred_idxs = [index for index, value in enumerate(y_pred) if value == max_val]
@@ -362,10 +371,9 @@ if __name__ == '__main__':
     
     top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
     top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
-    # top_3 = [best_k_class_metric(t, p, k=2) for (t, p) in zip(targ_array, pred_array)]
     
-    print("Top-1 Accuracy is: {}".format(np.sum(top_1)/len(top_1)))
-    print("Top-2 Accuracy is: {}".format((np.sum(top_1) + np.sum(top_2))/len(top_1)))
+    print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),2)))
+    print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),2)))
     
     pylab.figure(), pylab.hist(corr_array[:,0], alpha=0.5, density=True)
     pylab.title("Correlation between posterior and energy contour, median- {}".format(
@@ -379,7 +387,7 @@ if __name__ == '__main__':
                                                         ))
     pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy_gradient.png"))
     pylab.close("all")
-    
+
     #%%
     # Joint density plot
     epsilon = 1e-3
