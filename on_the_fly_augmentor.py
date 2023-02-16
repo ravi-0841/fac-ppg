@@ -88,7 +88,7 @@ class OnTheFlyAugmentor():
         rating = self._rating_structure(rating)
         return (
                 speech_stft,
-                speech_stft.shape[1], 
+                speech_data, 
                 torch.from_numpy(rating).float(),
                 sr,
         ) #torch.from_numpy(speech_data).float()

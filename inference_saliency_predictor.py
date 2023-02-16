@@ -375,14 +375,14 @@ if __name__ == '__main__':
     print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),2)))
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),2)))
     
-    pylab.figure(), pylab.hist(corr_array[:,0], alpha=0.5, density=True)
+    pylab.figure(figsize=(10,10)), pylab.hist(corr_array[:,0], alpha=0.5, density=True)
     pylab.title("Correlation between posterior and energy contour, median- {}".format(
                                                         np.round(np.median(corr_array[:,0]), 2)
                                                         ))
     pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy.png"))
 
-    pylab.figure(), pylab.hist(corr_array[:,1], alpha=0.5, density=True)
-    pylab.title("Correlation between posterior and energy contour, median- {}".format(
+    pylab.figure(figsize=(10,10)), pylab.hist(corr_array[:,1], alpha=0.5, density=True)
+    pylab.title("Correlation between posterior and energy contour gradient, median- {}".format(
                                                         np.round(np.median(corr_array[:,1]), 2)
                                                         ))
     pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy_gradient.png"))

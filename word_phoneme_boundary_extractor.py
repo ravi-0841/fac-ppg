@@ -92,10 +92,12 @@ def plot_figures(spectrogram, posterior, mask,
     if phones is not None:
         for p in phones:
             ax[0].axvline(x=p[4], linewidth=2.5, color="k")
-            ax[0].text(x=int((p[4]+p[3])/2), y=257, s=p[0], fontsize="large")
+            ax[0].text(x=int((p[4]+p[3])/2), y=257, s=p[0], 
+                       fontsize="large", fontweight="bold")
     if words is not None:
         for w in words:
-            ax[0].text(x=int((w[4]+w[3])/2), y=275, s=w[0], fontsize="large")
+            ax[0].text(x=int((w[4]+w[3])/2), y=275, s=w[0], 
+                       fontsize="large", fontweight="demibold")
     # pylab.tight_layout()
 
     energy = np.sum(spectrogram**2, axis=0)
@@ -186,7 +188,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     pred_array = []
     targ_array = []
     corr_array = []
-    text_grid_array = []
+    phones_array = []
+    words_array = []
     
     # ================ MAIN TESTING LOOP! ===================
     for i in range(len(testset)):
@@ -212,9 +215,12 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         words[-1][4] = x.shape[1]-1
 
         loss_array.append(reduced_loss)
-        pred_array.append(y_pred)
-        targ_array.append(y)
-        text_grid_array.append(text_grid)
+        # pred_array.append(y_pred)
+        # targ_array.append(y)
+        phones_array.append(phones)
+        words_array.append(words)
+        cunk_array.append(refining_mask_sample(mask=mask, threshold=1, 
+                                               filtering=False)) # will only get chunks of active regions
         
         #%% Plotting
         corr_array.append(plot_figures(x, posterior, mask, y, 
@@ -230,7 +236,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     
     print("Avg. Loss: {:.3f}".format(np.mean(loss_array)))
     
-    return cunk_array, targ_array, pred_array, text_grid_array
+    return cunk_array, phones_array, words_array
 
 
 if __name__ == '__main__':
@@ -257,15 +263,13 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
 
-    _, targ_array, pred_array, grid_array = test(
+    cunk_array, phones_array, words_array = test(
                                                 hparams.output_directory,
                                                 hparams.checkpoint_path,
                                                 hparams,
                                                 valid=True,
                                             )
-    
-    pred_array = np.asarray(pred_array)
-    targ_array = np.asarray(targ_array)
+
 
 
 
