@@ -12,6 +12,8 @@ import time
 import math
 import torch
 import numpy as np
+import argparse
+
 from torch.utils.data import DataLoader
 from saliency_predictor import SaliencyPredictor
 from on_the_fly_augmentor import OnTheFlyAugmentor, acoustics_collate
@@ -42,8 +44,34 @@ def create_folds(hparams, fold=1):
         ):
         return None
     else:
-        utterance_rating_paths = load_filepaths(hparams.complete_filles)
-        pass
+        utterance_rating_paths = load_filepaths(hparams.complete_files)
+        train_data = []
+        valid_test = []
+        for p_u in utterance_rating_paths:
+            if p_u.split(" ,")[0].split("/")[3] != str(fold):
+                train_data.append(p_u)
+            else:
+                valid_test.append(p_u)
+        
+        np.random.shuffle(train_data)
+        np.random.shuffle(valid_test)
+        
+        with open("./temp/train_fold_{}.txt".format(fold), "a") as f:
+            for l in train_data:
+                f.writelines(l+"\n")
+            f.close()
+        
+        with open("./temp/valid_fold_{}.txt".format(fold), "a") as f:
+            for i in range(250):
+                f.writelines(valid_test[i]+"\n")
+            f.close()
+        
+        with open("./temp/test_fold_{}.txt".format(fold), "a") as f:
+            for i in range(250, len(valid_test)):
+                f.writelines(valid_test[i]+"\n")
+            f.close()
+
+        return None
 
 
 def prepare_dataloaders(hparams):
@@ -265,11 +293,23 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
 
 if __name__ == '__main__':
+    
+    parser = argparse.ArgumentParser(description='Train saliency prediction model for each speaker.')
+    parser.add_argument('--fold', type=int, help='Which speaker to test the model on.', 
+                        default=1)
+    args = parser.parse_args()
+    
     hparams = create_hparams()
+    
+    create_folds(hparams=hparams, fold=args.fold)
+    hparams.training_files = "./temp/train_fold_{}.txt".format(args.fold)
+    hparams.validation_files = "./temp/valid_fold_{}.txt".format(args.fold)
+    hparams.testing_files = "./temp/test_fold_{}.txt".format(args.fold)
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "libri_{}_{}_{}_{}_{}".format(
+                                        "fold_{}_{}_{}_{}_{}_{}".format(
+                                            args.fold,
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
