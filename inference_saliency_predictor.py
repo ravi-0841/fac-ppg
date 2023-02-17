@@ -272,9 +272,6 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         #%% Sampling masks multiple times for same utterance
         
         x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion)
-        loss_array.append(reduced_loss)
-        pred_array.append(y_pred)
-        targ_array.append(y)
 
         #%% Sampling the mask only once
         
@@ -297,12 +294,12 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         
         # posterior, mask_sample, _ = model(x)
         # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-        # mask_sample = random_mask_thresholding(mask_sample)
-        # # _, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5)
+        # # mask_sample = random_mask_thresholding(mask_sample)
+        # _, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5)
         
         # mask_sample = torch.from_numpy(mask_sample).unsqueeze(dim=0).unsqueeze(dim=-1).to("cuda")
         # mask_sample = mask_sample.repeat(1,1,512)
-        # mask_sample = torch.zeros_like(mask_sample).to("cuda") # Zeroing out mask
+        # # mask_sample = torch.zeros_like(mask_sample).to("cuda") # Zeroing out mask
         # _, _, y_pred = model(x, pre_computed_mask=mask_sample)
         # loss = criterion(y_pred, y)
         # reduced_loss = loss.item()
@@ -319,6 +316,11 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # # cunk_array += [c[-1] for c in chunks]
         
         #%% Plotting
+
+        loss_array.append(reduced_loss)
+        pred_array.append(y_pred)
+        targ_array.append(y)
+
         corr_sign, corr_grad = plot_figures(x, posterior, mask_sample, y, 
                                         y_pred, iteration+1, hparams)
         corr_array.append([corr_sign, corr_grad])
@@ -347,7 +349,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_test"
+                                        "images_test_refined_mask_input"
                                     )
 
     if not hparams.output_directory:
