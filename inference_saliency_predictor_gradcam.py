@@ -18,7 +18,7 @@ import seaborn as sns
 from pytorch_grad_cam import GradCAM
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from saliency_predictor import SaliencyPredictor
+from saliency_predictor_2D import SaliencyPredictor
 from on_the_fly_augmentor import OnTheFlyAugmentor, acoustics_collate
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -58,7 +58,7 @@ def prepare_dataloaders(hparams, valid=True):
                             num_workers=1,
                             shuffle=False,
                             sampler=None,
-                            batch_size=1,
+                            batch_size=hparams.batch_size,
                             drop_last=False,
                             collate_fn=collate_fn,
                             )
@@ -257,7 +257,10 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     iteration = 0
     model, _, _, _ = load_checkpoint(checkpoint_path, model, optimizer)
 
-    model.eval()
+    # model.train()
+    
+    grad_cam = GradCAM(model=model, target_layers=[model.conv1_enc.conv1], use_cuda=True)
+    grad_cam.model.train()
 
     cunk_array = []
     loss_array = []
@@ -273,7 +276,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # input_shape should be [#batch_size, #freq_channels, #time]
 
         #%% Sampling masks multiple times for same utterance
-        
+        gray_cam = grad_cam(input_tensor=x, targets=None)
         x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion)
         
         #%% Plotting
@@ -303,10 +306,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "libri_{}_{}_{}_{}_{}".format(
-                                            hparams.lambda_prior_KL,
-                                            hparams.lambda_predict,
-                                            hparams.lambda_sparse_KL,
+                                        "2D_{}_{}".format(
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),

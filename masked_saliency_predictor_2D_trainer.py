@@ -127,7 +127,9 @@ def validate(model, criterion, valset, collate_fn, iteration,
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
             x, y, _ = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
-            posterior, mask_sample, y_pred = model(x)
+            y_pred = model(x)
+            posterior = torch.ones(size=(x.shape[0], x.shape[2], 2))
+            mask_sample = torch.ones(size=(x.shape[0], x.shape[2], 2))
             loss = criterion(y_pred, y)
             reduced_val_loss = loss.item()
             val_loss += reduced_val_loss
@@ -170,10 +172,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
 
-    criterion1 = VecExpectedKLDivergence(alpha=hparams.alpha, 
-                                        beta=hparams.beta)
-    criterion2 = torch.nn.L1Loss() #MSELoss
-    criterion3 = SparsityKLDivergence()
+    criterion = torch.nn.L1Loss()
 
     logger = prepare_directories_and_logger(
         output_directory, log_directory, rank)
@@ -210,13 +209,9 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             x, y, l = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
             # input_shape should be [#batch_size, #freq_channels, #time]
 
-            posterior, mask_sample, y_pred = model(x, pre_computed_mask=None)
+            y_pred = model(x, pre_computed_mask=None)
 
-            loss = (
-                    hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l)
-                    + hparams.lambda_predict*criterion2(y_pred, y)
-                    + hparams.lambda_sparse_KL*criterion3(posterior)
-                )
+            loss = criterion(y_pred, y)
             reduced_loss = loss.item()
 
             loss.backward()
@@ -235,7 +230,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                     reduced_loss, grad_norm, learning_rate, duration, iteration)
 
             if (iteration % hparams.iters_per_checkpoint == 0):
-                validate(model, criterion2, valset, collate_fn, 
+                validate(model, criterion, valset, collate_fn, 
                          iteration, hparams.batch_size, n_gpus, logger, 
                          hparams.distributed_run, rank)
                 if learning_rate > hparams.learning_rate_lb:
@@ -256,10 +251,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "2D_{}_{}_{}_{}_{}".format(
-                                            hparams.lambda_prior_KL,
-                                            hparams.lambda_predict,
-                                            hparams.lambda_sparse_KL,
+                                        "2D_{}_{}".format(
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         )

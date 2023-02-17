@@ -130,29 +130,27 @@ class SaliencyPredictor(nn.Module):
         
         self.temp_scale = temp_scale
 
-        self.input_projection = nn.Linear(in_features=257, out_features=64)
+        self.input_projection = nn.Linear(in_features=257, out_features=256)
 
-        self.conv1_enc = GluConv2d(in_channels=1, out_channels=64, 
+        self.conv1_enc = GluConv2d(in_channels=1, out_channels=128, 
                                     kernel_size=(5, 7), stride=1)
-        self.conv2_enc = GluConv2d(in_channels=64, out_channels=1, 
+        self.conv2_enc = GluConv2d(in_channels=128, out_channels=1, 
                                     kernel_size=(5, 5), stride=1)
 
-        encoder_layer = nn.TransformerEncoderLayer(d_model=64, nhead=4,
+        encoder_layer = nn.TransformerEncoderLayer(d_model=256, nhead=4,
                                                 dim_feedforward=512)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=2)
-
-        self.encoder_linear = nn.Linear(in_features=64, out_features=2)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=3)
         
-        self.recurrent_layer = nn.LSTM(input_size=64, hidden_size=128, 
+        self.recurrent_layer = nn.LSTM(input_size=256, hidden_size=256, 
                                num_layers=2, bidirectional=True, dropout=0.2)
 
-        self.decoder_linear = nn.Linear(in_features=256, out_features=5)
+        self.decoder_linear = nn.Linear(in_features=512, out_features=5)
 
-        self.bn1_enc = nn.BatchNorm2d(64)
+        self.bn1_enc = nn.BatchNorm2d(128)
         self.bn2_enc = nn.BatchNorm2d(1)
-        self.bn3_enc = nn.BatchNorm1d(64)
+        self.bn3_enc = nn.BatchNorm1d(256)
 
-        self.bn1_dec = nn.BatchNorm1d(256)
+        self.bn1_dec = nn.BatchNorm1d(512)
 
         self.sigmoid_activation = nn.Sigmoid()
         self.elu = nn.ELU(inplace=True)
@@ -168,44 +166,32 @@ class SaliencyPredictor(nn.Module):
         projected_x = self.input_projection(x.permute(0,2,1))
         projected_x = projected_x.permute(0,2,1)
         projected_x = projected_x.unsqueeze(dim=1)
-        print("0. proj_x shape: ", projected_x.shape)
+        # print("0. proj_x shape: ", projected_x.shape)
 
         e1_enc = self.elu(self.bn1_enc(self.conv1_enc(projected_x)))
         e2_enc = self.elu(self.bn2_enc(self.conv2_enc(e1_enc)))
-        e2_enc = e2_enc.squeeze()
-        print("1. e2_enc shape: ", e2_enc.shape)
+        e2_enc = e2_enc.squeeze(dim=1)
+        # print("1. e2_enc shape: ", e2_enc.shape)
         
         e2_enc = e2_enc.permute(2,0,1)
         e3_enc = self.transformer_encoder(e2_enc)
-        print("2. e3_enc shape: ", e3_enc.shape)
+        # print("2. e3_enc shape: ", e3_enc.shape)
         
         e3_enc = e3_enc.permute(1,2,0)
         e3_enc = self.bn3_enc(e3_enc)
-        posterior = self.encoder_linear(e3_enc.permute(0,2,1))
-        # print("Posterior: ", posterior)
-        
-        posterior = self.softmax(posterior/self.temp_scale)
-        sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
-        mask = sampled_val[:,:,1:2].repeat(1,1,64)
-        print("4. mask shape: ", mask.shape)
-        
-        if pre_computed_mask is not None:
-            mask = pre_computed_mask
-
-        enc_out = projected_x.squeeze() * mask.permute(0,2,1)
-        enc_out = enc_out.permute(2,0,1)
-        print("5. enc_out shape: ", enc_out.shape)
+        enc_out = e3_enc.permute(2,0,1)
+        # print("3. enc_out shape: ", enc_out.shape)
         
         lstm_out, _ = self.recurrent_layer(enc_out)
         lstm_out = lstm_out[-1, :, :]
-        print("6. lstm_out shape: ", lstm_out.shape)
+        # print("4. lstm_out shape: ", lstm_out.shape)
 
         lstm_out = self.bn1_dec(lstm_out)
         out = self.softmax(self.decoder_linear(lstm_out))
-        print("7. out shape: ", out.shape)
+        # print("5. out shape: ", out.shape)
 
-        return posterior, sampled_val, out
-        # return out
+        # return posterior, sampled_val, out
+        return out
 
 
 if __name__ == "__main__":
@@ -214,10 +200,11 @@ if __name__ == "__main__":
     model = model.cuda()
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("Total number of trainable parameters are: ", num_params)
-    x = torch.rand(4, 257, 300).to("cuda")
-    p, s, o = model(x)
-    print("posterior shape: ", p.shape)
-    print("sample shape: ", s.shape)
+    x = torch.rand(2, 257, 300).to("cuda")
+    # p, s, o = model(x)
+    # print("posterior shape: ", p.shape)
+    # print("sample shape: ", s.shape)
+    o = model(x)
     print("output shape: ", o.shape)
 
 
