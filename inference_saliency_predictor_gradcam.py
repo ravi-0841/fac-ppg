@@ -14,6 +14,8 @@ import torch
 import pylab
 import numpy as np
 import seaborn as sns
+
+from pytorch_grad_cam import GradCAM
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
 from saliency_predictor import SaliencyPredictor
@@ -273,48 +275,6 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         #%% Sampling masks multiple times for same utterance
         
         x, y, y_pred, posterior, mask_sample, reduced_loss = multi_sampling(model, x, y, criterion)
-
-        #%% Sampling the mask only once
-        
-        # posterior, mask_sample, y_pred = model(x)
-        # loss = criterion(y_pred, y)
-        # reduced_loss = loss.item()
-        # loss_array.append(reduced_loss)
-
-        # x = x.squeeze().cpu().numpy()
-        # y = y.squeeze().cpu().numpy()
-        # y_pred = y_pred.squeeze().detach().cpu().numpy()
-        # posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-        # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-        
-        # chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
-        # # print("\t Chunks: ", chunks)
-        # cunk_array += [c[-1] for c in chunks]
-        
-        #%% Removing segments of length < 5
-        
-        # posterior, mask_sample, _ = model(x)
-        # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-        # # mask_sample = random_mask_thresholding(mask_sample)
-        # _, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5)
-        
-        # mask_sample = torch.from_numpy(mask_sample).unsqueeze(dim=0).unsqueeze(dim=-1).to("cuda")
-        # mask_sample = mask_sample.repeat(1,1,512)
-        # # mask_sample = torch.zeros_like(mask_sample).to("cuda") # Zeroing out mask
-        # _, _, y_pred = model(x, pre_computed_mask=mask_sample)
-        # loss = criterion(y_pred, y)
-        # reduced_loss = loss.item()
-        # loss_array.append(reduced_loss)
-
-        # x = x.squeeze().cpu().numpy()
-        # y = y.squeeze().cpu().numpy()
-        # y_pred = y_pred.squeeze().detach().cpu().numpy()
-        # posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-        # mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,0]
-        
-        # chunks, mask_sample = refining_mask_sample(mask_sample, kernel_size=7, threshold=5) # 7, 5
-        # # print("\t Chunks: ", chunks)
-        # # cunk_array += [c[-1] for c in chunks]
         
         #%% Plotting
 
@@ -322,9 +282,9 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pred_array.append(y_pred)
         targ_array.append(y)
 
-        corr_sign, corr_grad = plot_figures(x, posterior, mask_sample, y, 
-                                        y_pred, iteration+1, hparams)
-        corr_array.append([corr_sign, corr_grad])
+        # corr_sign, corr_grad = plot_figures(x, posterior, mask_sample, y, 
+        #                                 y_pred, iteration+1, hparams)
+        # corr_array.append([corr_sign, corr_grad])
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -371,56 +331,6 @@ if __name__ == '__main__':
     
     pred_array = np.asarray(pred_array)
     targ_array = np.asarray(targ_array)
-    
-    top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
-    top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
-    
-    print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),2)))
-    print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),2)))
-    
-    pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)
-    pylab.title("Correlation between posterior and energy contour, median- {}".format(
-                                                        np.round(np.median(corr_array[:,0]), 2)
-                                                        ))
-    pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy.png"))
-
-    pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,1], bins=30, kde=True)
-    pylab.title("Correlation between posterior and energy contour gradient, median- {}".format(
-                                                        np.round(np.median(corr_array[:,1]), 2)
-                                                        ))
-    pylab.savefig(os.path.join(hparams.output_directory, "correlation_energy_gradient.png"))
-    pylab.close("all")
-
-    #%%
-    # Joint density plot
-    epsilon = 1e-3
-    corn_mat = np.zeros((5,5))
-    for (t,p) in zip(targ_array, pred_array):
-        for et in range(5):
-            for ep in range(5):
-                if t[et]>epsilon and p[ep]>epsilon:
-                    corn_mat[ep, et] += 1
-                    
-    corn_mat = corn_mat / np.sum(corn_mat)
-    x = np.arange(0, 6, 1)
-    y = np.arange(0, 6, 1)
-    x_center = 0.5 * (x[:-1] + x[1:])
-    y_center = 0.5 * (y[:-1] + y[1:])
-    X, Y = np.meshgrid(x_center, y_center)
-    plot = pylab.pcolormesh(x, y, corn_mat, cmap='RdBu', shading='flat')
-    cset = pylab.contour(X, Y, corn_mat, cmap='gray')
-    pylab.clabel(cset, inline=True)
-    pylab.colorbar(plot)
-    pylab.title("Joint density estimate")
-    pylab.savefig(os.path.join(hparams.output_directory, "joint_density_plot.png"))
-    pylab.close("all")
-
-    # Mutual Info
-    mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
-    sns.histplot(mi_array, bins=30, kde=True)
-    pylab.title("Mutual Information distribution")
-    pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
-    pylab.close("all")
     
 
 
