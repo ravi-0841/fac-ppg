@@ -15,7 +15,7 @@ import pylab
 import numpy as np
 import seaborn as sns
 
-from pytorch_grad_cam import GradCAM
+# from pytorch_grad_cam import GradCAM
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
 from saliency_predictor_2D import SaliencyPredictor
@@ -168,8 +168,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         #%% Plotting
 
         loss_array.append(reduced_loss)
-        pred_array.append(y_pred)
-        targ_array.append(y)
+        pred_array.append(y_pred.detach().cpu().numpy())
+        targ_array.append(y.detach().cpu().numpy())
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -177,6 +177,9 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
                 iteration, reduced_loss, duration))
 
         iteration += 1
+        
+        # if i == 30:
+        #     break
     
     print("Avg. Loss: {:.3f}".format(np.mean(loss_array)))
     
@@ -208,7 +211,7 @@ if __name__ == '__main__':
                                 hparams.output_directory,
                                 hparams.checkpoint_path,
                                 hparams,
-                                valid=True,
+                                valid=False,
                             )
     
     pred_array = np.vstack(pred_array)
