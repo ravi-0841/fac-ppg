@@ -58,7 +58,7 @@ def prepare_dataloaders(hparams, valid=True):
                             num_workers=1,
                             shuffle=False,
                             sampler=None,
-                            batch_size=hparams.batch_size,
+                            batch_size=2,
                             drop_last=False,
                             collate_fn=collate_fn,
                             )
@@ -144,9 +144,9 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
 
     model.eval()
     
-    grad_cam = GradCAM(model=model, target_layers=[model.conv1_enc.conv1], 
-                       use_cuda=True)
-    grad_cam.model.train()
+    # grad_cam = GradCAM(model=model, target_layers=[model.conv1_enc.conv1], 
+    #                    use_cuda=True)
+    # grad_cam.model.train()
 
     loss_array = []
     pred_array = []
@@ -160,7 +160,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # input_shape should be [#batch_size, #freq_channels, #time]
 
         #%% Sampling masks multiple times for same utterance
-        gray_cam = grad_cam(input_tensor=x, targets=None)
+        # gray_cam = grad_cam(input_tensor=x, targets=None)
         y_pred = model(x)
         loss = criterion(y_pred, y)
         reduced_loss = loss.item()
@@ -208,11 +208,17 @@ if __name__ == '__main__':
                                 hparams.output_directory,
                                 hparams.checkpoint_path,
                                 hparams,
-                                valid=False,
+                                valid=True,
                             )
     
-    pred_array = np.asarray(pred_array)
-    targ_array = np.asarray(targ_array)
+    pred_array = np.vstack(pred_array)
+    targ_array = np.vstack(targ_array)
+    
+    top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
+    top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
+    
+    print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),2)))
+    print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),2)))
     
 
 
