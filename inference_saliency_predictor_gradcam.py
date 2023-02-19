@@ -15,7 +15,7 @@ import pylab
 import numpy as np
 import seaborn as sns
 
-# from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam import GradCAM
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
 from saliency_predictor_2D import SaliencyPredictor
@@ -117,6 +117,45 @@ def compute_MI(marg1, marg2, joint):
     return mi
 
 
+def plot_gray_cam(spectrogram, gray_cam, y, y_pred, iteration, hparams):
+    
+    for i in range(spectrogram.shape[0]):
+        s = spectrogram[i]
+        g = gray_cam[i]
+        y_p = y_pred[i]
+        y_t = y[i]
+
+        # Plotting details
+        pylab.xticks(fontsize=18)
+        pylab.yticks(fontsize=18)
+        fig, ax = pylab.subplots(3, 1, figsize=(24, 15))
+        
+        ax[0].imshow(np.log10(s + 1e-10), aspect="auto", origin="lower",
+                       interpolation='none')
+        ax[0].set_xlabel('Time',fontsize = 20) #xlabel
+        ax[0].set_ylabel('Frequency', fontsize = 20) #ylabel
+        # pylab.tight_layout()
+        
+        ax[1].imshow(g, aspect="auto", origin="lower",
+                       interpolation='none')
+        ax[1].set_xlabel('Time',fontsize = 20) #xlabel
+        ax[1].set_ylabel('Frequency', fontsize = 20) #ylabel
+        # pylab.tight_layout()
+        
+        classes = ["neu", "ang", "hap", "sad", "fea"]
+        ax[2].bar(classes, y_t, alpha=0.5, label="target")
+        ax[2].bar(classes, y_p, alpha=0.5, label="pred")
+        ax[2].legend(loc=1)
+        ax[2].set_xlabel('Classes',fontsize = 20) #xlabel
+        ax[2].set_ylabel('Softmax Score', fontsize = 20) #ylabel
+        # pylab.tight_layout()
+    
+        pylab.suptitle("Utterance- {}".format(iteration+i), fontsize=24)
+        
+        pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration+i)))
+        pylab.close("all")
+
+
 def test(output_directory, checkpoint_path, hparams, valid=True):
     """Training and validation logging results to tensorboard and stdout
 
@@ -139,14 +178,14 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     test_loader, collate_fn = prepare_dataloaders(hparams, valid=valid)
 
     # Load checkpoint
-    iteration = 0
+    iteration = 1
     model, _, _, _ = load_checkpoint(checkpoint_path, model, optimizer)
 
     model.eval()
     
-    # grad_cam = GradCAM(model=model, target_layers=[model.conv1_enc.conv1], 
-    #                    use_cuda=True)
-    # grad_cam.model.train()
+    grad_cam = GradCAM(model=model, target_layers=[model.conv1_enc.conv1], 
+                        use_cuda=True)
+    grad_cam.model.train()
 
     loss_array = []
     pred_array = []
@@ -160,23 +199,28 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # input_shape should be [#batch_size, #freq_channels, #time]
 
         #%% Sampling masks multiple times for same utterance
-        # gray_cam = grad_cam(input_tensor=x, targets=None)
+        gray_cam = grad_cam(input_tensor=x, targets=None)
         y_pred = model(x)
         loss = criterion(y_pred, y)
         reduced_loss = loss.item()
         
         #%% Plotting
-
+        x = x.cpu().numpy()
+        y_pred = y_pred.detach().cpu().numpy()
+        y = y.detach().cpu().numpy()
+        
         loss_array.append(reduced_loss)
-        pred_array.append(y_pred.detach().cpu().numpy())
-        targ_array.append(y.detach().cpu().numpy())
+        pred_array.append(y_pred)
+        targ_array.append(y)
+        
+        plot_gray_cam(x, gray_cam, y, y_pred, iteration, hparams)
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
             print("Test loss {} {:.6f} {:.2f}s/it".format(
                 iteration, reduced_loss, duration))
 
-        iteration += 1
+        iteration += 2
         
         # if i == 30:
         #     break
