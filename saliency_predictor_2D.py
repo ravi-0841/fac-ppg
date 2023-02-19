@@ -150,7 +150,7 @@ class SaliencyPredictor(nn.Module):
         self.bn2_enc = nn.BatchNorm2d(1)
         self.bn3_enc = nn.BatchNorm1d(256)
 
-        self.bn1_dec = nn.BatchNorm1d(512)
+        # self.bn1_dec = nn.BatchNorm1d(512)
 
         self.sigmoid_activation = nn.Sigmoid()
         self.elu = nn.ELU(inplace=True)
@@ -186,11 +186,10 @@ class SaliencyPredictor(nn.Module):
         lstm_out = lstm_out[-1, :, :]
         # print("4. lstm_out shape: ", lstm_out.shape)
 
-        lstm_out = self.bn1_dec(lstm_out)
+        # lstm_out = self.bn1_dec(lstm_out)
         out = self.softmax(self.decoder_linear(lstm_out))
         # print("5. out shape: ", out.shape)
 
-        # return posterior, sampled_val, out
         return out
 
 
@@ -201,9 +200,6 @@ if __name__ == "__main__":
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("Total number of trainable parameters are: ", num_params)
     x = torch.rand(2, 257, 300).to("cuda")
-    # p, s, o = model(x)
-    # print("posterior shape: ", p.shape)
-    # print("sample shape: ", s.shape)
     o = model(x)
     print("output shape: ", o.shape)
 
