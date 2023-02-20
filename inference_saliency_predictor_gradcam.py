@@ -58,7 +58,7 @@ def prepare_dataloaders(hparams, valid=True):
                             num_workers=1,
                             shuffle=False,
                             sampler=None,
-                            batch_size=2,
+                            batch_size=1,
                             drop_last=False,
                             collate_fn=collate_fn,
                             )
@@ -118,42 +118,36 @@ def compute_MI(marg1, marg2, joint):
 
 
 def plot_gray_cam(spectrogram, gray_cam, y, y_pred, iteration, hparams):
-    
-    for i in range(spectrogram.shape[0]):
-        s = spectrogram[i]
-        g = gray_cam[i]
-        y_p = y_pred[i]
-        y_t = y[i]
 
-        # Plotting details
-        pylab.xticks(fontsize=18)
-        pylab.yticks(fontsize=18)
-        fig, ax = pylab.subplots(3, 1, figsize=(24, 15))
-        
-        ax[0].imshow(np.log10(s + 1e-10), aspect="auto", origin="lower",
-                       interpolation='none')
-        ax[0].set_xlabel('Time',fontsize = 20) #xlabel
-        ax[0].set_ylabel('Frequency', fontsize = 20) #ylabel
-        # pylab.tight_layout()
-        
-        ax[1].imshow(g, aspect="auto", origin="lower",
-                       interpolation='none')
-        ax[1].set_xlabel('Time',fontsize = 20) #xlabel
-        ax[1].set_ylabel('Frequency', fontsize = 20) #ylabel
-        # pylab.tight_layout()
-        
-        classes = ["neu", "ang", "hap", "sad", "fea"]
-        ax[2].bar(classes, y_t, alpha=0.5, label="target")
-        ax[2].bar(classes, y_p, alpha=0.5, label="pred")
-        ax[2].legend(loc=1)
-        ax[2].set_xlabel('Classes',fontsize = 20) #xlabel
-        ax[2].set_ylabel('Softmax Score', fontsize = 20) #ylabel
-        # pylab.tight_layout()
+    # Plotting details
+    pylab.xticks(fontsize=18)
+    pylab.yticks(fontsize=18)
+    fig, ax = pylab.subplots(3, 1, figsize=(24, 15))
     
-        pylab.suptitle("Utterance- {}".format(iteration+i), fontsize=24)
-        
-        pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration+i)))
-        pylab.close("all")
+    ax[0].imshow(np.log10(spectrogram[0] + 1e-10), aspect="auto", origin="lower",
+                   interpolation='none')
+    ax[0].set_xlabel('Time',fontsize = 20) #xlabel
+    ax[0].set_ylabel('Frequency', fontsize = 20) #ylabel
+    # pylab.tight_layout()
+    
+    ax[1].imshow(gray_cam[0], aspect="auto", origin="lower",
+                   interpolation='none')
+    ax[1].set_xlabel('Time',fontsize = 20) #xlabel
+    ax[1].set_ylabel('Frequency', fontsize = 20) #ylabel
+    # pylab.tight_layout()
+    
+    classes = ["neu", "ang", "hap", "sad", "fea"]
+    ax[2].bar(classes, y[0], alpha=0.5, label="target")
+    ax[2].bar(classes, y_pred[0], alpha=0.5, label="pred")
+    ax[2].legend(loc=1)
+    ax[2].set_xlabel('Classes',fontsize = 20) #xlabel
+    ax[2].set_ylabel('Softmax Score', fontsize = 20) #ylabel
+    # pylab.tight_layout()
+
+    pylab.suptitle("Utterance- {}".format(iteration), fontsize=24)
+    
+    pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration)))
+    pylab.close("all")
 
 
 def test(output_directory, checkpoint_path, hparams, valid=True):
@@ -220,7 +214,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
             print("Test loss {} {:.6f} {:.2f}s/it".format(
                 iteration, reduced_loss, duration))
 
-        iteration += 2
+        iteration += 1
         
         # if i == 30:
         #     break
@@ -239,7 +233,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_test"
+                                        "images_test_2"
                                     )
 
     if not hparams.output_directory:
