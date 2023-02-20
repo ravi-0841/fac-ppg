@@ -16,6 +16,7 @@ import numpy as np
 import seaborn as sns
 
 from pytorch_grad_cam import GradCAM
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
 from saliency_predictor_2D import SaliencyPredictor
@@ -123,19 +124,19 @@ def plot_gray_cam(spectrogram, gray_cam, y, y_pred, iteration, hparams):
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
     fig, ax = pylab.subplots(3, 1, figsize=(24, 15))
-    
-    ax[0].imshow(np.log10(spectrogram[0] + 1e-10), aspect="auto", origin="lower",
-                   interpolation='none')
+
+    ax[0].imshow(np.log10(spectrogram.squeeze() + 1e-10), aspect="auto", 
+                 origin="lower", interpolation='none')
     ax[0].set_xlabel('Time',fontsize = 20) #xlabel
     ax[0].set_ylabel('Frequency', fontsize = 20) #ylabel
     # pylab.tight_layout()
-    
-    ax[1].imshow(gray_cam[0], aspect="auto", origin="lower",
-                   interpolation='none')
+
+    ax[1].imshow(np.mean(gray_cam, axis=0).squeeze(), aspect="auto", 
+                 origin="lower", interpolation='none')
     ax[1].set_xlabel('Time',fontsize = 20) #xlabel
     ax[1].set_ylabel('Frequency', fontsize = 20) #ylabel
     # pylab.tight_layout()
-    
+
     classes = ["neu", "ang", "hap", "sad", "fea"]
     ax[2].bar(classes, y[0], alpha=0.5, label="target")
     ax[2].bar(classes, y_pred[0], alpha=0.5, label="pred")
@@ -148,6 +149,21 @@ def plot_gray_cam(spectrogram, gray_cam, y, y_pred, iteration, hparams):
     
     pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration)))
     pylab.close("all")
+    
+    fig, ax = pylab.subplots(5, 1, figsize=(22, 12))
+    for i in range(5):
+        ax[i].imshow(gray_cam[i], aspect="auto", origin="lower", 
+                     interpolation="none")
+        ax[i].set_xlabel("Time", fontsize=17)
+        ax[i].set_ylabel("Freq", fontsize=17)
+        pylab.title(classes[i], fontsize=5, fontweight="bold")
+    
+    pylab.suptitle("Utterance- {}".format(iteration), fontsize=24)
+    
+    pylab.savefig(os.path.join(hparams.output_directory, 
+                               "{}_class_activations.png".format(iteration)))
+    pylab.close("all")
+        
 
 
 def test(output_directory, checkpoint_path, hparams, valid=True):
@@ -179,6 +195,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     
     grad_cam = GradCAM(model=model, target_layers=[model.conv1_enc.conv1], 
                         use_cuda=True)
+    targets = [ClassifierOutputTarget(0), ClassifierOutputTarget(1)]
     grad_cam.model.train()
 
     loss_array = []
@@ -193,7 +210,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # input_shape should be [#batch_size, #freq_channels, #time]
 
         #%% Sampling masks multiple times for same utterance
-        gray_cam = grad_cam(input_tensor=x, targets=None)
+        gray_cam = [grad_cam(input_tensor=x, targets=[ClassifierOutputTarget(c)]) for c in range(5)]
+        gray_cam = np.asarray(gray_cam).squeeze()
         y_pred = model(x)
         loss = criterion(y_pred, y)
         reduced_loss = loss.item()
@@ -260,6 +278,36 @@ if __name__ == '__main__':
     
     print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),2)))
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),2)))
+    
+    #%%
+    epsilon = 1e-3
+    corn_mat = np.zeros((5,5))
+    for (t,p) in zip(targ_array, pred_array):
+        for et in range(5):
+            for ep in range(5):
+                if t[et]>epsilon and p[ep]>epsilon:
+                    corn_mat[ep, et] += 1
+                    
+    corn_mat = corn_mat / np.sum(corn_mat)
+    x = np.arange(0, 6, 1)
+    y = np.arange(0, 6, 1)
+    x_center = 0.5 * (x[:-1] + x[1:])
+    y_center = 0.5 * (y[:-1] + y[1:])
+    X, Y = np.meshgrid(x_center, y_center)
+    plot = pylab.pcolormesh(x, y, corn_mat, cmap='RdBu', shading='flat')
+    cset = pylab.contour(X, Y, corn_mat, cmap='gray')
+    pylab.clabel(cset, inline=True)
+    pylab.colorbar(plot)
+    pylab.title("Joint density estimate")
+    pylab.savefig(os.path.join(hparams.output_directory, "joint_density_plot.png"))
+    pylab.close("all")
+
+    # Mutual Info
+    mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
+    sns.histplot(mi_array, bins=30, kde=True)
+    pylab.title("Mutual Information distribution")
+    pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
+    pylab.close("all")
     
 
 

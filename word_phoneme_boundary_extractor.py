@@ -246,9 +246,9 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
                                                filtering=False)) # will only get chunks of active regions
         
         #%% Plotting
-        corr_array.append(plot_figures(x, posterior, mask, y, 
-                                        y_pred, iteration+1, hparams,
-                                        phones, words))
+        # corr_array.append(plot_figures(x, posterior, mask, y, 
+        #                                 y_pred, iteration+1, hparams,
+        #                                 phones, words))
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -290,21 +290,21 @@ if __name__ == '__main__':
                                                                 hparams.output_directory,
                                                                 hparams.checkpoint_path,
                                                                 hparams,
-                                                                valid=True,
+                                                                valid=False,
                                                             )
     
-    pylab.figure(figsize=(10,10)), sns.histplot(pitch_posterior[:,0], bins=30, kde=True)
-    pylab.title("Correlation between posterior and F0 contour, median- {}".format(
-                                                        np.round(np.median(pitch_posterior[:,0]), 2)
-                                                        ))
-    pylab.savefig(os.path.join(hparams.output_directory, "correlation_pitch.png"))
+    # pylab.figure(figsize=(10,10)), sns.histplot(pitch_posterior[:,0], bins=30, kde=True)
+    # pylab.title("Correlation between posterior and F0 contour, median- {}".format(
+    #                                                     np.round(np.median(pitch_posterior[:,0]), 2)
+    #                                                     ))
+    # pylab.savefig(os.path.join(hparams.output_directory, "correlation_pitch.png"))
 
-    pylab.figure(figsize=(10,10)), sns.histplot(pitch_posterior[:,1], bins=30, kde=True)
-    pylab.title("Correlation between posterior and F0 contour gradient, median- {}".format(
-                                                        np.round(np.median(pitch_posterior[:,1]), 2)
-                                                        ))
-    pylab.savefig(os.path.join(hparams.output_directory, "correlation_pitch_gradient.png"))
-    pylab.close("all")
+    # pylab.figure(figsize=(10,10)), sns.histplot(pitch_posterior[:,1], bins=30, kde=True)
+    # pylab.title("Correlation between posterior and F0 contour gradient, median- {}".format(
+    #                                                     np.round(np.median(pitch_posterior[:,1]), 2)
+    #                                                     ))
+    # pylab.savefig(os.path.join(hparams.output_directory, "correlation_pitch_gradient.png"))
+    # pylab.close("all")
 
 
 
