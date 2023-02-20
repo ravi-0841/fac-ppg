@@ -14,6 +14,7 @@ import torch
 import pylab
 import textgrid
 import librosa
+import joblib
 
 import numpy as np
 import pyworld as pw
@@ -238,8 +239,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pitch_post_array.append([corr_sign, corr_grad])
 
         loss_array.append(reduced_loss)
-        # pred_array.append(y_pred)
-        # targ_array.append(y)
+        pred_array.append(y_pred)
+        targ_array.append(y)
         phones_array.append(phones)
         words_array.append(words)
         cunk_array.append(refining_mask_sample(mask=mask, threshold=1, 
@@ -259,7 +260,14 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     
     print("Avg. Loss: {:.3f}".format(np.mean(loss_array)))
     
-    return cunk_array, phones_array, words_array, np.asarray(pitch_post_array)
+    return (
+                pred_array, 
+                targ_array,
+                cunk_array,
+                phones_array,
+                words_array,
+                np.asarray(pitch_post_array),
+            )
 
 
 if __name__ == '__main__':
@@ -286,12 +294,32 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
 
-    cunk_array, phones_array, words_array, pitch_posterior = test(
-                                                                hparams.output_directory,
-                                                                hparams.checkpoint_path,
-                                                                hparams,
-                                                                valid=False,
-                                                            )
+    (
+        pred_array,
+        targ_array,
+        cunk_array,
+        phones_array,
+        words_array,
+        pitch_posterior,
+     ) = test(
+                hparams.output_directory,
+                hparams.checkpoint_path,
+                hparams,
+                valid=False,
+            )
+    
+    joblib.dump({
+                    "chunks": cunk_array,
+                    "phones": phones_array,
+                    "words": words_array,
+                    "predictions": pred_array,
+                    "targets": targ_array,
+                },
+                os.path.join(hparams.output_directory, 
+                             "../", "test_chunks_array.pkl"),
+                )
+    
+    
     
     # pylab.figure(figsize=(10,10)), sns.histplot(pitch_posterior[:,0], bins=30, kde=True)
     # pylab.title("Correlation between posterior and F0 contour, median- {}".format(
