@@ -125,16 +125,18 @@ def plot_gray_cam(spectrogram, gray_cam, y, y_pred, iteration, hparams):
     pylab.yticks(fontsize=18)
     fig, ax = pylab.subplots(3, 1, figsize=(24, 15))
 
-    ax[0].imshow(np.log10(spectrogram.squeeze() + 1e-10), aspect="auto", 
+    im = ax[0].imshow(np.log10(spectrogram.squeeze() + 1e-10), aspect="auto", 
                  origin="lower", interpolation='none')
     ax[0].set_xlabel('Time',fontsize = 20) #xlabel
     ax[0].set_ylabel('Frequency', fontsize = 20) #ylabel
+    # pylab.colorbar(im, ax=ax[0])
     # pylab.tight_layout()
 
-    ax[1].imshow(np.mean(gray_cam, axis=0).squeeze(), aspect="auto", 
+    im = ax[1].imshow(np.mean(gray_cam, axis=0).squeeze(), aspect="auto", 
                  origin="lower", interpolation='none')
     ax[1].set_xlabel('Time',fontsize = 20) #xlabel
     ax[1].set_ylabel('Frequency', fontsize = 20) #ylabel
+    # pylab.colorbar(im, ax=ax[1])
     # pylab.tight_layout()
 
     classes = ["neu", "ang", "hap", "sad", "fea"]
@@ -193,10 +195,9 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
 
     model.eval()
     
-    # grad_cam = GradCAM(model=model, target_layers=[model.conv1_enc.conv1], 
-    #                     use_cuda=True)
-    # targets = [ClassifierOutputTarget(0), ClassifierOutputTarget(1)]
-    # grad_cam.model.train()
+    grad_cam = GradCAM(model=model, target_layers=[model.conv1_enc.conv1],
+                        use_cuda=True)
+    grad_cam.model.train()
 
     loss_array = []
     pred_array = []
@@ -209,14 +210,16 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         x, y, _ = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
         # input_shape should be [#batch_size, #freq_channels, #time]
 
-        #%% Sampling masks multiple times for same utterance
-        # gray_cam = [grad_cam(input_tensor=x, targets=[ClassifierOutputTarget(c)]) for c in range(5)]
-        # gray_cam = np.asarray(gray_cam).squeeze()
+        #%% Generating gradient maps
+
+        gray_cam = [grad_cam(input_tensor=x, targets=[ClassifierOutputTarget(c)]) for c in range(5)]
+        gray_cam = np.asarray(gray_cam).squeeze()
         y_pred = model(x)
         loss = criterion(y_pred, y)
         reduced_loss = loss.item()
         
         #%% Plotting
+
         x = x.cpu().numpy()
         y_pred = y_pred.detach().cpu().numpy()
         y = y.detach().cpu().numpy()
@@ -225,7 +228,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pred_array.append(y_pred)
         targ_array.append(y)
         
-        # plot_gray_cam(x, gray_cam, y, y_pred, iteration, hparams)
+        plot_gray_cam(x, gray_cam, y, y_pred, iteration, hparams)
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -251,7 +254,7 @@ if __name__ == '__main__':
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_test_2"
+                                        "images_test_3"
                                     )
 
     if not hparams.output_directory:
@@ -276,8 +279,8 @@ if __name__ == '__main__':
     top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
     top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
     
-    print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),2)))
-    print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),2)))
+    print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),4)))
+    print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
     
     #%%
     # epsilon = 1e-3

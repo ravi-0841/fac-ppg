@@ -375,8 +375,8 @@ if __name__ == '__main__':
     top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
     top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
     
-    print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),2)))
-    print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),2)))
+    print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),4)))
+    print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
 
     #%% Energy Posterior correlation
     # pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)
