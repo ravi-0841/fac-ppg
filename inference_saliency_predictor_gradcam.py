@@ -29,7 +29,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
                               )
-from src.common.hparams_onflyaugmentor import create_hparams
+from src.common.hparams_onflyaugmentor_gradcam import create_hparams
 from pprint import pprint
 
 
@@ -193,10 +193,10 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
 
     model.eval()
     
-    grad_cam = GradCAM(model=model, target_layers=[model.conv1_enc.conv1], 
-                        use_cuda=True)
-    targets = [ClassifierOutputTarget(0), ClassifierOutputTarget(1)]
-    grad_cam.model.train()
+    # grad_cam = GradCAM(model=model, target_layers=[model.conv1_enc.conv1], 
+    #                     use_cuda=True)
+    # targets = [ClassifierOutputTarget(0), ClassifierOutputTarget(1)]
+    # grad_cam.model.train()
 
     loss_array = []
     pred_array = []
@@ -210,8 +210,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         # input_shape should be [#batch_size, #freq_channels, #time]
 
         #%% Sampling masks multiple times for same utterance
-        gray_cam = [grad_cam(input_tensor=x, targets=[ClassifierOutputTarget(c)]) for c in range(5)]
-        gray_cam = np.asarray(gray_cam).squeeze()
+        # gray_cam = [grad_cam(input_tensor=x, targets=[ClassifierOutputTarget(c)]) for c in range(5)]
+        # gray_cam = np.asarray(gray_cam).squeeze()
         y_pred = model(x)
         loss = criterion(y_pred, y)
         reduced_loss = loss.item()
@@ -225,7 +225,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pred_array.append(y_pred)
         targ_array.append(y)
         
-        plot_gray_cam(x, gray_cam, y, y_pred, iteration, hparams)
+        # plot_gray_cam(x, gray_cam, y, y_pred, iteration, hparams)
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -280,34 +280,34 @@ if __name__ == '__main__':
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),2)))
     
     #%%
-    epsilon = 1e-3
-    corn_mat = np.zeros((5,5))
-    for (t,p) in zip(targ_array, pred_array):
-        for et in range(5):
-            for ep in range(5):
-                if t[et]>epsilon and p[ep]>epsilon:
-                    corn_mat[ep, et] += 1
+    # epsilon = 1e-3
+    # corn_mat = np.zeros((5,5))
+    # for (t,p) in zip(targ_array, pred_array):
+    #     for et in range(5):
+    #         for ep in range(5):
+    #             if t[et]>epsilon and p[ep]>epsilon:
+    #                 corn_mat[ep, et] += 1
                     
-    corn_mat = corn_mat / np.sum(corn_mat)
-    x = np.arange(0, 6, 1)
-    y = np.arange(0, 6, 1)
-    x_center = 0.5 * (x[:-1] + x[1:])
-    y_center = 0.5 * (y[:-1] + y[1:])
-    X, Y = np.meshgrid(x_center, y_center)
-    plot = pylab.pcolormesh(x, y, corn_mat, cmap='RdBu', shading='flat')
-    cset = pylab.contour(X, Y, corn_mat, cmap='gray')
-    pylab.clabel(cset, inline=True)
-    pylab.colorbar(plot)
-    pylab.title("Joint density estimate")
-    pylab.savefig(os.path.join(hparams.output_directory, "joint_density_plot.png"))
-    pylab.close("all")
+    # corn_mat = corn_mat / np.sum(corn_mat)
+    # x = np.arange(0, 6, 1)
+    # y = np.arange(0, 6, 1)
+    # x_center = 0.5 * (x[:-1] + x[1:])
+    # y_center = 0.5 * (y[:-1] + y[1:])
+    # X, Y = np.meshgrid(x_center, y_center)
+    # plot = pylab.pcolormesh(x, y, corn_mat, cmap='RdBu', shading='flat')
+    # cset = pylab.contour(X, Y, corn_mat, cmap='gray')
+    # pylab.clabel(cset, inline=True)
+    # pylab.colorbar(plot)
+    # pylab.title("Joint density estimate")
+    # pylab.savefig(os.path.join(hparams.output_directory, "joint_density_plot.png"))
+    # pylab.close("all")
 
-    # Mutual Info
-    mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
-    sns.histplot(mi_array, bins=30, kde=True)
-    pylab.title("Mutual Information distribution")
-    pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
-    pylab.close("all")
+    # # Mutual Info
+    # mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
+    # sns.histplot(mi_array, bins=30, kde=True)
+    # pylab.title("Mutual Information distribution")
+    # pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
+    # pylab.close("all")
     
 
 

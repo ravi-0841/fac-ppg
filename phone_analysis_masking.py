@@ -135,7 +135,7 @@ for (chunk_mask, target, phones) in zip(chunks_array, targets_array, phones_arra
 
 pylab.xticks(fontsize=5)
 pylab.yticks(fontsize=5)
-fig, ax = pylab.subplots(1, 5, figsize=(35, 13))
+fig, ax = pylab.subplots(1, 5, figsize=(35, 15))
 for i in range(5):
     emotion = emotion_classes[i]
     labels = list(emotional_data[emotion]["monoclass"].keys())
@@ -143,7 +143,7 @@ for i in range(5):
     data /= np.sum(data)
     ax[i].bar(labels, data, label=emotion)
     ax[i].legend(loc=1), ax[i].title.set_text(emotion)
-    ax[i].set_xticklabels(labels=labels, fontsize=8, rotation=90)
+    ax[i].set_xticklabels(labels=labels, fontsize=13, rotation=90, fontweight="bold")
     # pylab.tight_layout()
 
 pylab.suptitle("Monophones")
@@ -173,7 +173,7 @@ for (chunk_mask, target, phones) in zip(chunks_array, targets_array, phones_arra
 
 pylab.xticks(fontsize=5)
 pylab.yticks(fontsize=5)
-fig, ax = pylab.subplots(1, 5, figsize=(35, 13))
+fig, ax = pylab.subplots(1, 5, figsize=(40, 20))
 for i in range(5):
     emotion = emotion_classes[i]
     labels = list(emotional_data[emotion]["biclass"].keys())
@@ -181,7 +181,7 @@ for i in range(5):
     data /= np.sum(data)
     ax[i].bar(labels, data, label=emotion)
     ax[i].legend(loc=1), ax[i].title.set_text(emotion)
-    ax[i].set_xticklabels(labels=labels, fontsize=7, rotation=90)
+    ax[i].set_xticklabels(labels=labels, fontsize=10, rotation=90, fontweight="bold")
     # pylab.tight_layout()
 
 pylab.suptitle("Biphones (boundaries)")
