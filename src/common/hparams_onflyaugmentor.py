@@ -66,9 +66,9 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "tflayers_3_batchsize_8", # extra description for logging/identification
-        # "checkpoint_path": "",  # Path to a checkpoint file.
-        "checkpoint_path": "./masked_predictor_output/libri_1e-05_10.0_2e-07_5.0_tflayers_3_batchsize_8/checkpoint_603000",  # Path to a checkpoint file.
+        "extended_desc": "tflayers_3_batchsize_8_small_lr", # extra description for logging/identification
+        "checkpoint_path": "",  # Path to a checkpoint file.
+        # "checkpoint_path": "./masked_predictor_output/libri_1e-05_10.0_2e-07_5.0_tflayers_3_batchsize_8/checkpoint_603000",  # Path to a checkpoint file.
         # "checkpoint_path": "./masked_predictor_output/2D_5.0_tflayers_3_batchsize_8/checkpoint_157000",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
@@ -155,7 +155,7 @@ def create_hparams(**kwargs):
         "lambda_sparse_KL": 2e-07, # 1e-07
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
-        "learning_rate": 1e-5,
+        "learning_rate": 1e-6, #1e-5
         "learning_rate_decay": 1.0,
         "learning_rate_lb": 1e-6,
         "weight_decay": 1e-6,
