@@ -13,7 +13,7 @@ import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from saliency_predictor import SaliencyPredictor
+from saliency_predictor_median_pool import SaliencyPredictor
 from on_the_fly_augmentor import OnTheFlyAugmentor, acoustics_collate
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -144,7 +144,8 @@ def validate(model, criterion, valset, collate_fn, iteration,
                                 y,
                                 y_pred,
                                 posterior[:,:,1].squeeze(),
-                                torch.argmax(mask_sample,-1).squeeze(),
+                                # torch.argmax(mask_sample,-1).squeeze(),
+                                mask_sample[:,:,0:1].squeeze(),
                                 iteration,
                             )
 
