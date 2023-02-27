@@ -6,13 +6,11 @@ Created on Sat Feb  4 17:20:41 2023
 @author: ravi
 """
 
-
-from __future__ import print_function
-from torch.autograd import Variable
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from torch.autograd import Variable
 
 
 def sample_gumbel(shape, eps=1e-20):
