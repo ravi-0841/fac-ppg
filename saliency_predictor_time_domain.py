@@ -224,7 +224,7 @@ if __name__ == "__main__":
     model = model.cuda()
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print("Total number of trainable parameters are: ", num_params)
-    x = torch.rand(4, 1, 16000).to("cuda")
+    x = torch.rand(4, 1, 16001).to("cuda")
     p, m, o = model(x)
     print("posterior shape: ", p.shape)
     print("mask shape: ", m.shape)
