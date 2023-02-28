@@ -24,4 +24,5 @@ pip install --user inflect
 pip install --user Unidecode
 pip install --user matplotlib
 
-python3 fold_masked_saliency_predictor_trainer.py --fold $1
+python3 masked_saliency_predictor_trainer.py
+#python3 fold_masked_saliency_predictor_trainer.py --fold $1
