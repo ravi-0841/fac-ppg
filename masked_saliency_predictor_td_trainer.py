@@ -211,7 +211,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             model.zero_grad()
             x, y, l = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
             l = torch.div(l, 160, rounding_mode="floor")
-            # input_shape should be [#batch_size, #freq_channels, #time]
+            # input_shape should be [#batch_size, 1, #time]
 
             posterior, mask_sample, y_pred = model(x, pre_computed_mask=None)
 
