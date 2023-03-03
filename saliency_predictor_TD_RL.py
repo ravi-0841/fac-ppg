@@ -12,6 +12,7 @@ import torch.nn.functional as F
 
 from torch.autograd import Variable
 from medianPool import MedianPool1d
+from interpolation_block import WSOLAInterpolation
 
 
 def sample_gumbel(shape, eps=1e-20):
@@ -66,6 +67,8 @@ class ConvolutionalTransformerEncoder(nn.Module):
         self.bn4_enc = nn.BatchNorm1d(512)
         self.bn5_enc = nn.BatchNorm1d(512)
         self.bn6_enc = nn.BatchNorm1d(512)
+        
+        self.bn_transformer = nn.BatchNorm1d(512)
 
         self.elu = nn.ELU(inplace=True)
 
@@ -80,6 +83,9 @@ class ConvolutionalTransformerEncoder(nn.Module):
         
         conv_features = e6_enc.permute(2,0,1)
         t1_enc = self.transformer_encoder(conv_features)
+        
+        t1_enc = t1_enc.permute(1,2,0)
+        t1_enc = self.bn_transformer(t1_enc)
         return t1_enc
 
 
@@ -89,7 +95,7 @@ class SaliencePredictor(nn.Module):
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
                                        num_layers=2, bidirectional=True, 
                                        dropout=0.2)
-        self.bn = nn.BatchNorm1d(512)
+        # self.bn = nn.BatchNorm1d(512)
         self.linear_layer = nn.Linear(in_features=512, out_features=5)
         self.softmax = nn.Softmax(dim=-1)
     
@@ -97,7 +103,7 @@ class SaliencePredictor(nn.Module):
         # x -> [#time, batch, #dimension]
         lstm_out, _ = self.recurrent_layer(x)
         lstm_out = lstm_out[-1, :, :]
-        lstm_out = self.bn(lstm_out)
+        # lstm_out = self.bn(lstm_out)
         output = self.softmax(self.linear_layer(lstm_out))
         return output
 
@@ -108,15 +114,16 @@ class RatePredictor(nn.Module):
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
                                        num_layers=2, bidirectional=True, 
                                        dropout=0.2)
-        self.bn = nn.BatchNorm1d(512)
+        # self.bn = nn.BatchNorm1d(512)
         self.linear_layer = nn.Linear(in_features=512, out_features=7)
         self.softmax = nn.Softmax(dim=-1)
     
     def forward(self, x):
-        # x -> [#time, batch, #dimension]
+        # x -> [batch, #dimension, #time] -> [#time, #batch, #dimension]
+        x = x.permute(2,0,1)
         lstm_out, _ = self.recurrent_layer(x)
         lstm_out = lstm_out[-1, :, :]
-        lstm_out = self.bn(lstm_out)
+        # lstm_out = self.bn(lstm_out)
         output = self.softmax(self.linear_layer(lstm_out))
         return output
 
@@ -146,12 +153,11 @@ class MaskedRateModifier(nn.Module):
         self.temp_scale = temp_scale
 
         self.conv_trans_encoder = ConvolutionalTransformerEncoder()
-        self.bn_transformer = nn.BatchNorm1d(512)
         
         self.mask_generator = MaskGenerator(temp_scale=self.temp_scale)
         
         self.salience_predictor = SaliencePredictor()
-        self.rate_predictor = RatePredictor()
+        # self.rate_predictor = RatePredictor()
 
         self.sigmoid_activation = nn.Sigmoid()
         self.elu = nn.ELU(inplace=True)
@@ -163,41 +169,113 @@ class MaskedRateModifier(nn.Module):
 
         # print("0. x shape: ", x.shape)
 
-        transformer_features = self.conv_trans_encoder(x)
+        conv_trans_features = self.conv_trans_encoder(x)
         # print("1. transformer_features shape: ", transformer_features.shape)
 
-        transformer_features = transformer_features.permute(1,2,0)
-        transformer_features = self.bn_transformer(transformer_features)
-
-        posterior, mask = self.mask_generator(transformer_features)
+        posterior, mask = self.mask_generator(conv_trans_features)
         mask = mask.permute(0,2,1).repeat(1,1,512) #256 for small model
         # print("2. mask shape: ", mask.shape)
 
         if pre_computed_mask is not None:
             mask = pre_computed_mask
 
-        enc_out = transformer_features * mask.permute(0,2,1)
+        enc_out = conv_trans_features * mask.permute(0,2,1)
         # print("3. enc_out shape: ", enc_out.shape)
 
-        rate = self.rate_predictor(transformer_features.permute(2,0,1))
+        # rate = self.rate_predictor(conv_trans_features)
         salience = self.salience_predictor(enc_out.permute(2,0,1))
 
-        return posterior, mask, salience, rate
+        return conv_trans_features, posterior, mask, salience
 
 
 if __name__ == "__main__":
 
-    model = MaskedRateModifier()
-    model = model.cuda()
-    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print("Total number of trainable parameters are: ", num_params)
-    x = torch.rand(4, 1, 16001).to("cuda")
-    p, m, s, r = model(x)
-    print("posterior shape: ", p.shape)
-    print("mask shape: ", m.shape)
-    print("salience shape: ", s.shape)
-    print("rate shape: ", r.shape)
+    model_saliency = MaskedRateModifier()
+    model_rate = RatePredictor()
+    
+    model_saliency = model_saliency.cuda()
+    model_rate = model_rate.cuda()
+    
+    # Checking gradient operation
+    a_before = model_rate.linear_layer.weight.detach().cpu().numpy().copy()
 
+    num_params = sum(p.numel() for p in model_saliency.parameters() if p.requires_grad)
+    num_params += sum(p.numel() for p in model_rate.parameters() if p.requires_grad)
+    print("Total number of trainable parameters are: ", num_params)
+    
+    # parameter optimization
+    optim1 = torch.optim.Adam(model_saliency.parameters(), lr=1)
+    optim2 = torch.optim.Adam(model_rate.parameters(), lr=1)
+
+    # Criterion definition
+    criterion = nn.L1Loss()
+    
+    for epoch in range(1):
+        
+        # Set models in training mode
+        model_saliency.train()
+        model_rate.train()
+        
+        # Input speech signal, ground truth saliency
+        input_speech = torch.rand(1, 1, 16001).to("cuda")
+        target_saliency = torch.Tensor([[0.1, 0.3, 0.5, 0.0, 0.1]]).to("cuda")
+        
+        # Sample intended saliency
+        index_intent = torch.multinomial(torch.Tensor([0.2, 0.2, 0.2, 0.2, 0.2]), 1)
+        intent_saliency = torch.zeros(1,5)
+        intent_saliency[0, index_intent[0]] = 1.0
+        intent_saliency = intent_saliency.to("cuda")
+        # intent_saliency = torch.Tensor([[0.0, 1.0, 0.0, 0.0, 0.0]]).to("cuda")
+        
+        # Reset gradient tape
+        model_saliency.zero_grad()
+        model_rate.zero_grad()
+         
+        f, p, m, s = model_saliency(input_speech)
+    
+        # Optimizing the saliency_predictor model
+        loss_salience = criterion(s, target_saliency)
+        loss_salience.backward()
+        grad_norm = torch.nn.utils.clip_grad_norm_(
+                                                    model_saliency.parameters(),
+                                                    1.0,
+                                                )
+        print("grad_norm is: ", grad_norm)
+        print(model_saliency.conv_trans_encoder.conv1_enc.weight.grad)
+        optim1.step()
+        
+        # Compute Rate of modification
+        r = model_rate(f.detach()) # use detach operation to prevent backprop through feature extractor
+
+        # Printing shapes
+        # print("features shape: ", f.shape)
+        # print("posterior shape: ", p.shape)
+        # print("mask shape: ", m.shape)
+        # print("salience shape: ", s.shape)
+        # print("rate shape: ", r.shape)
+    
+        # Interpolation check
+        WSOLA = WSOLAInterpolation()
+        index = torch.multinomial(r, 1)
+        rate = 0.7 + 0.1*index[0][0]
+        mod_speech, x, y = WSOLA(mask=m[:,:,0],
+                                rate=rate,
+                                speech=input_speech,
+                                )
+    
+        mod_speech = mod_speech.to("cuda")
+        # with torch.no_grad():
+        model_saliency.eval()
+        with torch.no_grad():
+            _, _, _, s = model_saliency(mod_speech)
+    
+        loss = criterion(s, intent_saliency)
+        loss_rate = loss.detach() * r[0,index[0][0]]
+        loss_rate.backward()
+        optim2.step()
+
+    # Checking gradient operation
+    a_after = model_rate.linear_layer.weight.detach().cpu().numpy().copy()
 
 
 

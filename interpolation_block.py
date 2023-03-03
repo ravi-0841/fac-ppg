@@ -25,10 +25,10 @@ class WSOLAInterpolation():
         return None
     
     def __call__(self, mask, rate, speech):
-        # mask -> [batch, #Time, 1]
+        # mask -> [batch, #Time]
         # rate -> [scalar] 0.7 -> 1.3 in increments of 0.1
         # x -> [batch, 1, audio_wav]
-        mask = mask.squeeze().cpu().numpy()
+        mask = mask.detach().squeeze().cpu().numpy()
         rate = rate.cpu().numpy()
         speech = speech.squeeze().cpu().numpy()
         
@@ -40,13 +40,14 @@ class WSOLAInterpolation():
                                       hop_length=self.hop_size)
         
         samp_points = np.vstack((x.reshape(1,-1), y.reshape(1,-1)))
-        x_modified = self.wsola_func(x=speech, 
+        speech_modified = self.wsola_func(x=speech, 
                                      s=samp_points,
                                      win_size=self.win_size,
                                      syn_hop_size=self.hop_size,
                                      tolerance=self.tolerance,
                                      )
-        return x_modified, x, y
+        speech_modified = torch.from_numpy(speech_modified.reshape(1,1,-1)).float()
+        return speech_modified, x, y
 
 
 if __name__ == "__main__":
