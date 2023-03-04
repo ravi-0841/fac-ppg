@@ -30,7 +30,7 @@ class WSOLAInterpolation():
         # x -> [batch, 1, audio_wav]
         mask = mask.detach().squeeze().cpu().numpy()
         rate = rate.cpu().numpy()
-        speech = speech.squeeze().cpu().numpy()
+        speech = speech.detach().squeeze().cpu().numpy()
         
         x = librosa.frames_to_samples(np.arange(0, len(mask)), 
                                       hop_length=self.hop_size)

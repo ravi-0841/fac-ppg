@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 from torch.autograd import Variable
 from medianPool import MedianPool1d
-from interpolation_block import WSOLAInterpolation
+from src.common.interpolation_block import WSOLAInterpolation
 
 
 def sample_gumbel(shape, eps=1e-20):
@@ -265,7 +265,7 @@ if __name__ == "__main__":
     
         mod_speech = mod_speech.to("cuda")
         # with torch.no_grad():
-        model_saliency.eval()
+        # model_saliency.eval()
         with torch.no_grad():
             _, _, _, s = model_saliency(mod_speech)
     

@@ -73,7 +73,7 @@ class SaliencyPredictorLogger(SummaryWriter):
             self.add_histogram(tag, value.data.cpu().numpy(), iteration)
 
         # plot alignment, mel target and predicted, gate target and predicted
-        idx = random.randint(0, speech_inputs.size(0) - 1)
+        idx = random.randint(0, x.size(0) - 1)
 
         self.add_figure(
             "mel_input",
