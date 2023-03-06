@@ -127,6 +127,7 @@ def validate(model_saliency, model_rate, criterion, valset, collate_fn,
              distributed_run, rank):
     """Handles all the validation scoring and printing"""
     model_saliency.eval()
+    model_rate.eval()
     with torch.no_grad():
         val_loader = DataLoader(
                                 valset,
@@ -140,13 +141,15 @@ def validate(model_saliency, model_rate, criterion, valset, collate_fn,
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
             x, y, _ = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
-            _, posterior, mask_sample, y_pred = model_saliency(x)
+            feats, posterior, mask_sample, y_pred = model_saliency(x)
             loss = criterion(y_pred, y)
             reduced_val_loss = loss.item()
             val_loss += reduced_val_loss
+            rate_distribution = model_rate(feats.detach())
         val_loss = val_loss / (i + 1)
 
     model_saliency.train()
+    model_rate.train()
     if rank == 0:
         print("Validation loss {}: {:9f}  ".format(iteration, val_loss))
         logger.log_validation(
@@ -158,6 +161,7 @@ def validate(model_saliency, model_rate, criterion, valset, collate_fn,
                                 y_pred,
                                 posterior[:,:,1:2],
                                 mask_sample[:,:,0:1],
+                                rate_distribution,
                                 iteration,
                             )
         # logger_rate.log_parameters(model_rate, iteration)

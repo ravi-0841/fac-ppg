@@ -47,6 +47,7 @@ from src.common.plotting_utils import (
         plot_spectrogram_to_numpy,
         plot_posterior_to_numpy,
         plot_saliency_to_numpy,
+        plot_rate_to_numpy,
     ) 
 
 
@@ -61,7 +62,7 @@ class SaliencyPredictorLogger(SummaryWriter):
         self.add_scalar("learning.rate", learning_rate, iteration)
 
     def log_validation(self, reduced_loss, model_saliency, model_rate, x, y, 
-                       y_pred, posterior, mask_sample, iteration):
+                       y_pred, posterior, mask_sample, rate_dist, iteration):
         self.add_scalar("validation.loss", reduced_loss, iteration)
         speech_inputs = x
         saliency_targets = y
@@ -100,6 +101,10 @@ class SaliencyPredictorLogger(SummaryWriter):
         self.add_figure(
             "Saliency Predicted",
             plot_saliency_to_numpy(saliency_predicted[idx].data.cpu().numpy()),
+            iteration)
+        self.add_figure(
+            "Rate Distribution",
+            plot_rate_to_numpy(rate_dist[idx].data.cpu().numpy()),
             iteration)
 
 

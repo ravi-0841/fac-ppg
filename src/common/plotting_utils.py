@@ -134,3 +134,17 @@ def plot_saliency_to_numpy(saliency):
     # data = save_figure_to_numpy(fig)
     # plt.close()
     return fig
+
+
+def plot_rate_to_numpy(rate):
+    fig, ax = plt.subplots(figsize=(12, 3))
+    # im = ax.bar(np.arange(len(saliency)), saliency)
+    im = ax.bar(["0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3"], rate)
+    plt.xlabel("Classes")
+    plt.ylabel("Scores")
+    plt.tight_layout()
+
+    fig.canvas.draw()
+    # data = save_figure_to_numpy(fig)
+    # plt.close()
+    return fig
