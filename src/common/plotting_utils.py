@@ -79,7 +79,7 @@ def plot_spectrogram_to_numpy(spectrogram):
 
 def plot_posterior_to_numpy(posterior):
     fig, ax = plt.subplots(figsize=(12, 3))
-    im = ax.plot(posterior)
+    im = ax.plot(posterior.reshape(-1,))
     plt.xlabel("Frames")
     plt.ylabel("Mask Value")
     plt.tight_layout()

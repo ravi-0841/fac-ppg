@@ -60,16 +60,22 @@ class SaliencyPredictorLogger(SummaryWriter):
         self.add_scalar("grad.norm", grad_norm, iteration)
         self.add_scalar("learning.rate", learning_rate, iteration)
 
-    def log_validation(self, reduced_loss, model, x, y, y_pred, posterior, 
-                        mask_sample, iteration):
+    def log_validation(self, reduced_loss, model_saliency, model_rate, x, y, 
+                       y_pred, posterior, mask_sample, iteration):
         self.add_scalar("validation.loss", reduced_loss, iteration)
-        speech_inputs = x.squeeze()
+        speech_inputs = x
         saliency_targets = y
         saliency_predicted = y_pred
 
         # plot distribution of parameters
-        for tag, value in model.named_parameters():
+        for tag, value in model_saliency.named_parameters():
             tag = tag.replace('.', '/')
+            tag = "Saliency/" + tag
+            self.add_histogram(tag, value.data.cpu().numpy(), iteration)
+        
+        for tag, value in model_rate.named_parameters():
+            tag = tag.replace('.', '/')
+            tag = "Rate/" + tag
             self.add_histogram(tag, value.data.cpu().numpy(), iteration)
 
         # plot alignment, mel target and predicted, gate target and predicted
@@ -96,6 +102,16 @@ class SaliencyPredictorLogger(SummaryWriter):
             plot_saliency_to_numpy(saliency_predicted[idx].data.cpu().numpy()),
             iteration)
 
+
+class RatePredictorLogger(SummaryWriter):
+    def __init__(self, logdir):
+        super(RatePredictorLogger, self).__init__(logdir)
+    
+    def log_parameters(self, model, iteration):
+        for tag, value in model.named_parameters():
+            tag = tag.replace('.', '/')
+            tag += "/RatePredictor"
+            self.add_histogram(tag, value.data.cpu().numpy(), iteration)
 
 
 

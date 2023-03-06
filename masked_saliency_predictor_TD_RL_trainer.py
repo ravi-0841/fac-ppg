@@ -122,7 +122,7 @@ def save_checkpoint(model_saliency, model_rate, optimizer_saliency,
                 'learning_rate': learning_rate}, filepath)
 
 
-def validate(model_saliency, criterion, valset, collate_fn, 
+def validate(model_saliency, model_rate, criterion, valset, collate_fn, 
              iteration, batch_size, n_gpus, logger, 
              distributed_run, rank):
     """Handles all the validation scoring and printing"""
@@ -152,6 +152,7 @@ def validate(model_saliency, criterion, valset, collate_fn,
         logger.log_validation(
                                 val_loss,
                                 model_saliency,
+                                model_rate,
                                 x,
                                 y,
                                 y_pred,
@@ -159,6 +160,15 @@ def validate(model_saliency, criterion, valset, collate_fn,
                                 mask_sample[:,:,0:1],
                                 iteration,
                             )
+        # logger_rate.log_parameters(model_rate, iteration)
+
+
+def intended_saliency(relative_prob=[0.2, 0.2, 0.2, 0.2, 0.2]):
+    index_intent = torch.multinomial(torch.Tensor(relative_prob), 1)
+    intent_saliency = torch.zeros(1, 5)
+    intent_saliency[0, index_intent[0]] = 1.0
+    intent_saliency = intent_saliency.to("cuda")
+    return intent_saliency
 
 
 def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
@@ -192,8 +202,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     criterion2 = torch.nn.L1Loss() #MSELoss
     criterion3 = SparsityKLDivergence()
 
-    logger = prepare_directories_and_logger(
-        output_directory, log_directory, rank)
+    logger = prepare_directories_and_logger(output_directory, log_directory, rank)
 
     train_loader, valset, collate_fn = prepare_dataloaders(hparams)
 
@@ -237,83 +246,83 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     for epoch in range(epoch_offset, hparams.epochs):
         print("Epoch: {}".format(epoch))
         for i, batch in enumerate(train_loader):
-            start = time.perf_counter()
-            for param_group in optimizer_saliency.param_groups:
-                param_group['lr'] = learning_rate
-            for param_group in optimizer_rate.param_groups:
-                param_group['lr'] = learning_rate
-
-            model_saliency.zero_grad()
-            model_rate.zero_grad()
-
-            x, y, l = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
-            l = torch.div(l, 160, rounding_mode="floor")
-            # input_shape should be [#batch_size, 1, #time]
-
-            feats, posterior, mask_sample, y_pred = model_saliency(x)
-
-            loss_saliency = (
-                                hparams.lambda_prior_KL*criterion1(posterior, l)
-                                + hparams.lambda_predict*criterion2(y_pred, y)
-                                + hparams.lambda_sparse_KL*criterion3(posterior)
-                            )
-            reduced_loss = loss_saliency.item()
-
-            loss_saliency.backward()
-            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                                        model_saliency.parameters(),
-                                                        hparams.grad_clip_thresh,
-                                                    )
-
-            optimizer_saliency.step()
-            
-            # Intended Saliency
-            index_intent = torch.multinomial(torch.Tensor([0.2, 0.2, 0.2, 0.2, 0.2]), 1)
-            intent_saliency = torch.zeros(1,5)
-            intent_saliency[0, index_intent[0]] = 1.0
-            intent_saliency = intent_saliency.to("cuda")
-            
-            # Rate prediction
-            rate_distribution = model_rate(feats.detach())
-            index = torch.multinomial(rate_distribution, 1)
-            rate = 0.7 + 0.1*index[0][0]
-            mod_speech, _, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                     rate=rate, speech=x)
-        
-            mod_speech = mod_speech.to("cuda")
-            with torch.no_grad():
-                _, _, _, s = model_saliency(mod_speech)
-        
-            loss_rate = criterion2(s, intent_saliency)
-            loss_rate = loss_rate.detach() * rate_distribution[0,index[0][0]]
-            loss_rate.backward()
-            optimizer_rate.step()
-
-            # Validation
-            if not math.isnan(reduced_loss) and rank == 0:
-                duration = time.perf_counter() - start
-                print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
-                    iteration, reduced_loss, grad_norm, duration))
-                logger.log_training(
-                    reduced_loss, grad_norm, learning_rate, duration, iteration)
-
-            if (iteration % hparams.iters_per_checkpoint == 0):
-                validate(model_saliency, criterion2, valset, collate_fn, 
-                         iteration, hparams.batch_size, n_gpus, logger, 
-                         hparams.distributed_run, rank)
-                if learning_rate > hparams.learning_rate_lb:
-                    learning_rate *= hparams.learning_rate_decay
+            try:
+                start = time.perf_counter()
+                for param_group in optimizer_saliency.param_groups:
+                    param_group['lr'] = learning_rate
+                for param_group in optimizer_rate.param_groups:
+                    param_group['lr'] = learning_rate
+    
+                model_saliency.zero_grad()
+                model_rate.zero_grad()
+    
+                x, y, l = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
+                l = torch.div(l, 160, rounding_mode="floor")
+                # input_shape should be [#batch_size, 1, #time]
+    
+                feats, posterior, mask_sample, y_pred = model_saliency(x)
+    
+                loss_saliency = (
+                                    hparams.lambda_prior_KL*criterion1(posterior, l)
+                                    + hparams.lambda_predict*criterion2(y_pred, y)
+                                    + hparams.lambda_sparse_KL*criterion3(posterior)
+                                )
+                reduced_loss = loss_saliency.item()
+    
+                loss_saliency.backward()
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                                                            model_saliency.parameters(),
+                                                            hparams.grad_clip_thresh,
+                                                        )
+    
+                optimizer_saliency.step()
                 
-                # Saving the model
-                if rank == 0:
-                    checkpoint_path = os.path.join(
-                        output_directory, "checkpoint_{}".format(iteration))
-                    save_checkpoint(model_saliency, model_rate, 
-                                    optimizer_saliency,
-                                    optimizer_rate, learning_rate,
-                                    iteration, checkpoint_path)
+                # Intended Saliency
+                intent_saliency = intended_saliency()
+                
+                # Rate prediction
+                rate_distribution = model_rate(feats.detach())
+                index = torch.multinomial(rate_distribution, 1)
+                rate = 0.7 + 0.1*index[0][0]
+                mod_speech, _, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                         rate=rate, speech=x)
+            
+                mod_speech = mod_speech.to("cuda")
+                with torch.no_grad():
+                    _, _, _, s = model_saliency(mod_speech)
+            
+                loss_rate = criterion2(s, intent_saliency)
+                loss_rate = loss_rate.detach() * rate_distribution[0,index[0][0]]
+                loss_rate.backward()
+                optimizer_rate.step()
+    
+                # Validation
+                if not math.isnan(reduced_loss) and rank == 0:
+                    duration = time.perf_counter() - start
+                    print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
+                        iteration, reduced_loss, grad_norm, duration))
+                    logger.log_training(reduced_loss, grad_norm, learning_rate, 
+                                        duration, iteration)
+    
+                if (iteration % hparams.iters_per_checkpoint == 0):
+                    validate(model_saliency, model_rate, criterion2, valset, collate_fn, 
+                             iteration, hparams.batch_size, n_gpus, logger, 
+                             hparams.distributed_run, rank)
+                    if learning_rate > hparams.learning_rate_lb:
+                        learning_rate *= hparams.learning_rate_decay
+                    
+                    # Saving the model
+                    if rank == 0:
+                        checkpoint_path = os.path.join(
+                            output_directory, "checkpoint_{}".format(iteration))
+                        save_checkpoint(model_saliency, model_rate, 
+                                        optimizer_saliency,
+                                        optimizer_rate, learning_rate,
+                                        iteration, checkpoint_path)
 
-            iteration += 1
+                iteration += 1
+            except Exception as ex:
+                print(ex)
 
 
 if __name__ == '__main__':
