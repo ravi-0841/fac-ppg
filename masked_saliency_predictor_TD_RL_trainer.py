@@ -242,7 +242,9 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     num_params += sum(p.numel() for p in model_rate.parameters() if p.requires_grad)
     print("Total number of trainable parameters are: ", num_params)
     
-    WSOLA = WSOLAInterpolation()
+    WSOLA = WSOLAInterpolation(win_size=hparams.win_length, 
+                               hop_size=hparams.hop_length,
+                               tolerance=hparams.hop_length)
 
     model_saliency.train()
     model_rate.train()
@@ -261,7 +263,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 model_rate.zero_grad()
     
                 x, y, l = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
-                l = torch.div(l, 160, rounding_mode="floor")
+                l = torch.div(l, hparams.downsampling_factor, 
+                              rounding_mode="floor")
                 # input_shape should be [#batch_size, 1, #time]
     
                 feats, posterior, mask_sample, y_pred = model_saliency(x)

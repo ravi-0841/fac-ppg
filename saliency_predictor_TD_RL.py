@@ -167,8 +167,6 @@ class MaskedRateModifier(nn.Module):
         # x shape - [batch, 1, #time]
         # pre_computed_mask shape - [batch, #time, 512]
 
-        # print("0. x shape: ", x.shape)
-
         conv_trans_features = self.conv_trans_encoder(x)
         # print("1. transformer_features shape: ", transformer_features.shape)
 

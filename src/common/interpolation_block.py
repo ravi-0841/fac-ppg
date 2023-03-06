@@ -41,11 +41,11 @@ class WSOLAInterpolation():
         
         samp_points = np.vstack((x.reshape(1,-1), y.reshape(1,-1)))
         speech_modified = self.wsola_func(x=speech, 
-                                     s=samp_points,
-                                     win_size=self.win_size,
-                                     syn_hop_size=self.hop_size,
-                                     tolerance=self.tolerance,
-                                     )
+                                         s=samp_points,
+                                         win_size=self.win_size,
+                                         syn_hop_size=self.hop_size,
+                                         tolerance=self.tolerance,
+                                         )
         speech_modified = torch.from_numpy(speech_modified.reshape(1,1,-1)).float()
         return speech_modified, x, y
 

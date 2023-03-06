@@ -54,7 +54,7 @@ def create_hparams(**kwargs):
         # Experiment Parameters        #
         ################################
         "epochs": 500,
-        "iters_per_checkpoint": 4000,
+        "iters_per_checkpoint": 2000,
         "seed": 1107,
         "dynamic_loss_scaling": True,
         "fp16_run": False,
@@ -104,6 +104,7 @@ def create_hparams(**kwargs):
         ################################
         "max_wav_value": 32768.0,
         "sampling_rate": 16000,
+        "downsampling_factor": 160,
         "n_acoustic_feat_dims": 40, #80
         "filter_length": 400, #1024
         "n_fft": 512,
