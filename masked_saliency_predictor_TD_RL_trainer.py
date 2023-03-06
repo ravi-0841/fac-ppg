@@ -299,7 +299,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                     _, _, _, s = model_saliency(mod_speech)
             
                 loss_rate = criterion2(s, intent_saliency)
-                loss_rate = loss_rate.detach() * rate_distribution[0,index[0][0]]
+                loss_rate = -1 * loss_rate.detach() * rate_distribution[0,index[0][0]]
                 loss_rate.backward()
                 optimizer_rate.step()
     
