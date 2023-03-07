@@ -22,7 +22,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                     )
 from src.common.logger_SaliencyPred_timeDomain import SaliencyPredictorLogger
 from src.common.hparams_onflyaugmentor import create_hparams
-from src.common.interpolation_block import WSOLAInterpolation
+from src.common.interpolation_block import WSOLAInterpolation, BatchWSOLAInterpolation
 from pprint import pprint
 
 
@@ -167,10 +167,10 @@ def validate(model_saliency, model_rate, criterion, valset, collate_fn,
         # logger_rate.log_parameters(model_rate, iteration)
 
 
-def intended_saliency(relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
+def intended_saliency(hparams, relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
     index_intent = torch.multinomial(torch.Tensor(relative_prob), 1)
-    intent_saliency = torch.zeros(1, 5)
-    intent_saliency[0, index_intent[0]] = 1.0
+    intent_saliency = torch.zeros(hparams.batch_size, 5)
+    intent_saliency[:, index_intent[0]] = 1.0
     intent_saliency = intent_saliency.to("cuda")
     return intent_saliency
 
@@ -242,9 +242,9 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     num_params += sum(p.numel() for p in model_rate.parameters() if p.requires_grad)
     print("Total number of trainable parameters are: ", num_params)
     
-    WSOLA = WSOLAInterpolation(win_size=hparams.win_length, 
-                               hop_size=hparams.hop_length,
-                               tolerance=hparams.hop_length)
+    WSOLA = BatchWSOLAInterpolation(win_size=hparams.win_length, 
+                                   hop_size=hparams.hop_length,
+                                   tolerance=hparams.hop_length)
 
     model_saliency.train()
     model_rate.train()
@@ -285,21 +285,22 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 optimizer_saliency.step()
                 
                 # Intended Saliency
-                intent_saliency = intended_saliency()
+                intent_saliency = intended_saliency(hparams=hparams)
                 
                 # Rate prediction
                 rate_distribution = model_rate(feats.detach())
                 index = torch.multinomial(rate_distribution, 1)
-                rate = 0.7 + 0.1*index[0][0]
-                mod_speech, _, _ = WSOLA(mask=mask_sample[:,:,0], 
+                rate = 0.7 + 0.1*index
+                mod_speech, _ = WSOLA(mask=mask_sample[:,:,0], 
                                          rate=rate, speech=x)
             
                 mod_speech = mod_speech.to("cuda")
                 with torch.no_grad():
                     _, _, _, s = model_saliency(mod_speech)
             
-                loss_rate = criterion2(s, intent_saliency)
-                loss_rate = -1 * loss_rate.detach() * rate_distribution[0,index[0][0]]
+                loss_rate = torch.mean(torch.abs(s - intent_saliency), dim=-1)
+                loss_rate = -1 * torch.mean(loss_rate.detach() * rate_distribution.gather(1, index.view(-1,1)))
+                # loss_rate = -1 * loss_rate.detach() * rate_distribution[0,index[0][0]]
                 loss_rate.backward()
                 grad_norm_rate = torch.nn.utils.clip_grad_norm_(
                                                                 model_rate.parameters(),

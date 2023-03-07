@@ -156,12 +156,12 @@ def create_hparams(**kwargs):
         "lambda_sparse_KL": 2e-07, # 1e-07
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
-        "learning_rate": 1e-6, #1e-5
+        "learning_rate": 1e-5, #1e-5
         "learning_rate_decay": 1.0,
         "learning_rate_lb": 1e-6,
         "weight_decay": 1e-6,
         "grad_clip_thresh": 1.0,
-        "batch_size": 1, #8
+        "batch_size": 8, #8
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.1, # Bernoulli parameter for sampling 1st entry of the mask
         "beta": 0.95, # Bernoulli parameter for mask persistence

@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 from torch.autograd import Variable
 from medianPool import MedianPool1d
-from src.common.interpolation_block import WSOLAInterpolation
+from src.common.interpolation_block import WSOLAInterpolation, BatchWSOLAInterpolation
 
 
 def sample_gumbel(shape, eps=1e-20):
@@ -95,7 +95,7 @@ class SaliencePredictor(nn.Module):
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
                                        num_layers=2, bidirectional=True, 
                                        dropout=0.2)
-        # self.bn = nn.BatchNorm1d(512)
+        self.bn = nn.BatchNorm1d(512)
         self.linear_layer = nn.Linear(in_features=512, out_features=5)
         self.softmax = nn.Softmax(dim=-1)
     
@@ -103,7 +103,7 @@ class SaliencePredictor(nn.Module):
         # x -> [#time, batch, #dimension]
         lstm_out, _ = self.recurrent_layer(x)
         lstm_out = lstm_out[-1, :, :]
-        # lstm_out = self.bn(lstm_out)
+        lstm_out = self.bn(lstm_out)
         output = self.softmax(self.linear_layer(lstm_out))
         return output
 
@@ -114,7 +114,7 @@ class RatePredictor(nn.Module):
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
                                        num_layers=2, bidirectional=True, 
                                        dropout=0.2)
-        # self.bn = nn.BatchNorm1d(512)
+        self.bn = nn.BatchNorm1d(512)
         self.linear_layer = nn.Linear(in_features=512, out_features=7)
         self.softmax = nn.Softmax(dim=-1)
     
@@ -123,7 +123,7 @@ class RatePredictor(nn.Module):
         x = x.permute(2,0,1)
         lstm_out, _ = self.recurrent_layer(x)
         lstm_out = lstm_out[-1, :, :]
-        # lstm_out = self.bn(lstm_out)
+        lstm_out = self.bn(lstm_out)
         output = self.softmax(self.linear_layer(lstm_out)/5.)
         return output
 
@@ -191,6 +191,8 @@ if __name__ == "__main__":
     model_saliency = MaskedRateModifier()
     model_rate = RatePredictor()
     
+    batch_size = 8
+    
     model_saliency = model_saliency.cuda()
     model_rate = model_rate.cuda()
     
@@ -202,75 +204,84 @@ if __name__ == "__main__":
     print("Total number of trainable parameters are: ", num_params)
     
     # parameter optimization
-    optim1 = torch.optim.Adam(model_saliency.parameters(), lr=1)
-    optim2 = torch.optim.Adam(model_rate.parameters(), lr=1)
+    optim1 = torch.optim.Adam(model_saliency.parameters(), lr=1e-5)
+    optim2 = torch.optim.Adam(model_rate.parameters(), lr=1e-3)
 
     # Criterion definition
     criterion = nn.L1Loss()
     
-    for epoch in range(1):
-        
-        # Set models in training mode
-        model_saliency.train()
-        model_rate.train()
-        
-        # Input speech signal, ground truth saliency
-        input_speech = torch.rand(1, 1, 16001).to("cuda")
-        target_saliency = torch.Tensor([[0.1, 0.3, 0.5, 0.0, 0.1]]).to("cuda")
-        
-        # Sample intended saliency
-        index_intent = torch.multinomial(torch.Tensor([0.2, 0.2, 0.2, 0.2, 0.2]), 1)
-        intent_saliency = torch.zeros(1,5)
-        intent_saliency[0, index_intent[0]] = 1.0
-        intent_saliency = intent_saliency.to("cuda")
-        # intent_saliency = torch.Tensor([[0.0, 1.0, 0.0, 0.0, 0.0]]).to("cuda")
-        
-        # Reset gradient tape
-        model_saliency.zero_grad()
-        model_rate.zero_grad()
-         
-        f, p, m, s = model_saliency(input_speech)
+    # Set models in training mode
+    model_saliency.train()
+    model_rate.train()
     
-        # Optimizing the saliency_predictor model
-        loss_salience = criterion(s, target_saliency)
-        loss_salience.backward()
-        grad_norm = torch.nn.utils.clip_grad_norm_(
-                                                    model_saliency.parameters(),
-                                                    1.0,
-                                                )
-        print("grad_norm is: ", grad_norm)
-        print(model_saliency.conv_trans_encoder.conv1_enc.weight.grad)
-        optim1.step()
+    for epoch in range(100):
         
-        # Compute Rate of modification
-        r = model_rate(f.detach()) # use detach operation to prevent backprop through feature extractor
+        try:
+            # Input speech signal, ground truth saliency
+            input_speech = torch.rand(batch_size, 1, 16001).to("cuda")
+            target_saliency = torch.Tensor([[0.1, 0.3, 0.5, 0.0, 0.1]]).to("cuda")
+            target_saliency = target_saliency.repeat(batch_size, 1)
+            
+            # Sample intended saliency
+            index_intent = torch.multinomial(torch.Tensor([0.2, 0.2, 0.2, 0.2, 0.2]), 1)
+            intent_saliency = torch.zeros(batch_size, 5)
+            intent_saliency[:, index_intent[0]] = 1.0
+            intent_saliency = intent_saliency.to("cuda")
+            # intent_saliency = torch.Tensor([[0.0, 1.0, 0.0, 0.0, 0.0]]).to("cuda")
+            
+            # Reset gradient tape
+            model_saliency.zero_grad()
+            model_rate.zero_grad()
+             
+            f, p, m, s = model_saliency(input_speech)
+        
+            # Optimizing the saliency_predictor model
+            loss_salience = criterion(s, target_saliency)
+            loss_salience.backward()
+            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                                        model_saliency.parameters(),
+                                                        1.0,
+                                                    )
+            print("Salience Predictor grad_norm is: ", grad_norm.item())
+            # print(model_saliency.conv_trans_encoder.conv1_enc.weight.grad)
+            optim1.step()
+            
+            # Compute Rate of modification
+            r = model_rate(f.detach()) # use detach operation to prevent backprop through feature extractor
+    
+            # Printing shapes
+            # print("features shape: ", f.shape)
+            # print("posterior shape: ", p.shape)
+            # print("mask shape: ", m.shape)
+            # print("salience shape: ", s.shape)
+            # print("rate shape: ", r.shape)
+        
+            # Interpolation check
+            WSOLA = BatchWSOLAInterpolation()
+            index = torch.multinomial(r, 1)
+            rate = 0.7 + 0.1*index
+            mod_speech, _ = WSOLA(mask=m[:,:,0:1],
+                                    rate=rate,
+                                    speech=input_speech,
+                                    )
+        
+            mod_speech = mod_speech.to("cuda")
 
-        # Printing shapes
-        # print("features shape: ", f.shape)
-        # print("posterior shape: ", p.shape)
-        # print("mask shape: ", m.shape)
-        # print("salience shape: ", s.shape)
-        # print("rate shape: ", r.shape)
-    
-        # Interpolation check
-        WSOLA = WSOLAInterpolation()
-        index = torch.multinomial(r, 1)
-        rate = 0.7 + 0.1*index[0][0]
-        mod_speech, x, y = WSOLA(mask=m[:,:,0],
-                                rate=rate,
-                                speech=input_speech,
-                                )
-    
-        mod_speech = mod_speech.to("cuda")
-        # with torch.no_grad():
-        # model_saliency.eval()
-        with torch.no_grad():
-            _, _, _, s = model_saliency(mod_speech)
-    
-        loss = criterion(s, intent_saliency)
-        loss_rate = loss.detach() * r[0,index[0][0]]
-        loss_rate.backward()
-        optim2.step()
+            with torch.no_grad():
+                _, _, _, s = model_saliency(mod_speech)
+
+            loss = torch.mean(torch.abs(s - intent_saliency), dim=-1)
+            loss_rate = -1 * torch.mean(loss.detach() * r.gather(1, index.view(-1,1)))
+            loss_rate.backward()
+            grad_norm = torch.nn.utils.clip_grad_norm_(
+                                                        model_rate.parameters(),
+                                                        1.0,
+                                                    )
+            print("Rate Predictor grad_norm is: ", grad_norm.item())
+            optim2.step()
+        
+        except Exception as ex:
+            print(ex)
 
     # Checking gradient operation
     a_after = model_rate.linear_layer.weight.detach().cpu().numpy().copy()
