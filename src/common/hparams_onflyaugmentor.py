@@ -114,41 +114,6 @@ def create_hparams(**kwargs):
         "mel_fmax": 8000.0,
 
         ################################
-        # Model Parameters             #
-        ################################
-        "n_symbols": 512, #5816
-        "symbols_embedding_dim": 256, #600
-
-        # Encoder parameters
-        "encoder_kernel_size": 5,
-        "encoder_n_convolutions": 3,
-        "encoder_embedding_dim": 256, #600
-
-        # Decoder parameters
-        "decoder_rnn_dim": 300,
-        "prenet_dim": 300,
-        "max_decoder_steps": 1000,
-        "gate_threshold": 0.5,
-        "p_attention_dropout": 0.1,
-        "p_decoder_dropout": 0.1,
-
-        # Attention parameters
-        "attention_rnn_dim": 300,
-        "attention_dim": 150,
-        # +- time steps to look at when computing the attention. Set to None
-        # to block it.
-        "attention_window_size": 20, #20
-
-        # Location Layer parameters
-        "attention_location_n_filters": 32,
-        "attention_location_kernel_size": 31,
-
-        # Mel-post processing network parameters
-        "postnet_embedding_dim": 512,
-        "postnet_kernel_size": 5,
-        "postnet_n_convolutions": 5,
-
-        ################################
         # Optimization Hyperparameters #
         ################################
         "lambda_prior_KL": 1e-5, # 5e-4
