@@ -167,7 +167,7 @@ def validate(model_saliency, model_rate, criterion, valset, collate_fn,
         # logger_rate.log_parameters(model_rate, iteration)
 
 
-def intended_saliency(relative_prob=[0.2, 0.2, 0.2, 0.2, 0.2]):
+def intended_saliency(relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
     index_intent = torch.multinomial(torch.Tensor(relative_prob), 1)
     intent_saliency = torch.zeros(1, 5)
     intent_saliency[0, index_intent[0]] = 1.0
@@ -337,7 +337,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "TD_RL_{}_{}_{}_{}_{}".format(
+                                        "Angry_TD_RL_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
