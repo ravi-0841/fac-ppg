@@ -301,6 +301,10 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 loss_rate = criterion2(s, intent_saliency)
                 loss_rate = -1 * loss_rate.detach() * rate_distribution[0,index[0][0]]
                 loss_rate.backward()
+                grad_norm_rate = torch.nn.utils.clip_grad_norm_(
+                                                                model_rate.parameters(),
+                                                                hparams.grad_clip_thresh,
+                                                                )
                 optimizer_rate.step()
     
                 # Validation
