@@ -118,8 +118,10 @@ class RatePredictor(nn.Module):
         self.linear_layer = nn.Linear(in_features=512, out_features=7)
         self.softmax = nn.Softmax(dim=-1)
     
-    def forward(self, x):
+    def forward(self, x, p):
         # x -> [batch, #dimension, #time] -> [#time, #batch, #dimension]
+        # p -> [batch, #time, 2] -> [batch, 512, #time]
+        x = x * p[:,:,1:2].repeat(1,1,512).permute(0,2,1)
         x = x.permute(2,0,1)
         lstm_out, _ = self.recurrent_layer(x)
         lstm_out = lstm_out[-1, :, :]
@@ -214,7 +216,7 @@ if __name__ == "__main__":
     model_saliency.train()
     model_rate.train()
     
-    for epoch in range(100):
+    for epoch in range(1):
         
         try:
             # Input speech signal, ground truth saliency
@@ -247,7 +249,7 @@ if __name__ == "__main__":
             optim1.step()
             
             # Compute Rate of modification
-            r = model_rate(f.detach()) # use detach operation to prevent backprop through feature extractor
+            r = model_rate(f.detach(), p.detach()) # use detach operation to prevent backprop through feature extractor
     
             # Printing shapes
             # print("features shape: ", f.shape)
