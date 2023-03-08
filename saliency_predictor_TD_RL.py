@@ -214,7 +214,7 @@ if __name__ == "__main__":
     model_saliency.train()
     model_rate.train()
     
-    for epoch in range(100):
+    for epoch in range(10):
         
         try:
             # Input speech signal, ground truth saliency

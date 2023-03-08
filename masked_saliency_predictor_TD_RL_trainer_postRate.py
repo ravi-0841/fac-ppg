@@ -145,7 +145,7 @@ def validate(model_saliency, model_rate, criterion, valset, collate_fn,
             loss = criterion(y_pred, y)
             reduced_val_loss = loss.item()
             val_loss += reduced_val_loss
-            rate_distribution = model_rate(feats.detach())
+            rate_distribution = model_rate(feats.detach(), posterior.detach())
         val_loss = val_loss / (i + 1)
 
     model_saliency.train()

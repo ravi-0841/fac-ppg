@@ -119,9 +119,10 @@ class RatePredictor(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
     
     def forward(self, x, p):
-        # x -> [batch, #dimension, #time] -> [#time, #batch, #dimension]
         # p -> [batch, #time, 2] -> [batch, 512, #time]
-        x = x * p[:,:,1:2].repeat(1,1,512).permute(0,2,1)
+        p = p[:,:,1:2].repeat(1,1,512).permute(0,2,1)
+        x = x * p
+        # x -> [batch, #dimension, #time] -> [#time, #batch, #dimension]
         x = x.permute(2,0,1)
         lstm_out, _ = self.recurrent_layer(x)
         lstm_out = lstm_out[-1, :, :]
@@ -173,19 +174,19 @@ class MaskedRateModifier(nn.Module):
         # print("1. transformer_features shape: ", transformer_features.shape)
 
         posterior, mask = self.mask_generator(conv_trans_features)
-        mask = mask.permute(0,2,1).repeat(1,1,512) #256 for small model
+        mask = mask.repeat(1,512,1) #256 for small model
         # print("2. mask shape: ", mask.shape)
 
         if pre_computed_mask is not None:
             mask = pre_computed_mask
 
-        enc_out = conv_trans_features * mask.permute(0,2,1)
+        enc_out = conv_trans_features * mask
         # print("3. enc_out shape: ", enc_out.shape)
 
         # rate = self.rate_predictor(conv_trans_features)
         salience = self.salience_predictor(enc_out.permute(2,0,1))
 
-        return conv_trans_features, posterior, mask, salience
+        return conv_trans_features, posterior, mask.permute(0,2,1), salience
 
 
 if __name__ == "__main__":
