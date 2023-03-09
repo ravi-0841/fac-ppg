@@ -127,7 +127,7 @@ class RatePredictor(nn.Module):
         lstm_out, _ = self.recurrent_layer(x)
         lstm_out = lstm_out[-1, :, :]
         lstm_out = self.bn(lstm_out)
-        output = self.softmax(self.linear_layer(lstm_out)/100.)
+        output = self.softmax(self.linear_layer(lstm_out)/50.)
         return output
 
 
