@@ -115,7 +115,7 @@ class RatePredictor(nn.Module):
                                        num_layers=2, bidirectional=True, 
                                        dropout=0.2)
         self.bn = nn.BatchNorm1d(512)
-        self.linear_layer = nn.Linear(in_features=512, out_features=7)
+        self.linear_layer = nn.Linear(in_features=512, out_features=11)
         self.softmax = nn.Softmax(dim=-1)
     
     def forward(self, x, p):
@@ -127,7 +127,7 @@ class RatePredictor(nn.Module):
         lstm_out, _ = self.recurrent_layer(x)
         lstm_out = lstm_out[-1, :, :]
         lstm_out = self.bn(lstm_out)
-        output = self.softmax(self.linear_layer(lstm_out)/20.)
+        output = self.softmax(self.linear_layer(lstm_out)/100.)
         return output
 
 

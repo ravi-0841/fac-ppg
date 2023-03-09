@@ -290,7 +290,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 # Rate prediction
                 rate_distribution = model_rate(feats.detach(), posterior.detach())
                 index = torch.multinomial(rate_distribution, 1)
-                rate = 0.7 + 0.1*index
+                rate = 0.5 + 0.1*index
                 mod_speech, _ = WSOLA(mask=mask_sample[:,:,0], 
                                          rate=rate, speech=x)
             
@@ -342,7 +342,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
+                                        "wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
