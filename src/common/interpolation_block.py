@@ -48,7 +48,7 @@ class WSOLAInterpolation():
                                          tolerance=self.tolerance,
                                          )
         speech_modified = torch.from_numpy(speech_modified.reshape(1,1,-1)).float()
-        return speech_modified, x, y
+        return speech_modified, samp_points
 
 
 class BatchWSOLAInterpolation():
@@ -90,14 +90,16 @@ class BatchWSOLAInterpolation():
         # mask -> [batch, #Time]
         # rate -> [batch, 1] 0.7 -> 1.3 in increments of 0.1
         # x -> [batch, 1, audio_wav]
+        
+        num_samples = mask.size(0)
+        
         batch_mask = mask.detach().squeeze().cpu().numpy()
         batch_rate = rate.detach().squeeze().cpu().numpy()
         batch_speech = speech.detach().squeeze().cpu().numpy()
 
         batch_mod_speech = []
         batch_samp_points = []
-        
-        num_samples = mask.size(0)
+
         for n in range(num_samples):
             mask = batch_mask[n]
             rate = batch_rate[n]
