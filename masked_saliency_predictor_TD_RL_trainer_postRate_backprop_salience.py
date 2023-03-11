@@ -280,7 +280,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 intent_saliency = intended_saliency(hparams=hparams)
                 
                 # Rate prediction
-                rate_distribution = model_rate(feats.detach(), posterior)
+                rate_distribution = model_rate(feats.detach(), posterior.detach())
                 index = torch.multinomial(rate_distribution, 1)
                 rate = 0.5 + 0.1*index
                 mod_speech, _ = WSOLA(mask=mask_sample[:,:,0], 
@@ -299,21 +299,20 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 # optimizer_saliency.step()
             
                 loss_rate = torch.mean(torch.abs(s - intent_saliency), dim=-1)
-                loss_rate = -1 * torch.mean(loss_rate.detach() * rate_distribution.gather(1, index.view(-1,1)))
-                # loss_rate = -1 * loss_rate.detach() * rate_distribution[0,index[0][0]]
+                loss_rate = torch.mean(loss_rate.detach() * rate_distribution.gather(1, index.view(-1,1)))
                 
                 total_loss = loss_rate + loss_saliency
                 total_loss.backward()
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                                                            model_saliency.parameters(),
-                                                            hparams.grad_clip_thresh,
-                                                        )
-    
-                optimizer_saliency.step()
+                grad_norm_saliency = torch.nn.utils.clip_grad_norm_(
+                                                                    model_saliency.parameters(),
+                                                                    hparams.grad_clip_thresh,
+                                                                    )
+
                 grad_norm_rate = torch.nn.utils.clip_grad_norm_(
                                                                 model_rate.parameters(),
                                                                 hparams.grad_clip_thresh,
                                                                 )
+
                 optimizer_saliency.step()
                 optimizer_rate.step()
     
@@ -322,7 +321,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                     duration = time.perf_counter() - start
                     print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
                         iteration, reduced_loss, grad_norm, duration))
-                    logger.log_training(reduced_loss, grad_norm, learning_rate, 
+                    logger.log_training(reduced_loss, grad_norm_saliency, learning_rate, 
                                         duration, iteration)
     
                 if (iteration % hparams.iters_per_checkpoint == 0):
@@ -351,7 +350,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "backprop_rate_salience_wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
+                                        "temp_20_neg_salience_wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
