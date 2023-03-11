@@ -213,10 +213,13 @@ if __name__ == "__main__":
 
     # Criterion definition
     criterion = nn.L1Loss()
+    # criterion = nn.CrossEntropyLoss()
     
     # Set models in training mode
     model_saliency.train()
     model_rate.train()
+    
+    WSOLA = BatchWSOLAInterpolation()
     
     for epoch in range(1):
         
@@ -238,17 +241,6 @@ if __name__ == "__main__":
             model_rate.zero_grad()
              
             f, p, m, s = model_saliency(input_speech)
-        
-            # Optimizing the saliency_predictor model
-            loss_salience = criterion(s, target_saliency)
-            loss_salience.backward()
-            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                                        model_saliency.parameters(),
-                                                        1.0,
-                                                    )
-            print("Salience Predictor grad_norm is: ", grad_norm.item())
-            # print(model_saliency.conv_trans_encoder.conv1_enc.weight.grad)
-            optim1.step()
             
             # Compute Rate of modification
             r = model_rate(f.detach(), p.detach()) # use detach operation to prevent backprop through feature extractor
@@ -261,7 +253,6 @@ if __name__ == "__main__":
             # print("rate shape: ", r.shape)
         
             # Interpolation check
-            WSOLA = BatchWSOLAInterpolation()
             index = torch.multinomial(r, 1)
             rate = 0.7 + 0.1*index
             mod_speech, _ = WSOLA(mask=m[:,:,0:1],
@@ -272,16 +263,30 @@ if __name__ == "__main__":
             mod_speech = mod_speech.to("cuda")
 
             with torch.no_grad():
-                _, _, _, s = model_saliency(mod_speech)
+                _, _, _, pred_sal = model_saliency(mod_speech)
+            
+            # Optimizing the models
+            loss_saliency = criterion(s, target_saliency)
 
-            loss = torch.mean(torch.abs(s - intent_saliency), dim=-1)
-            loss_rate = -1 * torch.mean(loss.detach() * r.gather(1, index.view(-1,1)))
-            loss_rate.backward()
-            grad_norm = torch.nn.utils.clip_grad_norm_(
+            loss_rate = torch.mean(torch.abs(pred_sal - intent_saliency), dim=-1)
+            # loss_rate = criterion(input=pred_sal, target=intent_saliency)
+            loss_rate = torch.mean(loss_rate.detach() * r.gather(1, index.view(-1,1)))
+            
+            total_loss = loss_saliency + loss_rate
+            total_loss.backward()
+
+            grad_norm_rate = torch.nn.utils.clip_grad_norm_(
                                                         model_rate.parameters(),
                                                         1.0,
                                                     )
-            print("Rate Predictor grad_norm is: ", grad_norm.item())
+            grad_norm_sale = torch.nn.utils.clip_grad_norm_(
+                                                        model_saliency.parameters(),
+                                                        1.0,
+                                                    )
+            print("Salience Predictor grad_norm is: ", grad_norm_sale.item())
+            print("Rate Predictor grad_norm is: ", grad_norm_rate.item())
+            
+            optim1.step()
             optim2.step()
         
         except Exception as ex:

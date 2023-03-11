@@ -79,7 +79,7 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictor().cuda()
+    model_rate = RatePredictor(temp_scale=1.0).cuda()
     return model_saliency, model_rate
 
 
@@ -289,7 +289,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 mod_speech = mod_speech.to("cuda")
                 with torch.no_grad():
                     _, _, _, s = model_saliency(mod_speech)
-            
+
                 loss_rate = torch.mean(torch.abs(s - intent_saliency), dim=-1)
                 loss_rate = torch.mean(loss_rate.detach() * rate_distribution.gather(1, index.view(-1,1)))
                 
@@ -344,7 +344,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "temp_20_neg_salience_wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
+                                        "no_temp_neg_salience_wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
