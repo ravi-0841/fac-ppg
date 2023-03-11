@@ -109,8 +109,9 @@ class SaliencePredictor(nn.Module):
 
 
 class RatePredictor(nn.Module):
-    def __init__(self):
+    def __init__(self, temp_scale=20.0): #50
         super(RatePredictor, self).__init__()
+        self.temp_scale = temp_scale
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
                                        num_layers=2, bidirectional=True, 
                                        dropout=0.2)
@@ -127,7 +128,7 @@ class RatePredictor(nn.Module):
         lstm_out, _ = self.recurrent_layer(x)
         lstm_out = lstm_out[-1, :, :]
         lstm_out = self.bn(lstm_out)
-        output = self.softmax(self.linear_layer(lstm_out)/20.) #50
+        output = self.softmax(self.linear_layer(lstm_out)/self.temp_scale)
         return output
 
 

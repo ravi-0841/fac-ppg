@@ -198,7 +198,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                                           lr=learning_rate, 
                                           weight_decay=hparams.weight_decay)
     optimizer_rate = torch.optim.Adam(model_rate.parameters(), 
-                                          lr=learning_rate, 
+                                          lr=10*learning_rate, 
                                           weight_decay=hparams.weight_decay)
 
     criterion1 = VecExpectedKLDivergence(alpha=hparams.alpha, 
@@ -289,14 +289,6 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 mod_speech = mod_speech.to("cuda")
                 with torch.no_grad():
                     _, _, _, s = model_saliency(mod_speech)
-                
-                # loss_saliency.backward()
-                # grad_norm = torch.nn.utils.clip_grad_norm_(
-                #                                             model_saliency.parameters(),
-                #                                             hparams.grad_clip_thresh,
-                #                                         )
-    
-                # optimizer_saliency.step()
             
                 loss_rate = torch.mean(torch.abs(s - intent_saliency), dim=-1)
                 loss_rate = torch.mean(loss_rate.detach() * rate_distribution.gather(1, index.view(-1,1)))
@@ -319,8 +311,10 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 # Validation
                 if not math.isnan(reduced_loss) and rank == 0:
                     duration = time.perf_counter() - start
-                    print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
-                        iteration, reduced_loss, grad_norm, duration))
+                    print("Train loss {} {:.6f} Grad Norm Saliency {:.6f} {:.2f}s/it".format(
+                        iteration, reduced_loss, grad_norm_saliency, duration))
+                    print("Train loss {} {:.6f} Grad Norm Rate {:.6f} {:.2f}s/it".format(
+                        iteration, reduced_loss, grad_norm_rate, duration))
                     logger.log_training(reduced_loss, grad_norm_saliency, learning_rate, 
                                         duration, iteration)
     
