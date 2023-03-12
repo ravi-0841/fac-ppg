@@ -66,7 +66,7 @@ def prepare_dataloaders(hparams, valid=True):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictor().cuda()
+    model_rate = RatePredictor(temp_scale=20.0).cuda()
     return model_saliency, model_rate
 
 
@@ -321,7 +321,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "backprop_rate_salience_wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
+                                        "temp_20_neg_salience_wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
@@ -356,6 +356,12 @@ if __name__ == '__main__':
     
     print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),4)))
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
+
+    #%% Checking difference in predictions
+    angry_diff = rate_array[:,1] - pred_array[:,1]
+    pylab.figure(), pylab.hist(angry_diff, label="difference")
+    pylab.savefig(os.path.join(hparams.output_directory, "histplot_angry.png"))
+    pylab.close("all")
 
     #%% Joint density plot and MI
     epsilon = 1e-3

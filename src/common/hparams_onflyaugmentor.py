@@ -53,7 +53,7 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 500,
+        "epochs": 200,
         "iters_per_checkpoint": 1000,
         "seed": 1107,
         "dynamic_loss_scaling": True,
@@ -68,7 +68,7 @@ def create_hparams(**kwargs):
         "log_directory": './logs',
         "extended_desc": "tflayers_3_batchsize_8_medianPool", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
-        "checkpoint_path_inference": "./masked_predictor_output/backprop_rate_salience_wider_postRate_Angry_TD_RL_1e-05_10.0_2e-07_5.0_tflayers_3_batchsize_8_medianPool/checkpoint_160000",
+        "checkpoint_path_inference": "./masked_predictor_output/temp_20_neg_salience_wider_postRate_Angry_TD_RL_1e-05_10.0_2e-07_5.0_tflayers_3_batchsize_8_medianPool/checkpoint_187000",
         # "checkpoint_path_inference": "./masked_predictor_output/libri_1e-05_10.0_2e-07_5.0_tflayers_3_batchsize_8/checkpoint_603000",  # Path to a checkpoint file.
         # "checkpoint_path_inference": "./masked_predictor_output/2D_5.0_tflayers_3_batchsize_8/checkpoint_157000",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
