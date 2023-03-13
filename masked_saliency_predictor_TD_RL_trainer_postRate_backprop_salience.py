@@ -102,16 +102,19 @@ def load_checkpoint(checkpoint_path, model_saliency,
     optimizer_saliency.load_state_dict(checkpoint_dict['optimizer_saliency'])
     model_rate.load_state_dict(checkpoint_dict['state_dict_rate'])
     optimizer_rate.load_state_dict(checkpoint_dict['optimizer_rate'])
-    learning_rate = checkpoint_dict['learning_rate']
+    learning_rate_saliency = checkpoint_dict['learning_rate_saliency']
+    learning_rate_rate = checkpoint_dict['learning_rate_rate']
     iteration = checkpoint_dict['iteration']
     print("Loaded checkpoint '{}' from iteration {}" .format(
         checkpoint_path, iteration))
     return (model_saliency, model_rate, optimizer_saliency, 
-            optimizer_rate, learning_rate, iteration)
+            optimizer_rate, learning_rate_saliency, 
+            learning_rate_rate, iteration)
 
 
 def save_checkpoint(model_saliency, model_rate, optimizer_saliency, 
-                    optimizer_rate, learning_rate, iteration, filepath):
+                    optimizer_rate, learning_rate_saliency, 
+                    learning_rate_rate, iteration, filepath):
     print("Saving model and optimizer state at iteration {} to {}".format(
         iteration, filepath))
     torch.save({'iteration': iteration,
@@ -119,11 +122,12 @@ def save_checkpoint(model_saliency, model_rate, optimizer_saliency,
                 'state_dict_rate': model_rate.state_dict(),
                 'optimizer_saliency': optimizer_saliency.state_dict(),
                 'optimizer_rate': optimizer_rate.state_dict(),
-                'learning_rate': learning_rate}, filepath)
+                'learning_rate_saliency': learning_rate_saliency,
+                'learning_rate_rate': learning_rate_rate}, filepath)
 
 
-def validate(model_saliency, model_rate, criterion, valset, collate_fn, 
-             iteration, batch_size, n_gpus, logger, 
+def validate(model_saliency, model_rate, criterion, valset, 
+             collate_fn, iteration, batch_size, n_gpus, logger, 
              distributed_run, rank):
     """Handles all the validation scoring and printing"""
     model_saliency.eval()
@@ -193,12 +197,13 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     torch.cuda.manual_seed(hparams.seed)
 
     model_saliency, model_rate = load_model(hparams)
-    learning_rate = hparams.learning_rate
+    learning_rate_saliency = hparams.learning_rate_saliency
+    learning_rate_rate = hparams.learning_rate_rate
     optimizer_saliency = torch.optim.Adam(model_saliency.parameters(), 
-                                          lr=learning_rate, 
+                                          lr=learning_rate_saliency, 
                                           weight_decay=hparams.weight_decay)
     optimizer_rate = torch.optim.Adam(model_rate.parameters(), 
-                                          lr=10*learning_rate, 
+                                          lr=learning_rate_rate, 
                                           weight_decay=hparams.weight_decay)
 
     criterion1 = VecExpectedKLDivergence(alpha=hparams.alpha, 
@@ -224,7 +229,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 model_rate,
                 optimizer_saliency,
                 optimizer_rate,
-                _learning_rate,
+                _learning_rate_saliency,
+                _learning_rate_rate,
                 iteration,
             ) = load_checkpoint(
                                 checkpoint_path,
@@ -234,7 +240,9 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                                 optimizer_rate,
                                 )
             if hparams.use_saved_learning_rate:
-                learning_rate = _learning_rate
+                learning_rate_saliency = _learning_rate_saliency
+                learning_rate_rate = _learning_rate_rate
+
             iteration += 1  # next iteration is iteration + 1
             epoch_offset = max(0, int(iteration / len(train_loader)))
             
@@ -255,9 +263,9 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             try:
                 start = time.perf_counter()
                 for param_group in optimizer_saliency.param_groups:
-                    param_group['lr'] = learning_rate
+                    param_group['lr'] = learning_rate_saliency
                 for param_group in optimizer_rate.param_groups:
-                    param_group['lr'] = learning_rate
+                    param_group['lr'] = learning_rate_rate
     
                 model_saliency.zero_grad()
                 model_rate.zero_grad()
@@ -274,7 +282,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                                     + hparams.lambda_predict*criterion2(y_pred, y)
                                     + hparams.lambda_sparse_KL*criterion3(posterior)
                                 )
-                reduced_loss = loss_saliency.item()
+                reduced_loss_saliency = loss_saliency.item()
                 
                 # Intended Saliency
                 intent_saliency = intended_saliency(hparams=hparams)
@@ -292,6 +300,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
                 loss_rate = torch.mean(torch.abs(s - intent_saliency), dim=-1)
                 loss_rate = torch.mean(loss_rate.detach() * rate_distribution.gather(1, index.view(-1,1)))
+                reduced_loss_rate = loss_rate.item()
                 
                 total_loss = loss_rate + loss_saliency
                 total_loss.backward()
@@ -309,30 +318,42 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 optimizer_rate.step()
     
                 # Validation
-                if not math.isnan(reduced_loss) and rank == 0:
+                if (not math.isnan(reduced_loss_saliency) 
+                    and not math.isnan(reduced_loss_rate) 
+                    and rank == 0):
                     duration = time.perf_counter() - start
                     print("Train loss {} {:.6f} Grad Norm Saliency {:.6f} {:.2f}s/it".format(
-                        iteration, reduced_loss, grad_norm_saliency, duration))
+                        iteration, reduced_loss_saliency, grad_norm_saliency, duration))
                     print("Train loss {} {:.6f} Grad Norm Rate {:.6f} {:.2f}s/it".format(
-                        iteration, reduced_loss, grad_norm_rate, duration))
-                    logger.log_training(reduced_loss, grad_norm_saliency, learning_rate, 
-                                        duration, iteration)
-    
+                        iteration, reduced_loss_rate, grad_norm_rate, duration))
+                    logger.log_training(reduced_loss_saliency, grad_norm_saliency, 
+                                        learning_rate_saliency, duration, 
+                                        iteration)
+                    logger.log_training(reduced_loss_rate, grad_norm_saliency, 
+                                        learning_rate_saliency, duration, 
+                                        iteration)
+
                 if (iteration % hparams.iters_per_checkpoint == 0):
-                    validate(model_saliency, model_rate, criterion2, valset, collate_fn, 
-                             iteration, hparams.batch_size, n_gpus, logger, 
-                             hparams.distributed_run, rank)
-                    if learning_rate > hparams.learning_rate_lb:
-                        learning_rate *= hparams.learning_rate_decay
+                    validate(model_saliency, model_rate, criterion2, valset, 
+                             collate_fn, iteration, hparams.batch_size, 
+                             n_gpus, logger, hparams.distributed_run, rank)
+                    if learning_rate_saliency > hparams.learning_rate_lb:
+                        learning_rate_saliency *= hparams.learning_rate_decay
+                    if learning_rate_rate > hparams.learning_rate_lb:
+                        learning_rate_rate *= hparams.learning_rate_decay
                     
                     # Saving the model
                     if rank == 0:
                         checkpoint_path = os.path.join(
                             output_directory, "checkpoint_{}".format(iteration))
-                        save_checkpoint(model_saliency, model_rate, 
+                        save_checkpoint(model_saliency, 
+                                        model_rate, 
                                         optimizer_saliency,
-                                        optimizer_rate, learning_rate,
-                                        iteration, checkpoint_path)
+                                        optimizer_rate,
+                                        learning_rate_saliency,
+                                        learning_rate_rate,
+                                        iteration, 
+                                        checkpoint_path)
 
                 iteration += 1
             except Exception as ex:
@@ -344,7 +365,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "no_temp_neg_salience_wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
+                                        "lr_adjusted_temp_1_neg_salience_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,

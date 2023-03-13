@@ -109,7 +109,7 @@ class SaliencePredictor(nn.Module):
 
 
 class RatePredictor(nn.Module):
-    def __init__(self, temp_scale=20.0): #50
+    def __init__(self, temp_scale=1.0): #50
         super(RatePredictor, self).__init__()
         self.temp_scale = temp_scale
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
@@ -254,7 +254,7 @@ if __name__ == "__main__":
         
             # Interpolation check
             index = torch.multinomial(r, 1)
-            rate = 0.7 + 0.1*index
+            rate = 0.5 + 0.1*index
             mod_speech, _ = WSOLA(mask=m[:,:,0:1],
                                     rate=rate,
                                     speech=input_speech,
