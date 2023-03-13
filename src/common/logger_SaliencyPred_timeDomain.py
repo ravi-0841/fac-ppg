@@ -55,11 +55,17 @@ class SaliencyPredictorLogger(SummaryWriter):
     def __init__(self, logdir):
         super(SaliencyPredictorLogger, self).__init__(logdir)
 
-    def log_training(self, reduced_loss, grad_norm, learning_rate, duration,
+    def log_training_saliency(self, reduced_loss, grad_norm, learning_rate, duration,
                      iteration):
-        self.add_scalar("training.loss", reduced_loss, iteration)
-        self.add_scalar("grad.norm", grad_norm, iteration)
-        self.add_scalar("learning.rate", learning_rate, iteration)
+        self.add_scalar("training.loss.saliency", reduced_loss, iteration)
+        self.add_scalar("grad.norm.saliency", grad_norm, iteration)
+        self.add_scalar("learning.rate.saliency", learning_rate, iteration)
+    
+    def log_training_rate(self, reduced_loss, grad_norm, learning_rate, duration,
+                     iteration):
+        self.add_scalar("training.loss.rate", reduced_loss, iteration)
+        self.add_scalar("grad.norm.rate", grad_norm, iteration)
+        self.add_scalar("learning.rate.rate", learning_rate, iteration)
 
     def log_validation(self, reduced_loss, model_saliency, model_rate, x, y, 
                        y_pred, posterior, mask_sample, rate_dist, iteration):

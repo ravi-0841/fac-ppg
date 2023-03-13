@@ -326,12 +326,12 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                         iteration, reduced_loss_saliency, grad_norm_saliency, duration))
                     print("Train loss {} {:.6f} Grad Norm Rate {:.6f} {:.2f}s/it".format(
                         iteration, reduced_loss_rate, grad_norm_rate, duration))
-                    logger.log_training(reduced_loss_saliency, grad_norm_saliency, 
-                                        learning_rate_saliency, duration, 
-                                        iteration)
-                    logger.log_training(reduced_loss_rate, grad_norm_saliency, 
-                                        learning_rate_saliency, duration, 
-                                        iteration)
+                    logger.log_training_saliency(reduced_loss_saliency, grad_norm_saliency, 
+                                                 learning_rate_saliency, duration, 
+                                                 iteration)
+                    logger.log_training_rate(reduced_loss_rate, grad_norm_rate, 
+                                             learning_rate_rate, duration, 
+                                             iteration)
 
                 if (iteration % hparams.iters_per_checkpoint == 0):
                     validate(model_saliency, model_rate, criterion2, valset, 
