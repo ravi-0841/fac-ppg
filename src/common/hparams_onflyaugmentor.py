@@ -53,7 +53,7 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 200,
+        "epochs": 150,
         "iters_per_checkpoint": 1000,
         "seed": 1107,
         "dynamic_loss_scaling": True,
@@ -66,7 +66,7 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "tflayers_3_batchsize_8_medianPool", # extra description for logging/identification
+        "extended_desc": "batchsize_8", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_inference": "./masked_predictor_output/no_temp_neg_salience_wider_postRate_Angry_TD_RL_1e-05_10.0_2e-07_5.0_tflayers_3_batchsize_8_medianPool/checkpoint_90000",
         # "checkpoint_path_inference": "./masked_predictor_output/libri_1e-05_10.0_2e-07_5.0_tflayers_3_batchsize_8/checkpoint_603000",  # Path to a checkpoint file.
@@ -128,7 +128,7 @@ def create_hparams(**kwargs):
         "learning_rate_lb": 1e-6,
         "weight_decay": 1e-6,
         "grad_clip_thresh": 1.0,
-        "batch_size": 4, #8
+        "batch_size": 8, #8
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.1, # Bernoulli parameter for sampling 1st entry of the mask
         "beta": 0.95, # Bernoulli parameter for mask persistence
