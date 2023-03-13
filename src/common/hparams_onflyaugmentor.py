@@ -68,7 +68,7 @@ def create_hparams(**kwargs):
         "log_directory": './logs',
         "extended_desc": "batchsize_8", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
-        "checkpoint_path_inference": "./masked_predictor_output/no_temp_neg_salience_wider_postRate_Angry_TD_RL_1e-05_10.0_2e-07_5.0_tflayers_3_batchsize_8_medianPool/checkpoint_90000",
+        "checkpoint_path_inference": "./masked_predictor_output/lr_adjusted_temp_1_neg_salience_postRate_Angry_TD_RL_1e-05_10.0_2e-07_5.0_batchsize_8/checkpoint_35000",
         # "checkpoint_path_inference": "./masked_predictor_output/libri_1e-05_10.0_2e-07_5.0_tflayers_3_batchsize_8/checkpoint_603000",  # Path to a checkpoint file.
         # "checkpoint_path_inference": "./masked_predictor_output/2D_5.0_tflayers_3_batchsize_8/checkpoint_157000",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
@@ -123,7 +123,7 @@ def create_hparams(**kwargs):
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
         "learning_rate_saliency": 1e-4, #1e-5
-        "learning_rate_rate": 1e-3,
+        "learning_rate_rate": 1e-2,
         "learning_rate_decay": 0.955,
         "learning_rate_lb": 1e-6,
         "weight_decay": 1e-6,

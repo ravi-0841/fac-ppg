@@ -14,6 +14,8 @@ import torch
 import pylab
 import numpy as np
 import seaborn as sns
+import scipy.stats as scistat
+
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
 from saliency_predictor_TD_RL_postRate import MaskedRateModifier, RatePredictor
@@ -76,11 +78,13 @@ def load_checkpoint(checkpoint_path, model_saliency, model_rate):
     checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
     model_saliency.load_state_dict(checkpoint_dict['state_dict_saliency'])
     model_rate.load_state_dict(checkpoint_dict['state_dict_rate'])
-    learning_rate = checkpoint_dict['learning_rate']
+    learning_rate_saliency = checkpoint_dict['learning_rate_saliency']
+    learning_rate_rate = checkpoint_dict['learning_rate_rate']
     iteration = checkpoint_dict['iteration']
     print("Loaded checkpoint '{}' from iteration {}" .format(
         checkpoint_path, iteration))
-    return model_saliency, model_rate, learning_rate, iteration
+    return (model_saliency, model_rate, learning_rate_saliency, 
+            learning_rate_rate, iteration)
 
 
 def intended_saliency(hparams, relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
@@ -91,36 +95,44 @@ def intended_saliency(hparams, relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
     return intent_saliency
 
 
-def plot_figures(feats, waveform, posterior, mask, y, y_pred, iteration, hparams):
+def plot_figures(feats, waveform, posterior, mask, y, y_pred, 
+                 rate_dist, iteration, hparams):
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
-    fig, ax = pylab.subplots(4, 1, figsize=(32, 18))
+    fig, ax = pylab.subplots(5, 1, figsize=(30, 20))
     
-    ax[0].plot(waveform, linewidth=1.5, color='m')
-    ax[0].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[0].set_ylabel('Frequency', fontsize = 20) #ylabel
+    ax[0].plot(waveform, linewidth=1.5, color='k')
+    ax[0].set_xlabel('Time',fontsize=15) #xlabel
+    ax[0].set_ylabel('Frequency', fontsize=15) #ylabel
     # pylab.tight_layout()
 
-    ax[1].plot(posterior, linewidth=2.5, color='k')
+    ax[1].plot(posterior, linewidth=2.5, color='g')
     ax[1].plot(mask, "b", linewidth=2.5)
-    ax[1].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[1].set_ylabel('Probability', fontsize = 20) #ylabel
+    ax[1].set_xlabel('Time',fontsize=15) #xlabel
+    ax[1].set_ylabel('Probability', fontsize=15) #ylabel
     # pylab.tight_layout()
     
     classes = ["neu", "ang", "hap", "sad", "fea"]
     ax[2].bar(classes, y, alpha=0.5, label="target")
     ax[2].bar(classes, y_pred, alpha=0.5, label="pred")
     ax[2].legend(loc=1)
-    ax[2].set_xlabel('Classes',fontsize = 20) #xlabel
-    ax[2].set_ylabel('Softmax Score', fontsize = 20) #ylabel
+    ax[2].set_xlabel('Classes',fontsize=15) #xlabel
+    ax[2].set_ylabel('Softmax Score', fontsize=15) #ylabel
     # pylab.tight_layout()
     
-    ax[3].imshow(np.log10(np.abs(feats) + 1e-10), aspect="auto", origin="lower",
+    ax[3].imshow(feats, aspect="auto", origin="lower",
                    interpolation='none')
     ax[3].plot(257*mask, "w", linewidth=4.0)
-    ax[3].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[3].set_ylabel('Dimension', fontsize = 20) #ylabel
+    ax[3].set_xlabel('Time',fontsize=15) #xlabel
+    ax[3].set_ylabel('Dimension', fontsize=15) #ylabel
+    # pylab.tight_layout()
+    
+    classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
+    ax[4].bar(classes, rate_dist, alpha=0.5, color="r", label="pred")
+    ax[4].legend(loc=1)
+    ax[4].set_xlabel('Classes',fontsize=15) #xlabel
+    ax[4].set_ylabel('Softmax Score', fontsize=15) #ylabel
     # pylab.tight_layout()
 
     pylab.suptitle("Utterance- {}".format(iteration), fontsize=24)
@@ -238,13 +250,13 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
 
     # Load checkpoint
     iteration = 0
-    model_saliency, model_rate, _, _ = load_checkpoint(checkpoint_path, 
-                                                       model_saliency, 
-                                                       model_rate)
+    model_saliency, model_rate, _, _, _ = load_checkpoint(checkpoint_path, 
+                                                           model_saliency, 
+                                                           model_rate)
     
     WSOLA = WSOLAInterpolation(win_size=hparams.win_length, 
-                                   hop_size=hparams.hop_length,
-                                   tolerance=hparams.hop_length)
+                                hop_size=hparams.hop_length,
+                                tolerance=hparams.hop_length)
 
     model_saliency.eval()
     model_rate.eval()
@@ -253,6 +265,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     saliency_loss_array = []
     rate_loss_array = []
     saliency_pred_array = []
+    factor_dist_array = []
+    factor_array = []
     rate_pred_array = []
     saliency_targ_array = []
     
@@ -270,7 +284,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         saliency_reduced_loss = loss.item()
         
         rate_distribution = model_rate(feats, posterior)
-        index = torch.multinomial(rate_distribution, 1)
+        # index = torch.multinomial(rate_distribution, 1)
+        index = torch.argmax(rate_distribution, 1)
         rate = 0.5 + 0.1*index
         mod_speech, _ = WSOLA(mask=mask_sample[:,:,0], 
                                  rate=rate, speech=x)
@@ -290,6 +305,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         s = s.squeeze().detach().cpu().numpy()
         posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
         mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
+        rate_distribution = rate_distribution.squeeze().detach().cpu().numpy()
         
         #%% Plotting
 
@@ -298,8 +314,13 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         saliency_pred_array.append(y_pred)
         rate_pred_array.append(s)
         saliency_targ_array.append(y)
+        factor_dist_array.append(rate_distribution)
+        factor_array.append(rate.item())
 
-        plot_figures(feats, x, posterior, mask_sample, y, y_pred, iteration+1, hparams)
+        plot_figures(feats, x, posterior, 
+                     mask_sample, y, y_pred, 
+                     rate_distribution,
+                     iteration+1, hparams)
 
         if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
             duration = time.perf_counter() - start
@@ -313,7 +334,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     print("Saliency | Avg. Loss: {:.3f}".format(np.mean(saliency_loss_array)))
     print("Rate     | Avg. Loss: {:.3f}".format(np.mean(rate_loss_array)))
     
-    return cunk_array, saliency_targ_array, saliency_pred_array, rate_pred_array
+    return (cunk_array, saliency_targ_array, saliency_pred_array, 
+            rate_pred_array, factor_array, factor_dist_array)
 
 
 if __name__ == '__main__':
@@ -321,14 +343,14 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "no_temp_neg_salience_wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
+                                        "lr_adjusted_temp_1_neg_salience_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         ),
-                                        "images_test"
+                                        "images_valid"
                                     )
 
     if not hparams.output_directory:
@@ -340,12 +362,14 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
 
-    chunk_array, targ_array, pred_array, rate_array = test(
-                                                            hparams.output_directory,
-                                                            hparams.checkpoint_path_inference,
-                                                            hparams,
-                                                            valid=True,
-                                                        )
+    (chunk_array, targ_array, 
+     pred_array, rate_array, 
+     factor_array, factor_dist_array) = test(
+                                            hparams.output_directory,
+                                            hparams.checkpoint_path_inference,
+                                            hparams,
+                                            valid=True,
+                                        )
     
     pred_array = np.asarray(pred_array)
     targ_array = np.asarray(targ_array)
@@ -362,6 +386,8 @@ if __name__ == '__main__':
     pylab.figure(), pylab.hist(angry_diff, label="difference")
     pylab.savefig(os.path.join(hparams.output_directory, "histplot_angry.png"))
     pylab.close("all")
+    test = scistat.ttest_1samp(a=angry_diff, popmean=0, alternative="greater")
+    print("1 sided T-test result (p-value): {}".format(test[1]))
 
     #%% Joint density plot and MI
     epsilon = 1e-3
@@ -389,10 +415,11 @@ if __name__ == '__main__':
     # Mutual Info
     mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
     sns.histplot(mi_array, bins=30, kde=True)
+    print("MI value: {}".format(np.mean(mi_array)))
     pylab.title("Mutual Information distribution")
     pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
     pylab.close("all")
-    
+
 
 
 
