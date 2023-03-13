@@ -66,7 +66,7 @@ def prepare_dataloaders(hparams, valid=True):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictor(temp_scale=20.0).cuda()
+    model_rate = RatePredictor(temp_scale=1.0).cuda()
     return model_saliency, model_rate
 
 
@@ -321,7 +321,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "temp_20_neg_salience_wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
+                                        "no_temp_neg_salience_wider_postRate_Angry_TD_RL_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
