@@ -123,7 +123,7 @@ def create_hparams(**kwargs):
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
         "learning_rate_saliency": 1e-4, #1e-5
-        "learning_rate_rate": 1e-4,
+        "learning_rate_rate": 1e-3,
         "learning_rate_decay": 0.955,
         "learning_rate_lb": 1e-6,
         "weight_decay": 1e-6,
