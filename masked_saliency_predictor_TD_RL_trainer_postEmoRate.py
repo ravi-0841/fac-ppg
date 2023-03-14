@@ -171,7 +171,7 @@ def validate(model_saliency, model_rate, criterion, valset,
         # logger_rate.log_parameters(model_rate, iteration)
 
 
-def intended_saliency(batch_size, relative_prob=[0.2, 0.2, 0.2, 0.2, 0.2]):
+def intended_saliency(batch_size, relative_prob=[0.0, 0.25, 0.25, 0.25, 0.25]):
     emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 
                                      batch_size,
                                      replacement=True)
@@ -351,8 +351,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                     
                     # Saving the model
                     if rank == 0:
-                        checkpoint_path = os.path.join(
-                            output_directory, "checkpoint_{}".format(iteration))
+                        checkpoint_path = os.path.join(output_directory, 
+                                                       "checkpoint_{}".format(iteration))
                         save_checkpoint(model_saliency, 
                                         model_rate, 
                                         optimizer_saliency,
@@ -372,7 +372,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "lr_adjusted_temp_1_neg_salience_postRate_All_TD_RL_{}_{}_{}_{}_{}".format(
+                                        "lr_adjusted_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,

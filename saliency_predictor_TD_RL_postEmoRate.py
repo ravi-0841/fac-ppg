@@ -113,27 +113,28 @@ class RatePredictor(nn.Module):
     def __init__(self, temp_scale=1.0): #50
         super(RatePredictor, self).__init__()
         self.temp_scale = temp_scale
-        self.emo_projection = nn.Linear(in_features=5, out_features=64)
-        self.recurrent_layer = nn.LSTM(input_size=576, hidden_size=256, 
+        self.emo_projection = nn.Linear(in_features=5, out_features=128)
+        self.bn1 = nn.BatchNorm1d(640)
+        self.recurrent_layer = nn.LSTM(input_size=640, hidden_size=256, 
                                        num_layers=2, bidirectional=True, 
                                        dropout=0.2)
-        self.bn = nn.BatchNorm1d(512)
+        self.bn2 = nn.BatchNorm1d(512)
         self.linear_layer = nn.Linear(in_features=512, out_features=11)
         self.softmax = nn.Softmax(dim=-1)
     
     def forward(self, x, p, e):
-        # e -> [batch, 4] one-hot encoding for [Angry, Happy, Sad, Fearful]
+        # e -> [batch, 5] one-hot encoding for [Neutral, Angry, Happy, Sad, Fearful]
         # p -> [batch, #time, 2] -> [batch, 512, #time]
         p = p[:,:,1:2].repeat(1,1,512).permute(0,2,1)
         x = x * p
+        e_proj = self.emo_projection(e).unsqueeze(dim=-1).repeat(1,1,x.shape[2])
+        x = torch.cat((x, e_proj), dim=1)
+        x = self.bn1(x)
         # x -> [batch, 512, #time] -> [#time, #batch, 512]
         x = x.permute(2,0,1)
-        # emo_projection -> [batch, 64, #time]
-        e_proj = self.emo_projection(e).unsqueeze(dim=-1).repeat(1,1,x.shape[0])
-        x = torch.cat((x, e_proj.permute(2,0,1)), dim=-1)
         lstm_out, _ = self.recurrent_layer(x)
         lstm_out = lstm_out[-1, :, :]
-        lstm_out = self.bn(lstm_out)
+        lstm_out = self.bn2(lstm_out)
         output = self.softmax(self.linear_layer(lstm_out)/self.temp_scale)
         return output
 
