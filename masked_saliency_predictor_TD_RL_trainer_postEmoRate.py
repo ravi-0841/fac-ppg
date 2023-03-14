@@ -346,8 +346,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                              n_gpus, logger, hparams.distributed_run, rank)
                     if learning_rate_saliency > hparams.learning_rate_lb:
                         learning_rate_saliency *= hparams.learning_rate_decay
-                    if learning_rate_rate > hparams.learning_rate_lb:
-                        learning_rate_rate *= hparams.learning_rate_decay
+                    # if learning_rate_rate > hparams.learning_rate_lb:
+                    learning_rate_rate *= (1/hparams.learning_rate_decay)
                     
                     # Saving the model
                     if rank == 0:
@@ -372,7 +372,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "lr_adjusted_{}_{}_{}_{}_{}".format(
+                                        "lr_opposing_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
