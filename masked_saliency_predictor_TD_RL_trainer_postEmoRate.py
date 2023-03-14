@@ -172,9 +172,10 @@ def validate(model_saliency, model_rate, criterion, valset,
 
 
 def intended_saliency(batch_size, relative_prob=[0.0, 0.25, 0.25, 0.25, 0.25]):
-    emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 
-                                     batch_size,
-                                     replacement=True)
+    # emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 
+    #                                  batch_size,
+    #                                  replacement=True)
+    emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 1).repeat(batch_size)
     emotion_codes = torch.nn.functional.one_hot(emotion_cats, 5).float().to("cuda")
 
     # index_intent = torch.multinomial(torch.Tensor(relative_prob), 1)
