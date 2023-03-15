@@ -69,7 +69,7 @@ def create_hparams(**kwargs):
         "extended_desc": "AllEmo_minibatch_consistent_conv_mask", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
         # "checkpoint_path_inference": "./masked_predictor_output/temp_1_neg_salience_postRate_Angry_TD_RL_1e-05_10.0_2e-07_5.0_batchsize_8/checkpoint_35000",
-        "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo_minibatch_consistent/checkpoint_145000",  # Path to a checkpoint file.
+        "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo/checkpoint_145000",  # Path to a checkpoint file.
         # "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo/checkpoint_51000",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs

@@ -48,6 +48,7 @@ from src.common.plotting_utils import (
         plot_posterior_to_numpy,
         plot_saliency_to_numpy,
         plot_rate_to_numpy,
+        plot_1d_signal_numpy,
     ) 
 
 
@@ -89,27 +90,27 @@ class SaliencyPredictorLogger(SummaryWriter):
         idx = random.randint(0, x.size(0) - 1)
 
         self.add_figure(
-            "mel_input",
-            plot_posterior_to_numpy(speech_inputs[idx].data.cpu().numpy()),
+            "Speech.input",
+            plot_1d_signal_numpy(speech_inputs[idx].data.cpu().numpy()),
             iteration)
         self.add_figure(
             "posterior",
             plot_posterior_to_numpy(posterior[idx].data.cpu().numpy()),
             iteration)
         self.add_figure(
-            "Sampled Mask",
-            plot_posterior_to_numpy(mask_sample[idx].data.cpu().numpy()),
+            "Sampled.mask",
+            plot_1d_signal_numpy(mask_sample[idx].data.cpu().numpy()),
             iteration)
         self.add_figure(
-            "Saliency Target",
+            "Saliency.target",
             plot_saliency_to_numpy(saliency_targets[idx].data.cpu().numpy()),
             iteration)
         self.add_figure(
-            "Saliency Predicted",
+            "Saliency.predicted",
             plot_saliency_to_numpy(saliency_predicted[idx].data.cpu().numpy()),
             iteration)
         self.add_figure(
-            "Rate Distribution",
+            "Rate.distribution",
             plot_rate_to_numpy(rate_dist[idx].data.cpu().numpy()),
             iteration)
 

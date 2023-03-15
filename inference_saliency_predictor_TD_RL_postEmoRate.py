@@ -345,7 +345,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 if __name__ == '__main__':
     hparams = create_hparams()
     
-    emo_target = "angry"
+    emo_target = "sad"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],

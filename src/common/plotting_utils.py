@@ -90,6 +90,19 @@ def plot_posterior_to_numpy(posterior):
     return fig
 
 
+def plot_1d_signal_numpy(signal):
+    fig, ax = plt.subplots(figsize=(12, 3))
+    im = ax.plot(signal.reshape(-1,))
+    plt.xlabel("Time/Frames")
+    plt.ylabel("Signal Value")
+    plt.tight_layout()
+
+    fig.canvas.draw()
+    # data = save_figure_to_numpy(fig)
+    # plt.close()
+    return fig
+
+
 def plot_ppg_to_numpy(ppg):
     fig, ax = plt.subplots(figsize=(12, 3))
     im = ax.imshow(ppg, aspect="auto", origin="lower",
