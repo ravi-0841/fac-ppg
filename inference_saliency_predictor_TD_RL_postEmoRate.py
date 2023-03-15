@@ -229,7 +229,7 @@ def compute_MI(marg1, marg2, joint):
     return mi
 
 
-def test(output_directory, checkpoint_path, hparams, valid=True):
+def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
     """Training and validation logging results to tensorboard and stdout
 
     Params
@@ -282,7 +282,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         loss = criterion(y_pred, y)
         saliency_reduced_loss = loss.item()
         
-        intent_saliency = intended_saliency(batch_size=1)
+        intent_saliency = intended_saliency(batch_size=1, 
+                                            relative_prob=relative_prob)
         
         rate_distribution = model_rate(feats, posterior, intent_saliency)
         # index = torch.multinomial(rate_distribution, 1)
@@ -339,17 +340,24 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
 
 if __name__ == '__main__':
     hparams = create_hparams()
+    
+    emo_target = "happy"
+    emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
+                     "happy":[0.0,0.0,1.0,0.0,0.0],
+                     "sad":[0.0,0.0,0.0,1.0,0.0],
+                     "fear":[0.0,0.0,0.0,0.0,1.0]}
+    
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "lr_adjusted_temp_1_neg_salience_postRate_All_TD_RL_{}_{}_{}_{}_{}".format(
+                                        "lr_opposing_{}_{}_{}_{}_{}".format(
                                                 hparams.lambda_prior_KL,
                                                 hparams.lambda_predict,
                                                 hparams.lambda_sparse_KL,
                                                 hparams.temp_scale,
                                                 hparams.extended_desc,
                                             ),
-                                        "images_valid",
+                                        "images_valid_{}".format(emo_target),
                                     )
 
     if not hparams.output_directory:
@@ -367,6 +375,7 @@ if __name__ == '__main__':
                                             hparams.output_directory,
                                             hparams.checkpoint_path_inference,
                                             hparams,
+                                            emo_prob_dict[emo_target],
                                             valid=True,
                                         )
     
@@ -381,11 +390,12 @@ if __name__ == '__main__':
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
 
     #%% Checking difference in predictions
-    angry_diff = rate_array[:,1] - pred_array[:,1]
-    pylab.figure(), pylab.hist(angry_diff, label="difference")
-    pylab.savefig(os.path.join(hparams.output_directory, "histplot_angry.png"))
+    index = np.argmax(emo_prob_dict[emo_target])
+    saliency_diff = rate_array[:,index] - pred_array[:,index]
+    pylab.figure(), pylab.hist(saliency_diff, label="difference")
+    pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
     pylab.close("all")
-    test = scistat.ttest_1samp(a=angry_diff, popmean=0, alternative="greater")
+    test = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
     print("1 sided T-test result (p-value): {}".format(test[1]))
 
     #%% Joint density plot and MI
