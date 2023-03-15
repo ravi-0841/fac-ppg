@@ -12,7 +12,8 @@ import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from saliency_predictor_TD_RL_postEmoRate import MaskedRateModifier, RatePredictor
+# from saliency_predictor_TD_RL_postEmoRate import MaskedRateModifier, RatePredictor
+from conv_mask_transform_masked_TD_RL_postEmoRate import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Mar 13 17:27:43 2023
+Created on Wed Mar 15 11:34:14 2023
 
 @author: ravi
 """
@@ -38,38 +38,30 @@ def gumbel_softmax(logits, temperature):
     return (y_hard - y).detach() + y
 
 
-class ConvolutionalTransformerEncoder(nn.Module):
+class ConvolutionalEncoder(nn.Module):
     
     def __init__(self):
-        super(ConvolutionalTransformerEncoder, self).__init__()
+        super(ConvolutionalEncoder, self).__init__()
         
-        self.conv1_enc = nn.Conv1d(in_channels=1, out_channels=512, 
+        self.conv1_enc = nn.Conv1d(in_channels=1, out_channels=256, 
                                     kernel_size=10, stride=5, padding=2)
-        self.conv2_enc = nn.Conv1d(in_channels=512, out_channels=512, 
+        self.conv2_enc = nn.Conv1d(in_channels=256, out_channels=256, 
                                     kernel_size=3, stride=2, padding=1)
-        self.conv3_enc = nn.Conv1d(in_channels=512, out_channels=512, 
+        self.conv3_enc = nn.Conv1d(in_channels=256, out_channels=256, 
                                     kernel_size=3, stride=2, padding=1)
-        self.conv4_enc = nn.Conv1d(in_channels=512, out_channels=512, 
+        self.conv4_enc = nn.Conv1d(in_channels=256, out_channels=512, 
                                     kernel_size=3, stride=2, padding=1)
         self.conv5_enc = nn.Conv1d(in_channels=512, out_channels=512, 
                                     kernel_size=3, stride=2, padding=1)
         self.conv6_enc = nn.Conv1d(in_channels=512, out_channels=512, 
                                     kernel_size=3, stride=2, padding=1)
-
-        transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=512, 
-                                                               nhead=8, 
-                                                               dim_feedforward=512)
-        self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
-                                                         num_layers=3)
         
-        self.bn1_enc = nn.BatchNorm1d(512)
-        self.bn2_enc = nn.BatchNorm1d(512)
-        self.bn3_enc = nn.BatchNorm1d(512)
+        self.bn1_enc = nn.BatchNorm1d(256)
+        self.bn2_enc = nn.BatchNorm1d(256)
+        self.bn3_enc = nn.BatchNorm1d(256)
         self.bn4_enc = nn.BatchNorm1d(512)
         self.bn5_enc = nn.BatchNorm1d(512)
         self.bn6_enc = nn.BatchNorm1d(512)
-        
-        self.bn_transformer = nn.BatchNorm1d(512)
 
         self.elu = nn.ELU(inplace=True)
 
@@ -82,29 +74,39 @@ class ConvolutionalTransformerEncoder(nn.Module):
         e5_enc = self.elu(self.bn5_enc(self.conv5_enc(e4_enc)))
         e6_enc = self.elu(self.bn6_enc(self.conv6_enc(e5_enc)))
         
-        conv_features = e6_enc.permute(2,0,1)
-        t1_enc = self.transformer_encoder(conv_features)
-        
-        t1_enc = t1_enc.permute(1,2,0)
-        t1_enc = self.bn_transformer(t1_enc)
-        return t1_enc
+        return e6_enc
 
 
 class SaliencePredictor(nn.Module):
     def __init__(self):
         super(SaliencePredictor, self).__init__()
+
+        transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=512, 
+                                                               nhead=8, 
+                                                               dim_feedforward=512)
+        self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
+                                                         num_layers=3)
+        
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
                                        num_layers=2, bidirectional=True, 
                                        dropout=0.2)
-        self.bn = nn.BatchNorm1d(512)
+        self.bn_transformer = nn.BatchNorm1d(512)
+        self.bn_recurrent = nn.BatchNorm1d(512)
         self.linear_layer = nn.Linear(in_features=512, out_features=5)
         self.softmax = nn.Softmax(dim=-1)
     
-    def forward(self, x):
-        # x -> [#time, batch, #dimension]
-        lstm_out, _ = self.recurrent_layer(x)
+    def forward(self, x, m):
+        # x -> [batch, 512, #time]
+        # m -> [batch, 512, #time]
+        t1_enc = self.transformer_encoder(x.permute(2,0,1))
+        # t1_enc -> [#time, batch, 512] -> [batch, 512, #time]
+        t1_enc = t1_enc.permute(1,2,0)
+        t1_enc = self.bn_transformer(t1_enc)
+        t1_enc = t1_enc * m
+
+        lstm_out, _ = self.recurrent_layer(t1_enc.permute(2,0,1))
         lstm_out = lstm_out[-1, :, :]
-        lstm_out = self.bn(lstm_out)
+        lstm_out = self.bn_recurrent(lstm_out)
         output = self.softmax(self.linear_layer(lstm_out))
         return output
 
@@ -128,8 +130,7 @@ class RatePredictor(nn.Module):
         # p -> [batch, #time, 2] -> [batch, 512, #time]
         p = p[:,:,1:2].repeat(1,1,512).permute(0,2,1)
         x = x * p
-        e_proj = self.emo_projection(e)
-        e_proj = e_proj.unsqueeze(dim=-1).repeat(1,1,x.shape[2])
+        e_proj = self.emo_projection(e).unsqueeze(dim=-1).repeat(1,1,x.shape[2])
         x = torch.cat((x, e_proj), dim=1)
         x = self.elu(self.bn1(x))
         # x -> [batch, 512, #time] -> [#time, #batch, 512]
@@ -165,7 +166,7 @@ class MaskedRateModifier(nn.Module):
         
         self.temp_scale = temp_scale
 
-        self.conv_trans_encoder = ConvolutionalTransformerEncoder()
+        self.conv_encoder = ConvolutionalEncoder()
         
         self.mask_generator = MaskGenerator(temp_scale=self.temp_scale)
         
@@ -173,29 +174,25 @@ class MaskedRateModifier(nn.Module):
         # self.rate_predictor = RatePredictor()
 
         self.sigmoid_activation = nn.Sigmoid()
+        self.elu = nn.ELU(inplace=True)
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x, pre_computed_mask=None):
         # x shape - [batch, 1, #time]
         # pre_computed_mask shape - [batch, #time, 512]
 
-        conv_trans_features = self.conv_trans_encoder(x)
-        # print("1. transformer_features shape: ", transformer_features.shape)
+        # conv_features -> [batch, 512, #time]
+        conv_features = self.conv_encoder(x)
 
-        posterior, mask = self.mask_generator(conv_trans_features)
-        mask = mask.repeat(1,512,1) #256 for small model
-        # print("2. mask shape: ", mask.shape)
+        posterior, mask = self.mask_generator(conv_features)
+        mask = mask.repeat(1,512,1)
 
         if pre_computed_mask is not None:
             mask = pre_computed_mask
 
-        enc_out = conv_trans_features * mask
-        # print("3. enc_out shape: ", enc_out.shape)
+        salience = self.salience_predictor(conv_features, mask)
 
-        # rate = self.rate_predictor(conv_trans_features)
-        salience = self.salience_predictor(enc_out.permute(2,0,1))
-
-        return conv_trans_features, posterior, mask.permute(0,2,1), salience
+        return conv_features, posterior, mask.permute(0,2,1), salience
 
 
 if __name__ == "__main__":

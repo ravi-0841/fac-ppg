@@ -66,7 +66,7 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "AllEmo_minibatch_consistent", # extra description for logging/identification
+        "extended_desc": "AllEmo_minibatch_consistent_conv_mask", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
         # "checkpoint_path_inference": "./masked_predictor_output/temp_1_neg_salience_postRate_Angry_TD_RL_1e-05_10.0_2e-07_5.0_batchsize_8/checkpoint_35000",
         "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo_minibatch_consistent/checkpoint_145000",  # Path to a checkpoint file.
@@ -123,12 +123,12 @@ def create_hparams(**kwargs):
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
         "learning_rate_saliency": 1e-4, #1e-5
-        "learning_rate_rate": 1e-6,
+        "learning_rate_rate": 1e-5,
         "learning_rate_decay": 0.955,
         "learning_rate_lb": 1e-7,
         "weight_decay": 1e-6,
         "grad_clip_thresh": 1.0,
-        "batch_size": 8, #8
+        "batch_size": 12, #8
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.1, # Bernoulli parameter for sampling 1st entry of the mask
         "beta": 0.95, # Bernoulli parameter for mask persistence
