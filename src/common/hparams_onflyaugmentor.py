@@ -128,7 +128,7 @@ def create_hparams(**kwargs):
         "learning_rate_lb": 1e-7,
         "weight_decay": 1e-6,
         "grad_clip_thresh": 1.0,
-        "batch_size": 12, #8
+        "batch_size": 8, #8
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.1, # Bernoulli parameter for sampling 1st entry of the mask
         "beta": 0.95, # Bernoulli parameter for mask persistence
