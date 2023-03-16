@@ -127,7 +127,7 @@ def plot_figures(feats, waveform, posterior, mask, y, y_pred,
     ax[3].set_ylabel('Dimension', fontsize=15) #ylabel
     # pylab.tight_layout()
     
-    classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
+    classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.2)]
     ax[4].bar(classes, rate_dist, alpha=0.5, color="r", label="pred")
     ax[4].legend(loc=1)
     ax[4].set_xlabel('Classes',fontsize=15) #xlabel
@@ -289,7 +289,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
             rate_distribution = model_rate(feats, posterior, intent_saliency)
             # index = torch.multinomial(rate_distribution, 1)
             index = torch.argmax(rate_distribution, 1)
-            rate = 0.5 + 0.1*index
+            rate = 0.5 + 0.2*index
             mod_speech, _ = WSOLA(mask=mask_sample[:,:,0], 
                                      rate=rate, speech=x)
         
@@ -345,7 +345,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 if __name__ == '__main__':
     hparams = create_hparams()
     
-    emo_target = "happy"
+    emo_target = "angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
