@@ -250,13 +250,6 @@ if __name__ == "__main__":
                                              batch_size)
             emotion_codes = nn.functional.one_hot(emotion_cats, 5).float().to("cuda")
             
-            # Sample intended saliency
-            # index_intent = torch.multinomial(torch.Tensor([0.2, 0.2, 0.2, 0.2, 0.2]), 1)
-            # intent_saliency = torch.zeros(batch_size, 5)
-            # intent_saliency[:, index_intent[0]] = 1.0
-            # intent_saliency = intent_saliency.to("cuda")
-            # intent_saliency = torch.Tensor([[0.0, 1.0, 0.0, 0.0, 0.0]]).to("cuda")
-            
             # Reset gradient tape
             model_saliency.zero_grad()
             model_rate.zero_grad()

@@ -351,10 +351,12 @@ def train(output_directory, log_directory, checkpoint_path,
                              collate_fn, iteration, hparams.batch_size, 
                              rate_classes, n_gpus, logger, 
                              hparams.distributed_run, rank)
+                    
                     if learning_rate_saliency > hparams.learning_rate_lb:
                         learning_rate_saliency *= hparams.learning_rate_decay
-                    # if learning_rate_rate > hparams.learning_rate_lb:
-                    learning_rate_rate *= (1/hparams.learning_rate_decay)
+                    
+                    if learning_rate_rate < hparams.learning_rate_ub:
+                        learning_rate_rate *= (1/hparams.learning_rate_decay)
                     
                     # Saving the model
                     if rank == 0:
