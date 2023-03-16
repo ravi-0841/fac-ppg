@@ -283,8 +283,12 @@ if __name__ == "__main__":
             loss_saliency = criterion(s, target_saliency)
 
             loss_rate = torch.mean(torch.abs(pred_sal - emotion_codes), dim=-1)
-            # loss_rate = criterion(input=pred_sal, target=intent_saliency)
-            loss_rate = torch.mean(loss_rate.detach() * r.gather(1, index.view(-1,1)))
+            loss_rate_idiotic = torch.mean(loss_rate.detach() * r.gather(1,index.view(-1,1)))
+            corresp_probs = r.gather(1,index.view(-1,1)).view(-1)
+            loss_rate = torch.mean(loss_rate.detach() * corresp_probs)
+            
+            print("Idiotic Loss: {}".format(loss_rate_idiotic.item()))
+            print("Correct Loss: {}".format(loss_rate.item()))
             
             total_loss = loss_saliency + loss_rate
             total_loss.backward()

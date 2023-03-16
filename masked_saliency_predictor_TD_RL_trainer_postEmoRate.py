@@ -128,7 +128,7 @@ def save_checkpoint(model_saliency, model_rate, optimizer_saliency,
 
 def validate(model_saliency, model_rate, criterion, valset, 
              collate_fn, iteration, batch_size, rate_classes, 
-             n_gpus, logger, distributed_run, rank):
+             consistency, n_gpus, logger, distributed_run, rank):
     """Handles all the validation scoring and printing"""
     model_saliency.eval()
     model_rate.eval()
@@ -145,7 +145,7 @@ def validate(model_saliency, model_rate, criterion, valset,
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
             x, y, _ = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
-            e = intended_saliency(batch_size)
+            e = intended_saliency(batch_size=batch_size, consistent=consistency)
             feats, posterior, mask_sample, y_pred = model_saliency(x)
             loss = criterion(y_pred, y)
             reduced_val_loss = loss.item()
@@ -173,11 +173,16 @@ def validate(model_saliency, model_rate, criterion, valset,
         # logger_rate.log_parameters(model_rate, iteration)
 
 
-def intended_saliency(batch_size, relative_prob=[0.0, 0.25, 0.25, 0.25, 0.25]):
-    emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 
-                                      batch_size,
-                                      replacement=True)
-    # emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 1).repeat(batch_size)
+def intended_saliency(batch_size, consistent=False, 
+                      relative_prob=[0.0, 0.25, 0.25, 0.25, 0.25]):
+
+    if consistent:
+        emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 1).repeat(batch_size)
+    else:
+        emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 
+                                          batch_size,
+                                          replacement=True)
+
     emotion_codes = torch.nn.functional.one_hot(emotion_cats, 5).float().to("cuda")
 
     # index_intent = torch.multinomial(torch.Tensor(relative_prob), 1)
@@ -225,6 +230,8 @@ def train(output_directory, log_directory, checkpoint_path,
     
     rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.2)]
     # rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.1)]
+    
+    consistency = hparams.minibatch_consistency
 
     # Load checkpoint if one exists
     iteration = 0
@@ -296,7 +303,8 @@ def train(output_directory, log_directory, checkpoint_path,
                 reduced_loss_saliency = loss_saliency.item()
                 
                 # Intended Saliency
-                intent_saliency = intended_saliency(hparams.batch_size)
+                intent_saliency = intended_saliency(batch_size=hparams.batch_size, 
+                                                    consistent=hparams.minibatch_consistency)
                 
                 # Rate prediction
                 rate_distribution = model_rate(feats.detach(),
@@ -312,7 +320,8 @@ def train(output_directory, log_directory, checkpoint_path,
                     _, _, _, s = model_saliency(mod_speech)
 
                 loss_rate = torch.mean(torch.abs(s - intent_saliency), dim=-1)
-                loss_rate = torch.mean(loss_rate.detach() * rate_distribution.gather(1, index.view(-1,1)))
+                corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
+                loss_rate = torch.mean(loss_rate.detach() * corresp_probs)
                 reduced_loss_rate = loss_rate.item()
                 
                 total_loss = loss_rate + loss_saliency
@@ -349,8 +358,8 @@ def train(output_directory, log_directory, checkpoint_path,
                 if (iteration % hparams.iters_per_checkpoint == 0):
                     validate(model_saliency, model_rate, criterion2, valset, 
                              collate_fn, iteration, hparams.batch_size, 
-                             rate_classes, n_gpus, logger, 
-                             hparams.distributed_run, rank)
+                             rate_classes, hparams.minibatch_consistency, 
+                             n_gpus, logger, hparams.distributed_run, rank)
                     
                     if learning_rate_saliency > hparams.learning_rate_lb:
                         learning_rate_saliency *= hparams.learning_rate_decay
