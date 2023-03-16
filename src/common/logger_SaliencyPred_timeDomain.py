@@ -69,7 +69,8 @@ class SaliencyPredictorLogger(SummaryWriter):
         self.add_scalar("learning.rate.rate", learning_rate, iteration)
 
     def log_validation(self, reduced_loss, model_saliency, model_rate, x, y, 
-                       y_pred, posterior, mask_sample, rate_dist, iteration):
+                       y_pred, posterior, mask_sample, rate_dist, 
+                       rate_classes, iteration):
         self.add_scalar("validation.loss", reduced_loss, iteration)
         speech_inputs = x
         saliency_targets = y
@@ -111,7 +112,7 @@ class SaliencyPredictorLogger(SummaryWriter):
             iteration)
         self.add_figure(
             "Rate.distribution",
-            plot_rate_to_numpy(rate_dist[idx].data.cpu().numpy()),
+            plot_rate_to_numpy(rate_dist[idx].data.cpu().numpy(), rate_classes),
             iteration)
 
 

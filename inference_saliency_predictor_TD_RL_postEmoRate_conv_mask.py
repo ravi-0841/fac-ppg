@@ -345,7 +345,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 if __name__ == '__main__':
     hparams = create_hparams()
     
-    emo_target = "sad"
+    emo_target = "happy"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -354,13 +354,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "lr_opposing_{}_{}_{}_{}_{}".format(
-                                                hparams.lambda_prior_KL,
-                                                hparams.lambda_predict,
-                                                hparams.lambda_sparse_KL,
-                                                hparams.temp_scale,
-                                                hparams.extended_desc,
-                                            ),
+                                        hparams.checkpoint_path_inference.split("/")[2],
                                         "images_valid_{}".format(emo_target),
                                     )
 

@@ -121,7 +121,7 @@ class RatePredictor(nn.Module):
                                        num_layers=2, bidirectional=True, 
                                        dropout=0.2)
         self.bn2 = nn.BatchNorm1d(512)
-        self.linear_layer = nn.Linear(in_features=512, out_features=11)
+        self.linear_layer = nn.Linear(in_features=512, out_features=6)
         self.softmax = nn.Softmax(dim=-1)
         self.elu = nn.ELU(inplace=True)
     
@@ -262,7 +262,7 @@ if __name__ == "__main__":
         
             # Interpolation check
             index = torch.multinomial(r, 1)
-            rate = 0.5 + 0.1*index
+            rate = 0.5 + 0.2*index
             mod_speech, _ = WSOLA(mask=m[:,:,0:1],
                                     rate=rate,
                                     speech=input_speech,

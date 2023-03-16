@@ -149,10 +149,12 @@ def plot_saliency_to_numpy(saliency):
     return fig
 
 
-def plot_rate_to_numpy(rate):
+def plot_rate_to_numpy(rate, rate_classes):
     fig, ax = plt.subplots(figsize=(12, 3))
     # im = ax.bar(np.arange(len(saliency)), saliency)
-    if len(rate) == 7:
+    if rate_classes is not None:
+        im = ax.bar(rate_classes, rate)
+    elif len(rate) == 7:
         im = ax.bar(["0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3"], rate)
     elif len(rate) == 11:
         im = ax.bar(["0.5", "0.6", "0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3", "1.4", "1.5"], rate)

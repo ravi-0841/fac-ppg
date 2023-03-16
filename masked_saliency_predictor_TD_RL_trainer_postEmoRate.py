@@ -127,8 +127,8 @@ def save_checkpoint(model_saliency, model_rate, optimizer_saliency,
 
 
 def validate(model_saliency, model_rate, criterion, valset, 
-             collate_fn, iteration, batch_size, n_gpus, logger, 
-             distributed_run, rank):
+             collate_fn, iteration, batch_size, rate_classes, 
+             n_gpus, logger, distributed_run, rank):
     """Handles all the validation scoring and printing"""
     model_saliency.eval()
     model_rate.eval()
@@ -167,16 +167,17 @@ def validate(model_saliency, model_rate, criterion, valset,
                                 posterior[:,:,1:2],
                                 mask_sample[:,:,0:1],
                                 rate_distribution,
+                                rate_classes,
                                 iteration,
                             )
         # logger_rate.log_parameters(model_rate, iteration)
 
 
 def intended_saliency(batch_size, relative_prob=[0.0, 0.25, 0.25, 0.25, 0.25]):
-    emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 
-                                      batch_size,
-                                      replacement=True)
-    # emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 1).repeat(batch_size)
+    # emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 
+    #                                   batch_size,
+    #                                   replacement=True)
+    emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 1).repeat(batch_size)
     emotion_codes = torch.nn.functional.one_hot(emotion_cats, 5).float().to("cuda")
 
     # index_intent = torch.multinomial(torch.Tensor(relative_prob), 1)
@@ -186,8 +187,8 @@ def intended_saliency(batch_size, relative_prob=[0.0, 0.25, 0.25, 0.25, 0.25]):
     return emotion_codes
 
 
-def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
-          rank, group_name, hparams):
+def train(output_directory, log_directory, checkpoint_path, 
+          warm_start, n_gpus, rank, group_name, hparams):
     """Training and validation logging results to tensorboard and stdout
 
     Params
@@ -221,6 +222,9 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     logger = prepare_directories_and_logger(output_directory, log_directory, rank)
 
     train_loader, valset, collate_fn = prepare_dataloaders(hparams)
+    
+    rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.2)]
+    # rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.1)]
 
     # Load checkpoint if one exists
     iteration = 0
@@ -299,7 +303,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                                                posterior.detach(),
                                                intent_saliency)
                 index = torch.multinomial(rate_distribution, 1)
-                rate = 0.5 + 0.1*index
+                rate = 0.5 + 0.2*index
                 mod_speech, _ = WSOLA(mask=mask_sample[:,:,0], 
                                          rate=rate, speech=x)
             
@@ -345,7 +349,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 if (iteration % hparams.iters_per_checkpoint == 0):
                     validate(model_saliency, model_rate, criterion2, valset, 
                              collate_fn, iteration, hparams.batch_size, 
-                             n_gpus, logger, hparams.distributed_run, rank)
+                             rate_classes, n_gpus, logger, 
+                             hparams.distributed_run, rank)
                     if learning_rate_saliency > hparams.learning_rate_lb:
                         learning_rate_saliency *= hparams.learning_rate_decay
                     # if learning_rate_rate > hparams.learning_rate_lb:
