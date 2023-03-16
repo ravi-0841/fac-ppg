@@ -270,7 +270,8 @@ if __name__ == "__main__":
 
             loss_rate = torch.mean(torch.abs(pred_sal - intent_saliency), dim=-1)
             # loss_rate = criterion(input=pred_sal, target=intent_saliency)
-            loss_rate = torch.mean(loss_rate.detach() * r.gather(1, index.view(-1,1)))
+            corresp_probs = r.gather(1,index.view(-1,1)).view(-1)
+            loss_rate = torch.mean(loss_rate.detach() * corresp_probs)
             
             total_loss = loss_saliency + loss_rate
             total_loss.backward()

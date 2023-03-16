@@ -270,8 +270,9 @@ if __name__ == "__main__":
             with torch.no_grad():
                 _, _, _, s = model_saliency(mod_speech)
 
-            loss = torch.mean(torch.abs(s - intent_saliency), dim=-1)
-            loss_rate = -1 * torch.mean(loss.detach() * r.gather(1, index.view(-1,1)))
+            loss_rate = torch.mean(torch.abs(s - intent_saliency), dim=-1)
+            corresp_probs = r.gather(1,index.view(-1,1)).view(-1)
+            loss_rate = torch.mean(loss_rate.detach() * corresp_probs)
             loss_rate.backward()
             grad_norm = torch.nn.utils.clip_grad_norm_(
                                                         model_rate.parameters(),
