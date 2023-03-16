@@ -53,7 +53,7 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 100,
+        "epochs": 150,
         "iters_per_checkpoint": 1000,
         "seed": 1107,
         "dynamic_loss_scaling": True,
@@ -122,9 +122,9 @@ def create_hparams(**kwargs):
         "lambda_sparse_KL": 2e-07, # 1e-07
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
-        "learning_rate_saliency": 1e-4, #1e-5
+        "learning_rate_saliency": 1e-5, #1e-5
         "learning_rate_rate": 1e-6,
-        "learning_rate_decay": 0.955,
+        "learning_rate_decay": 0.9772, #0.955
         "learning_rate_lb": 1e-7,
         "weight_decay": 1e-6,
         "grad_clip_thresh": 1.0,
