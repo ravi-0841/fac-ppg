@@ -52,8 +52,8 @@ class OnTheFlyAugmentor():
 
     
     def _get_random_sr(self, 
-                       lower_sr_factor=0.8, #0.85
-                       upper_sr_factor=1.25): #1.15
+                       lower_sr_factor=0.95, #0.8
+                       upper_sr_factor=1.05): #1.25
         act_sr = self.hparams.sampling_rate
         return int(act_sr * (lower_sr_factor + (upper_sr_factor - lower_sr_factor)*np.random.rand()))
 
