@@ -128,10 +128,11 @@ class RatePredictor(nn.Module):
         self.elu = nn.ELU(inplace=True)
     
     def forward(self, x, p, e):
+        # x -> [batch, 512, #time]
         # e -> [batch, 5] one-hot encoding for [Neutral, Angry, Happy, Sad, Fearful]
         # p -> [batch, #time, 2] -> [batch, 512, #time]
         p = p[:,:,1:2].repeat(1,1,512).permute(0,2,1)
-        x = x * p
+        x = x + x*p
         e_proj = self.emo_projection(e).unsqueeze(dim=-1).repeat(1,1,x.shape[2])
         joint_x = torch.cat((x, e_proj), dim=1)
         joint_x = self.elu(self.bn1(joint_x))
@@ -282,7 +283,7 @@ if __name__ == "__main__":
             # Optimizing the models
             loss_saliency = criterion(s, target_saliency)
 
-            loss_rate = torch.mean(torch.abs(pred_sal - emotion_codes), dim=-1)
+            loss_rate = torch.sum(torch.abs(pred_sal - emotion_codes), dim=-1)
             loss_rate_idiotic = torch.mean(loss_rate.detach() * r.gather(1,index.view(-1,1)))
             corresp_probs = r.gather(1,index.view(-1,1)).view(-1)
             loss_rate = torch.mean(loss_rate.detach() * corresp_probs)

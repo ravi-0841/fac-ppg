@@ -319,7 +319,7 @@ def train(output_directory, log_directory, checkpoint_path,
                 with torch.no_grad():
                     _, _, _, s = model_saliency(mod_speech)
 
-                loss_rate = torch.mean(torch.abs(s - intent_saliency), dim=-1)
+                loss_rate = torch.sum(torch.abs(s - intent_saliency), dim=-1)
                 corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
                 loss_rate = torch.mean(loss_rate.detach() * corresp_probs)
                 reduced_loss_rate = loss_rate.item()
