@@ -215,9 +215,10 @@ def train(output_directory, log_directory, checkpoint_path,
     optimizer_saliency = torch.optim.Adam(model_saliency.parameters(), 
                                           lr=learning_rate_saliency, 
                                           weight_decay=hparams.weight_decay)
-    optimizer_rate = torch.optim.Adam(model_rate.parameters(), 
-                                          lr=learning_rate_rate, 
-                                          weight_decay=hparams.weight_decay)
+    optimizer_rate = torch.optim.Adam([{"params": model_saliency.conv_encoder.parameters()},
+                                       {"params": model_rate.parameters()}], 
+                                        lr=learning_rate_rate, 
+                                        weight_decay=hparams.weight_decay)
 
     criterion1 = VecExpectedKLDivergence(alpha=hparams.alpha, 
                                         beta=hparams.beta)
@@ -306,7 +307,7 @@ def train(output_directory, log_directory, checkpoint_path,
                 
                 # Rate prediction
                 rate_distribution = model_rate(feats, # .detach()
-                                               posterior, # .detach()
+                                               posterior.detach(), # .detach()
                                                intent_saliency)
                 index = torch.multinomial(rate_distribution, 1)
                 rate = 0.5 + 0.2*index
@@ -319,7 +320,7 @@ def train(output_directory, log_directory, checkpoint_path,
 
                 loss_rate = torch.sum(torch.abs(s - intent_saliency), dim=-1)
                 corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
-                loss_rate = torch.mean(loss_rate.detach() * corresp_probs)
+                loss_rate = torch.mean(torch.mul(loss_rate.detach(), corresp_probs))
                 reduced_loss_rate = loss_rate.item()
                 
                 total_loss = loss_rate + loss_saliency

@@ -228,7 +228,8 @@ if __name__ == "__main__":
     
     # parameter optimization
     optim1 = torch.optim.Adam(model_saliency.parameters(), lr=1e-5)
-    optim2 = torch.optim.Adam(model_rate.parameters(), lr=1e-3)
+    optim2 = torch.optim.Adam([{"params": model_saliency.conv_encoder.parameters()},
+                               {"params": model_rate.parameters()}], lr=1e-3)
 
     # Criterion definition
     criterion = nn.L1Loss()
@@ -248,7 +249,8 @@ if __name__ == "__main__":
             target_saliency = torch.Tensor([[0.1, 0.3, 0.5, 0.0, 0.1]]).to("cuda")
             target_saliency = target_saliency.repeat(batch_size, 1)
             emotion_cats = torch.multinomial(torch.Tensor([0.2,0.2,0.2,0.2,0.2]), 
-                                             batch_size)
+                                             batch_size,
+                                             replacement=True)
             emotion_codes = nn.functional.one_hot(emotion_cats, 5).float().to("cuda")
             
             # Reset gradient tape
@@ -259,7 +261,7 @@ if __name__ == "__main__":
             
             # Compute Rate of modification
             # r = model_rate(f.detach(), p.detach(), emotion_codes)
-            r = model_rate(f, p, emotion_codes)
+            r = model_rate(f, p.detach(), emotion_codes)
     
             # Printing shapes
             # print("features shape: ", f.shape)
@@ -287,7 +289,7 @@ if __name__ == "__main__":
             loss_rate = torch.sum(torch.abs(pred_sal - emotion_codes), dim=-1)
             loss_rate_idiotic = torch.mean(loss_rate.detach() * r.gather(1,index.view(-1,1)))
             corresp_probs = r.gather(1,index.view(-1,1)).view(-1)
-            loss_rate = torch.mean(loss_rate.detach() * corresp_probs)
+            loss_rate = torch.mean(torch.mul(loss_rate.detach(), corresp_probs))
             
             print("Idiotic Loss: {}".format(loss_rate_idiotic.item()))
             print("Correct Loss: {}".format(loss_rate.item()))
