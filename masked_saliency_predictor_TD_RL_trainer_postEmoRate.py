@@ -230,8 +230,6 @@ def train(output_directory, log_directory, checkpoint_path,
     
     rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.2)]
     # rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.1)]
-    
-    consistency = hparams.minibatch_consistency
 
     # Load checkpoint if one exists
     iteration = 0
@@ -307,8 +305,8 @@ def train(output_directory, log_directory, checkpoint_path,
                                                     consistent=hparams.minibatch_consistency)
                 
                 # Rate prediction
-                rate_distribution = model_rate(feats.detach(),
-                                               posterior.detach(),
+                rate_distribution = model_rate(feats, # .detach()
+                                               posterior, # .detach()
                                                intent_saliency)
                 index = torch.multinomial(rate_distribution, 1)
                 rate = 0.5 + 0.2*index
