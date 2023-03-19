@@ -288,8 +288,8 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
                                                 relative_prob=relative_prob)
             
             rate_distribution = model_rate(feats, posterior, intent_saliency)
-            # index = torch.multinomial(rate_distribution, 1)
-            index = torch.argmax(rate_distribution, 1)
+            index = torch.multinomial(rate_distribution, 1)
+            # index = torch.argmax(rate_distribution, 1)
             rate = 0.5 + 0.2*index
             mod_speech, _ = WSOLA(mask=mask_sample[:,:,0], 
                                      rate=rate, speech=x)
@@ -320,9 +320,9 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
             factor_array.append(rate.item())
     
             # plot_figures(feats, x, posterior, 
-            #              mask_sample, y, y_pred, 
-            #              rate_distribution,
-            #              iteration+1, hparams)
+            #               mask_sample, y, y_pred, 
+            #               rate_distribution,
+            #               iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -333,8 +333,8 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
     
             iteration += 1
             
-            if iteration >= 100:
-                break
+            # if iteration >= 100:
+            #     break
         
         except Exception as ex:
             print(ex)
@@ -362,7 +362,7 @@ if __name__ == '__main__':
                                         ckpt_path.split("/")[2],
                                         "images_valid_{}".format(emo_target),
                                     )
-    for m in range(1000, 250000, 1000):
+    for m in range(1000, 200000, 1000):
         print("\n \t Current_model: checkpoint_{}".format(m))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
