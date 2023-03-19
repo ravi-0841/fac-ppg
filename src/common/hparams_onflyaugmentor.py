@@ -68,7 +68,7 @@ def create_hparams(**kwargs):
         "log_directory": './logs',
         "extended_desc": "conv_mask_6_beta_0.75", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
-        "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_lstm_gen_conv_mask_6_longer_noAug/checkpoint",
+        "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_conv_mask_6_beta_0.75/checkpoint",
         # "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo/checkpoint_145000",  # Path to a checkpoint file.
         # "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo/checkpoint_51000",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)

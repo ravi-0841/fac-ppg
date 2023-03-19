@@ -15,6 +15,7 @@ import pylab
 import numpy as np
 import seaborn as sns
 import scipy.stats as scistat
+import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
@@ -318,10 +319,10 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            plot_figures(feats, x, posterior, 
-                         mask_sample, y, y_pred, 
-                         rate_distribution,
-                         iteration+1, hparams)
+            # plot_figures(feats, x, posterior, 
+            #              mask_sample, y, y_pred, 
+            #              rate_distribution,
+            #              iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -331,6 +332,9 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
                 #     iteration, rate_reduced_loss, duration))
     
             iteration += 1
+            
+            if iteration >= 100:
+                break
         
         except Exception as ex:
             print(ex)
@@ -345,7 +349,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 if __name__ == '__main__':
     hparams = create_hparams()
     
-    emo_target = "angry"
+    emo_target = "fear"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -358,7 +362,7 @@ if __name__ == '__main__':
                                         ckpt_path.split("/")[2],
                                         "images_valid_{}".format(emo_target),
                                     )
-    for m in range(260000, 261000, 2000):
+    for m in range(1000, 250000, 1000):
         print("\n \t Current_model: checkpoint_{}".format(m))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -432,10 +436,12 @@ if __name__ == '__main__':
         pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
         pylab.close("all")
     
-    # pylab.figure(), pylab.plot([x for x in range(81000, 260000, 2000)], ttest_array)
+    # pylab.figure(), pylab.plot([x for x in range(1000, 188000, 1000)], ttest_array)
     # pylab.title(emo_target)
     # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
     # pylab.close("all")
+    joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+                                                            "ttest_scores.pkl"))
 
 
 
