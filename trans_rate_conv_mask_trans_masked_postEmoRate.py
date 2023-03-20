@@ -227,7 +227,7 @@ if __name__ == "__main__":
     model_saliency = MaskedRateModifier()
     model_rate = RatePredictor()
     
-    batch_size = 2
+    batch_size = 16
     
     model_saliency = model_saliency.cuda()
     model_rate = model_rate.cuda()

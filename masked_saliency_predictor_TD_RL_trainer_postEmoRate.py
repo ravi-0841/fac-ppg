@@ -141,6 +141,7 @@ def validate(model_saliency, model_rate, criterion, valset,
                                 shuffle=True,
                                 batch_size=batch_size,
                                 collate_fn=collate_fn,
+                                drop_last=True,
                             )
 
         val_loss = 0.0
