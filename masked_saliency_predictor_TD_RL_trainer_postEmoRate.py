@@ -13,7 +13,8 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 # from saliency_predictor_TD_RL_postEmoRate import MaskedRateModifier, RatePredictor
-from lstm_gen_conv_mask_trans_masked_postEmoRate import MaskedRateModifier, RatePredictor
+# from lstm_gen_conv_mask_trans_masked_postEmoRate import MaskedRateModifier, RatePredictor
+from trans_rate_conv_mask_trans_masked_postEmoRate import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -385,6 +386,8 @@ def train(output_directory, log_directory, checkpoint_path,
                 iteration += 1
             except Exception as ex:
                 print(ex)
+            
+            break
 
 
 if __name__ == '__main__':
