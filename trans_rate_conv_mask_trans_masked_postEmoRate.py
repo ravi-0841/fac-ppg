@@ -121,7 +121,8 @@ class RatePredictor(nn.Module):
         self.bn1 = nn.BatchNorm1d(512)
         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=512, 
                                                                nhead=8, 
-                                                               dim_feedforward=512)
+                                                               dim_feedforward=512,
+                                                               dropout=0.0)
         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
                                                          num_layers=2)
         self.bn2 = nn.BatchNorm1d(512)
