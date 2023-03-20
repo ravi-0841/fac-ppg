@@ -191,7 +191,7 @@ class MaskedRateModifier(nn.Module):
         self.elu = nn.ELU(inplace=True)
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x, pre_computed_mask=None):
+    def forward(self, x, pre_computed_mask=None, use_posterior=False):
         # x shape - [batch, 1, #time]
         # pre_computed_mask shape - [batch, #time, 512]
 
@@ -204,7 +204,11 @@ class MaskedRateModifier(nn.Module):
         if pre_computed_mask is not None:
             mask = pre_computed_mask
 
-        salience = self.salience_predictor(conv_features, mask)
+        if not use_posterior:
+            salience = self.salience_predictor(conv_features, mask)
+        else:
+            posterior_mask = posterior[:,:,1:2].permute(0,2,1).repeat(1,512,1)
+            salience = self.salience_predictor(conv_features, posterior_mask)
 
         return conv_features, posterior, mask.permute(0,2,1), salience
 
@@ -281,7 +285,7 @@ if __name__ == "__main__":
             mod_speech = mod_speech.to("cuda")
 
             with torch.no_grad():
-                _, _, _, pred_sal = model_saliency(mod_speech)
+                _, _, _, pred_sal = model_saliency(mod_speech, use_posterior=True)
             
             # Optimizing the models
             loss_saliency = criterion(s, target_saliency)
