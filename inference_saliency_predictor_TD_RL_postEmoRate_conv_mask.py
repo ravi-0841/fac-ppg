@@ -319,10 +319,10 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            # plot_figures(feats, x, posterior, 
-            #               mask_sample, y, y_pred, 
-            #               rate_distribution,
-            #               iteration+1, hparams)
+            plot_figures(feats, x, posterior, 
+                          mask_sample, y, y_pred, 
+                          rate_distribution,
+                          iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -349,7 +349,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 if __name__ == '__main__':
     hparams = create_hparams()
     
-    emo_target = "fear"
+    emo_target = "angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -360,9 +360,9 @@ if __name__ == '__main__':
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
                                         ckpt_path.split("/")[2],
-                                        "images_valid_{}".format(emo_target),
+                                        "images_valid_{}_3".format(emo_target),
                                     )
-    for m in range(1000, 171000, 1000):
+    for m in range(19000, 20000, 1000):
         print("\n \t Current_model: checkpoint_{}".format(m))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -440,8 +440,8 @@ if __name__ == '__main__':
     # pylab.title(emo_target)
     # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
     # pylab.close("all")
-    joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-                                                            "ttest_scores.pkl"))
+    # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+    #                                                         "ttest_scores.pkl"))
 
 
 
