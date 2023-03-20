@@ -387,8 +387,6 @@ def train(output_directory, log_directory, checkpoint_path,
                 iteration += 1
             except Exception as ex:
                 print(ex)
-            
-            break
 
 
 if __name__ == '__main__':
