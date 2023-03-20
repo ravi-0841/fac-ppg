@@ -215,10 +215,14 @@ def train(output_directory, log_directory, checkpoint_path,
     optimizer_saliency = torch.optim.Adam(model_saliency.parameters(), 
                                           lr=learning_rate_saliency, 
                                           weight_decay=hparams.weight_decay)
-    optimizer_rate = torch.optim.Adam([{"params": model_saliency.conv_encoder.parameters()},
-                                       {"params": model_rate.parameters()}], 
-                                        lr=learning_rate_rate, 
-                                        weight_decay=hparams.weight_decay)
+    # optimizer_rate = torch.optim.Adam([{"params": model_saliency.conv_encoder.parameters()},
+    #                                    {"params": model_rate.parameters()}], 
+    #                                     lr=learning_rate_rate, 
+    #                                     weight_decay=hparams.weight_decay)
+
+    optimizer_rate = torch.optim.Adam(model_rate.parameters(), 
+                                      lr=learning_rate_rate, 
+                                      weight_decay=hparams.weight_decay)
 
     criterion1 = VecExpectedKLDivergence(alpha=hparams.alpha, 
                                         beta=hparams.beta)
@@ -306,7 +310,7 @@ def train(output_directory, log_directory, checkpoint_path,
                                                     consistent=hparams.minibatch_consistency)
                 
                 # Rate prediction
-                rate_distribution = model_rate(feats, # .detach()
+                rate_distribution = model_rate(feats.detach(), # .detach()
                                                posterior.detach(), # .detach()
                                                intent_saliency)
                 index = torch.multinomial(rate_distribution, 1)

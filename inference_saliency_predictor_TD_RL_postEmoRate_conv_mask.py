@@ -288,8 +288,8 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
                                                 relative_prob=relative_prob)
             
             rate_distribution = model_rate(feats, posterior, intent_saliency)
-            index = torch.multinomial(rate_distribution, 1)
-            # index = torch.argmax(rate_distribution, 1)
+            # index = torch.multinomial(rate_distribution, 1)
+            index = torch.argmax(rate_distribution, 1)
             rate = 0.5 + 0.2*index
             mod_speech, _ = WSOLA(mask=mask_sample[:,:,0], 
                                      rate=rate, speech=x)
@@ -349,7 +349,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 if __name__ == '__main__':
     hparams = create_hparams()
     
-    emo_target = "fear"
+    emo_target = "angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
