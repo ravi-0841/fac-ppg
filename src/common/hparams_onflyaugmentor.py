@@ -126,7 +126,7 @@ def create_hparams(**kwargs):
         "learning_rate_rate": 1e-6,
         "learning_rate_decay": 0.955, #0.955
         "learning_rate_lb": 1e-6,
-        "learning_rate_ub": 1e-3,
+        "learning_rate_ub": 1e-4,
         "weight_decay": 1e-6,
         "grad_clip_thresh": 1.0,
         "batch_size": 8, #8

@@ -121,18 +121,19 @@ class RatePredictor(nn.Module):
         self.bn2 = nn.BatchNorm1d(512)
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
                                        num_layers=2, bidirectional=True, 
-                                       dropout=0.2)
+                                       dropout=0.0)
         self.bn3 = nn.BatchNorm1d(512)
         self.linear_layer = nn.Linear(in_features=512, out_features=6)
         self.softmax = nn.Softmax(dim=-1)
         self.elu = nn.ELU(inplace=True)
     
-    def forward(self, x, p, e):
+    def forward(self, x, e): #(x, p, e)
         # x -> [batch, 512, #time]
         # e -> [batch, 5] one-hot encoding for [Neutral, Angry, Happy, Sad, Fearful]
         # p -> [batch, #time, 2] -> [batch, 512, #time]
-        p = p[:,:,1:2].repeat(1,1,512).permute(0,2,1)
-        x = x + x*p
+        
+        # p = p[:,:,1:2].repeat(1,1,512).permute(0,2,1)
+        # x = x + x*p
         e_proj = self.emo_projection(e).unsqueeze(dim=-1).repeat(1,1,x.shape[2])
         joint_x = torch.cat((x, e_proj), dim=1)
         joint_x = self.elu(self.bn1(joint_x))
@@ -265,7 +266,7 @@ if __name__ == "__main__":
             
             # Compute Rate of modification
             # r = model_rate(f.detach(), p.detach(), emotion_codes)
-            r = model_rate(f, p.detach(), emotion_codes)
+            r = model_rate(f.detach(), emotion_codes)
     
             # Printing shapes
             # print("features shape: ", f.shape)
@@ -285,7 +286,7 @@ if __name__ == "__main__":
             mod_speech = mod_speech.to("cuda")
 
             with torch.no_grad():
-                _, _, _, pred_sal = model_saliency(mod_speech, use_posterior=True)
+                _, _, _, pred_sal = model_saliency(mod_speech)
             
             # Optimizing the models
             loss_saliency = criterion(s, target_saliency)

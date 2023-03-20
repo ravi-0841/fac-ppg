@@ -150,7 +150,7 @@ def validate(model_saliency, model_rate, criterion, valset,
             loss = criterion(y_pred, y)
             reduced_val_loss = loss.item()
             val_loss += reduced_val_loss
-            rate_distribution = model_rate(feats, posterior, e)
+            rate_distribution = model_rate(feats, e)
         val_loss = val_loss / (i + 1)
 
     model_saliency.train()
@@ -311,7 +311,6 @@ def train(output_directory, log_directory, checkpoint_path,
                 
                 # Rate prediction
                 rate_distribution = model_rate(feats.detach(), # .detach()
-                                               posterior.detach(), # .detach()
                                                intent_saliency)
                 index = torch.multinomial(rate_distribution, 1)
                 rate = 0.5 + 0.2*index
@@ -393,7 +392,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "lr_opposing_{}_{}_{}_{}_{}".format(
+                                        "noPost_lr_opposing_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
