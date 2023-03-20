@@ -285,7 +285,8 @@ if __name__ == "__main__":
             # print("rate shape: ", r.shape)
         
             # Interpolation check
-            index = torch.multinomial(r, 1)
+            # index = torch.multinomial(r, 1)
+            index = torch.argmax(r, dim=-1)
             rate = 0.5 + 0.2*index
             mod_speech, _ = WSOLA(mask=m[:,:,0:1],
                                     rate=rate,

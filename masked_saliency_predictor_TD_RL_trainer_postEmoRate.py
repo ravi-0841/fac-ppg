@@ -314,7 +314,11 @@ def train(output_directory, log_directory, checkpoint_path,
                 # Rate prediction
                 rate_distribution = model_rate(feats.detach(), # .detach()
                                                intent_saliency)
-                index = torch.multinomial(rate_distribution, 1)
+                if np.random.rand() < 0.5:
+                    index = torch.multinomial(rate_distribution, 1)
+                else:
+                    index = torch.argmax(rate_distribution, dim=-1)
+
                 rate = 0.5 + 0.2*index
                 mod_speech, _ = WSOLA(mask=mask_sample[:,:,0], 
                                          rate=rate, speech=x)
