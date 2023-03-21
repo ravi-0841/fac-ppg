@@ -326,8 +326,10 @@ def train(output_directory, log_directory, checkpoint_path,
                                          rate=rate, speech=x)
             
                 mod_speech = mod_speech.to("cuda")
-                with torch.no_grad():
-                    _, _, _, s = model_saliency(mod_speech)
+                # with torch.no_grad():
+                model_saliency.eval()
+                _, _, _, s = model_saliency(mod_speech)
+                model_saliency.train()
 
                 loss_rate_l1 = torch.sum(torch.abs(s - intent_saliency), dim=-1)
                 corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)

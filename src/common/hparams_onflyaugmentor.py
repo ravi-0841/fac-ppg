@@ -68,7 +68,7 @@ def create_hparams(**kwargs):
         "log_directory": './logs',
         "extended_desc": "trans_rate_beta_0.75_mix_entropy", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
-        "checkpoint_path_inference": "./masked_predictor_output/noPost_lr_opposing_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.75_mix/checkpoint",
+        "checkpoint_path_inference": "./masked_predictor_output/noPost_lr_opposing_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.75_mix_eval/checkpoint",
         # "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo/checkpoint_145000",  # Path to a checkpoint file.
         # "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo/checkpoint_51000",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
@@ -120,7 +120,7 @@ def create_hparams(**kwargs):
         "lambda_prior_KL": 1e-5, # 5e-4
         "lambda_predict": 10.0, # 10
         "lambda_sparse_KL": 2e-07, # 1e-07
-        "lambda_entropy": 1e-3,
+        "lambda_entropy": 1e-2,
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
         "learning_rate_saliency": 1e-4, #1e-5

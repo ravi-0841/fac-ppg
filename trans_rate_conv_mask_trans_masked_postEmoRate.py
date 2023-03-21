@@ -14,6 +14,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from medianPool import MedianPool1d
 from src.common.interpolation_block import WSOLAInterpolation, BatchWSOLAInterpolation
+from src.common.loss_function import EntropyLoss
 
 
 def sample_gumbel(shape, eps=1e-20):
@@ -233,7 +234,7 @@ if __name__ == "__main__":
     model_saliency = MaskedRateModifier()
     model_rate = RatePredictor()
     
-    batch_size = 16
+    batch_size = 8
     
     model_saliency = model_saliency.cuda()
     model_rate = model_rate.cuda()
@@ -252,7 +253,7 @@ if __name__ == "__main__":
 
     # Criterion definition
     criterion = nn.L1Loss()
-    # criterion = nn.CrossEntropyLoss()
+    criterion_ent = EntropyLoss()
     
     # Set models in training mode
     model_saliency.train()
@@ -300,16 +301,20 @@ if __name__ == "__main__":
         
             mod_speech = mod_speech.to("cuda")
 
-            with torch.no_grad():
-                _, _, _, pred_sal = model_saliency(mod_speech)
+            # with torch.no_grad():
+            model_saliency.eval()
+            _, _, _, pred_sal = model_saliency(mod_speech)
+            model_saliency.train()
             
             # Optimizing the models
             loss_saliency = criterion(s, target_saliency)
 
             loss_rate = torch.sum(torch.abs(pred_sal - emotion_codes), dim=-1)
             loss_rate_idiotic = torch.mean(loss_rate.detach() * r.gather(1,index.view(-1,1)))
+            loss_rate_idiotic += 0.1 * criterion_ent(r)
             corresp_probs = r.gather(1,index.view(-1,1)).view(-1)
             loss_rate = torch.mean(torch.mul(loss_rate.detach(), corresp_probs))
+            loss_rate += 0.1 * criterion_ent(r)
             
             print("Idiotic Loss: {}".format(loss_rate_idiotic.item()))
             print("Correct Loss: {}".format(loss_rate.item()))
