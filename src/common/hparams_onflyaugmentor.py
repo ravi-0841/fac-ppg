@@ -53,8 +53,8 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 500,
-        "iters_per_checkpoint": 1000,
+        "epochs": 100,
+        "iters_per_checkpoint": 500,
         "seed": 1107,
         "dynamic_loss_scaling": True,
         "fp16_run": False,
@@ -66,9 +66,9 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "trans_rate_beta_0.7_mix", # extra description for logging/identification
+        "extended_desc": "trans_rate_beta_0.75_mix_entropy", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
-        "checkpoint_path_inference": "./masked_predictor_output/noPost_lr_opposing_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.7_mix/checkpoint",
+        "checkpoint_path_inference": "./masked_predictor_output/noPost_lr_opposing_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.75_mix/checkpoint",
         # "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo/checkpoint_145000",  # Path to a checkpoint file.
         # "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo/checkpoint_51000",  # Path to a checkpoint file.
         "warm_start": False,  # Load the model only (warm start)
@@ -120,20 +120,21 @@ def create_hparams(**kwargs):
         "lambda_prior_KL": 1e-5, # 5e-4
         "lambda_predict": 10.0, # 10
         "lambda_sparse_KL": 2e-07, # 1e-07
+        "lambda_entropy": 1e-3,
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
         "learning_rate_saliency": 1e-4, #1e-5
-        "learning_rate_rate": 1e-6,
+        "learning_rate_rate": 1e-7, #1e-6
         "learning_rate_decay": 0.955, #0.955
-        "learning_rate_lb": 1e-6,
-        "learning_rate_ub": 1e-4,
-        "weight_decay": 1e-6,
+        "learning_rate_lb": 1e-7, #1e-6
+        "learning_rate_ub": 1e-5, #1e-4
+        "weight_decay": 1e-7, #1e-6
         "grad_clip_thresh": 1.0,
-        "batch_size": 12, #8
+        "batch_size": 4, #8
         "minibatch_consistency": False,
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.01, # Bernoulli parameter for sampling 1st entry of the mask
-        "beta": 0.7, #0.95 Bernoulli parameter for mask persistence
+        "beta": 0.75, #0.95 Bernoulli parameter for mask persistence
     }
 
     for key, val in kwargs.items():

@@ -254,6 +254,43 @@ class VecExpectedKLDivergence(nn.Module):
         return total_loss
 
 
+class EntropyLoss(nn.Module):
+    def __init__(self):
+        super(EntropyLoss, self).__init__()
+    
+    def forward(self, distribution):
+        # distribution -> [batch, n_categories]
+        loss = torch.sum(-1*torch.mul(distribution, torch.log2(distribution)), dim=-1)
+        return torch.mean(loss)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

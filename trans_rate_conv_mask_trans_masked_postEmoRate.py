@@ -124,10 +124,10 @@ class RatePredictor(nn.Module):
                                                                dim_feedforward=512,
                                                                dropout=0.0)
         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
-                                                         num_layers=2)
+                                                         num_layers=1)
         self.bn2 = nn.BatchNorm1d(512)
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=128, 
-                                       num_layers=2, bidirectional=True, 
+                                       num_layers=1, bidirectional=True, 
                                        dropout=0.0)
         self.bn3 = nn.BatchNorm1d(256)
         self.linear_layer = nn.Linear(in_features=256, out_features=6)
@@ -178,10 +178,11 @@ class MaskGenerator(nn.Module):
         # x = self.bn(x.permute(1,2,0))
         posterior = self.linear_layer(x.permute(0,2,1))        
         posterior = self.softmax(posterior/self.temp_scale)
-        sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
-        
+
         if not self.training:
             sampled_val = torch.bernoulli(posterior)
+        else:
+            sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
 
         mask = self.median_pool(sampled_val[:,:,1:2].permute(0,2,1))
         mask = self.median_pool(self.median_pool(mask))

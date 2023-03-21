@@ -20,6 +20,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
                                         VecExpectedKLDivergence, 
                                         SparsityKLDivergence,
+                                        EntropyLoss,
                                     )
 from src.common.logger_SaliencyPred_timeDomain import SaliencyPredictorLogger
 from src.common.hparams_onflyaugmentor import create_hparams
@@ -230,6 +231,7 @@ def train(output_directory, log_directory, checkpoint_path,
                                         beta=hparams.beta)
     criterion2 = torch.nn.L1Loss() #MSELoss
     criterion3 = SparsityKLDivergence()
+    criterion4 = EntropyLoss()
 
     logger = prepare_directories_and_logger(output_directory, log_directory, rank)
 
@@ -327,9 +329,12 @@ def train(output_directory, log_directory, checkpoint_path,
                 with torch.no_grad():
                     _, _, _, s = model_saliency(mod_speech)
 
-                loss_rate = torch.sum(torch.abs(s - intent_saliency), dim=-1)
+                loss_rate_l1 = torch.sum(torch.abs(s - intent_saliency), dim=-1)
                 corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
-                loss_rate = torch.mean(torch.mul(loss_rate.detach(), corresp_probs))
+                loss_rate_l1 = torch.mean(torch.mul(loss_rate_l1.detach(), corresp_probs))
+                loss_rate_ent = criterion4(rate_distribution)
+                loss_rate = loss_rate_l1 + hparams.lambda_entropy * loss_rate_ent
+                
                 reduced_loss_rate = loss_rate.item()
                 
                 total_loss = loss_rate + loss_saliency
@@ -398,7 +403,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "noPost_lr_opposing_{}_{}_{}_{}_{}".format(
+                                        "noPost_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
