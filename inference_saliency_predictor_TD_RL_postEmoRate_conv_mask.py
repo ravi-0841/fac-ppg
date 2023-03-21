@@ -350,7 +350,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 if __name__ == '__main__':
     hparams = create_hparams()
     
-    emo_target = "fear"
+    emo_target = "angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -363,8 +363,8 @@ if __name__ == '__main__':
                                         ckpt_path.split("/")[2],
                                         "images_valid_{}".format(emo_target),
                                     )
-    for m in range(1000, 151000, 1000):
-        print("\n \t Current_model: checkpoint_{}".format(m))
+    for m in range(40000, 41000, 1000): #40000
+        print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
         if not hparams.output_directory:
@@ -405,44 +405,61 @@ if __name__ == '__main__':
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
         print("1 sided T-test result (p-value): {}".format(ttest[1]))
         ttest_array.append(ttest[1])
+        # pylab.figure(), pylab.plot([x for x in range(1000, 188000, 1000)], ttest_array)
+        # pylab.title(emo_target)
+        # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
+        # pylab.close("all")
+        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+                                                                # "ttest_scores.pkl"))
+
 
         #%% Joint density plot and MI
-        epsilon = 1e-3
-        corn_mat = np.zeros((5,5))
-        for (t,p) in zip(targ_array, pred_array):
-            for et in range(5):
-                for ep in range(5):
-                    if t[et]>epsilon and p[ep]>epsilon:
-                        corn_mat[ep, et] += 1
+        # epsilon = 1e-3
+        # corn_mat = np.zeros((5,5))
+        # for (t,p) in zip(targ_array, pred_array):
+        #     for et in range(5):
+        #         for ep in range(5):
+        #             if t[et]>epsilon and p[ep]>epsilon:
+        #                 corn_mat[ep, et] += 1
                         
-        corn_mat = corn_mat / np.sum(corn_mat)
-        x = np.arange(0, 6, 1)
-        y = np.arange(0, 6, 1)
-        x_center = 0.5 * (x[:-1] + x[1:])
-        y_center = 0.5 * (y[:-1] + y[1:])
-        X, Y = np.meshgrid(x_center, y_center)
-        plot = pylab.pcolormesh(x, y, corn_mat, cmap='RdBu', shading='flat')
-        cset = pylab.contour(X, Y, corn_mat, cmap='gray')
-        pylab.clabel(cset, inline=True)
-        pylab.colorbar(plot)
-        pylab.title("Joint density estimate")
-        pylab.savefig(os.path.join(hparams.output_directory, "joint_density_plot.png"))
-        pylab.close("all")
+        # corn_mat = corn_mat / np.sum(corn_mat)
+        # x = np.arange(0, 6, 1)
+        # y = np.arange(0, 6, 1)
+        # x_center = 0.5 * (x[:-1] + x[1:])
+        # y_center = 0.5 * (y[:-1] + y[1:])
+        # X, Y = np.meshgrid(x_center, y_center)
+        # plot = pylab.pcolormesh(x, y, corn_mat, cmap='RdBu', shading='flat')
+        # cset = pylab.contour(X, Y, corn_mat, cmap='gray')
+        # pylab.clabel(cset, inline=True)
+        # pylab.colorbar(plot)
+        # pylab.title("Joint density estimate")
+        # pylab.savefig(os.path.join(hparams.output_directory, "joint_density_plot.png"))
+        # pylab.close("all")
 
-        # Mutual Info
-        mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
-        sns.histplot(mi_array, bins=30, kde=True)
-        print("MI value: {}".format(np.mean(mi_array)))
-        pylab.title("Mutual Information distribution")
-        pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
-        pylab.close("all")
+        # # Mutual Info
+        # mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
+        # sns.histplot(mi_array, bins=30, kde=True)
+        # print("MI value: {}".format(np.mean(mi_array)))
+        # pylab.title("Mutual Information distribution")
+        # pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
+        # pylab.close("all")
+
+    #%%
+    # x = np.arange(1000, 165000, 1000)
+    # angry_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_lr_opposing_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.7_mix/images_valid_angry/ttest_scores.pkl")["ttest_scores"]
+    # happy_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_lr_opposing_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.7_mix/images_valid_happy/ttest_scores.pkl")["ttest_scores"]
+    # sad_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_lr_opposing_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.7_mix/images_valid_sad/ttest_scores.pkl")["ttest_scores"]
+    # fear_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_lr_opposing_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.7_mix/images_valid_fear/ttest_scores.pkl")["ttest_scores"]
     
-    # pylab.figure(), pylab.plot([x for x in range(1000, 188000, 1000)], ttest_array)
-    # pylab.title(emo_target)
-    # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
-    # pylab.close("all")
-    joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-                                                            "ttest_scores.pkl"))
+    # pylab.figure()
+    # pylab.plot(x, angry_scores, "o", label="angry")
+    # pylab.plot(x, happy_scores, "o", label="happy")
+    # pylab.plot(x, sad_scores, "o", label="sad")
+    # pylab.plot(x, fear_scores, "o", label="fear")
+    # pylab.plot(x, [0.1]*164, label="baseline1")
+    # pylab.plot(x, [0.07]*164, label="baseline2")
+    # pylab.plot(x, [0.05]*164, label="baseline3")
+    # pylab.legend()
 
 
 
