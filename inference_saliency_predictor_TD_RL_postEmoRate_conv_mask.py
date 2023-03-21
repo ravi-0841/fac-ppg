@@ -19,7 +19,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from lstm_gen_conv_mask_trans_masked_postEmoRate import MaskedRateModifier, RatePredictor
+from trans_rate_conv_mask_trans_masked_postEmoRate import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -287,7 +287,8 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
             intent_saliency = intended_saliency(batch_size=1, 
                                                 relative_prob=relative_prob)
             
-            rate_distribution = model_rate(feats, posterior, intent_saliency)
+            # rate_distribution = model_rate(feats, posterior, intent_saliency)
+            rate_distribution = model_rate(feats, intent_saliency)
             # index = torch.multinomial(rate_distribution, 1)
             index = torch.argmax(rate_distribution, 1)
             rate = 0.5 + 0.2*index
@@ -319,10 +320,10 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            plot_figures(feats, x, posterior, 
-                          mask_sample, y, y_pred, 
-                          rate_distribution,
-                          iteration+1, hparams)
+            # plot_figures(feats, x, posterior, 
+            #               mask_sample, y, y_pred, 
+            #               rate_distribution,
+            #               iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -349,7 +350,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 if __name__ == '__main__':
     hparams = create_hparams()
     
-    emo_target = "angry"
+    emo_target = "fear"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -360,9 +361,9 @@ if __name__ == '__main__':
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
                                         ckpt_path.split("/")[2],
-                                        "images_valid_{}_3".format(emo_target),
+                                        "images_valid_{}".format(emo_target),
                                     )
-    for m in range(19000, 20000, 1000):
+    for m in range(1000, 151000, 1000):
         print("\n \t Current_model: checkpoint_{}".format(m))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -440,8 +441,8 @@ if __name__ == '__main__':
     # pylab.title(emo_target)
     # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
     # pylab.close("all")
-    # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-    #                                                         "ttest_scores.pkl"))
+    joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+                                                            "ttest_scores.pkl"))
 
 
 
