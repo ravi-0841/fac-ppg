@@ -53,7 +53,7 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 100,
+        "epochs": 200,
         "iters_per_checkpoint": 500,
         "seed": 1107,
         "dynamic_loss_scaling": True,
@@ -66,7 +66,7 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "trans_rate_beta_0.75_mix_entropy_eval", # extra description for logging/identification
+        "extended_desc": "mask_trans_rate_beta_0.75_mix_entropy_eval", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_inference": "./masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.75_mix_entropy_eval/checkpoint",
         # "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo/checkpoint_145000",  # Path to a checkpoint file.
