@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Feb  28 15:25:43 2023
+Created on Wed Mar 22 17:30:21 2023
 
 @author: ravi
 """
@@ -71,7 +71,17 @@ class OnTheFlyAugmentor():
             random_sr = self.hparams.sampling_rate
 
         clean_data = librosa.resample(clean_data, orig_sr=sr, target_sr=random_sr)
-        return clean_data.reshape(1,-1), random_sr
+        energy = librosa.feature.rms(clean_data, 
+                                          frame_length=hparams.win_length,
+                                          hop_length=hparams.hop_length,
+                                          center=True)
+        energy = energy.reshape(-1,)
+        voice_mask = np.zeros((len(energy,)))
+        voice_mask[np.where(energy>1e-3)[0]] = 1
+        idx = np.where(voice_mask==1)[0]
+        voice_mask[idx[0]:idx[-1]] = 1
+
+        return clean_data.reshape(1,-1), voice_mask.reshape(1,-1), random_sr
     
     
     def _rating_structure(self, rating):
@@ -84,13 +94,14 @@ class OnTheFlyAugmentor():
     def __getitem__(self, index):
         path, rating = self.utterance_rating_paths[index].split(" ,")
         rating = ast.literal_eval(rating)
-        speech_data, sr = self._get_signal(path)
+        speech_data, voice_mask, sr = self._get_signal(path)
         speech_stft = self._extract_stft_feats(speech_data)
         speech_stft = torch.sqrt(speech_stft[:,:,0]**2 + speech_stft[:,:,1]**2)
         rating = self._rating_structure(rating)
         return (
                 speech_stft,
-                torch.from_numpy(speech_data).float(), 
+                torch.from_numpy(speech_data).float(),
+                torch.from_numpy(voice_mask).float(),
                 torch.from_numpy(rating).float(),
                 sr,
         )
@@ -108,8 +119,9 @@ def acoustics_collate_raw(batch):
         (stft, speech_wav, tar_rating, sampling_rate).
 
     Returns:
-        speech_padded: A (batch_size, 1, num_frames)
+        speech_padded: A (batch_size, 1, num_samples)
         tensor.
+        voice_masks: (batch_size, 1, num_frames)
         lengths: A batch_size array, each containing the actual length
         of the input sequence.
     """
@@ -120,22 +132,33 @@ def acoustics_collate_raw(batch):
         descending=True)
     max_input_len = input_lengths[0]
 
+    input_lengths_mask, _ = torch.sort(
+        torch.LongTensor([x[2].shape[1] for x in batch]), dim=0,
+        descending=True)
+    max_input_len_mask = input_lengths_mask[0]
+
     speech_padded = torch.FloatTensor(len(batch), 1, max_input_len)
+    voice_mask_padded = torch.FloatTensor(len(batch), 1, max_input_len_mask)
     tar_ratings = torch.FloatTensor(len(batch), 5)
     
     speech_padded.zero_()
+    voice_mask_padded.zero_()
     tar_ratings.zero_()
     
     for i in range(len(ids_sorted_decreasing)):
         curr_speech = batch[ids_sorted_decreasing[i]][1]
-        curr_tar_rate = batch[ids_sorted_decreasing[i]][2]
+        curr_voice_mask = batch[ids_sorted_decreasing[i]][2]
+        curr_tar_rate = batch[ids_sorted_decreasing[i]][3]
 
         speech_padded[i, :, :curr_speech.shape[1]] = curr_speech
         speech_padded[i, :, curr_speech.shape[1]:] = 0
+        
+        voice_mask_padded[i, :, :curr_voice_mask.shape[1]] = curr_voice_mask
+        voice_mask_padded[i, :, curr_voice_mask.shape[1]:] = 0
 
         tar_ratings[i, :] = curr_tar_rate
 
-    return speech_padded, tar_ratings, input_lengths
+    return speech_padded, voice_mask_padded, tar_ratings, input_lengths
 
 
 if __name__ == "__main__":
@@ -153,44 +176,32 @@ if __name__ == "__main__":
                             num_workers=1,
                             shuffle=True,
                             sampler=None,
-                            batch_size=1,
+                            batch_size=8,
                             drop_last=True,
                             collate_fn=acoustics_collate_raw,
                             )
     for i, batch in enumerate(dataloader):
-        signal = batch[0].cpu().numpy().reshape(-1,)
-        energy = librosa.feature.rms(signal, frame_length=hparams.win_length, 
-                                     hop_length=hparams.hop_length, center=True)
-        energy = energy.reshape(-1,)
-        # energy = scisig.medfilt(scisig.medfilt(energy, kernel_size=5), kernel_size=5)
-        threshold = np.zeros((len(energy,)))
-        threshold[np.where(energy>1e-3)[0]] = 1
-        idx = np.where(threshold==1)[0]
-        threshold[idx[0]:idx[-1]] = 1
-        
+        signal = batch[0][2].cpu().numpy().reshape(-1,)
+        voice_mask = batch[1][2].cpu().numpy().reshape(-1,)        
         
         pylab.xticks(fontsize=18)
         pylab.yticks(fontsize=18)
-        fig, ax = pylab.subplots(3, 1, figsize=(30, 15))
+        fig, ax = pylab.subplots(2, 1, figsize=(30, 10))
         
         ax[0].plot(signal, linewidth=1.5, color='k')
         ax[0].set_xlabel('Time',fontsize=15) #xlabel
         ax[0].set_ylabel('Magnitude', fontsize=15) #ylabel
 
-        ax[1].plot(energy, linewidth=2.5, color='g')
+        ax[1].plot(voice_mask, linewidth=2.5)
         ax[1].set_xlabel('Time',fontsize=15) #xlabel
-        ax[1].set_ylabel('Energy', fontsize=15) #ylabel
-        
-        ax[2].plot(threshold, linewidth=2.5)
-        ax[2].set_xlabel('Time',fontsize=15) #xlabel
-        ax[2].set_ylabel('Threshold', fontsize=15) #ylabel
+        ax[1].set_ylabel('Threshold', fontsize=15) #ylabel
         
         pylab.suptitle("Utterance {}".format(i+1))
         
-        pylab.savefig("/home/ravi/Desktop/test_images/{}.png".format(i+1))
+        pylab.savefig("/home/ravi/Desktop/test_images_2/{}.png".format(i+1))
         pylab.close()
         
-        print(torch.div(batch[2], 160, rounding_mode="floor") - len(energy))
+        # print(torch.div(batch[2], 160, rounding_mode="floor") - len(energy))
         # print(batch[2].dtype, torch.div(batch[2], 160, rounding_mode="floor").dtype)
         
         if i >= 100:
