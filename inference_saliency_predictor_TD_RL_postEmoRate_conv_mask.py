@@ -350,7 +350,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 if __name__ == '__main__':
     hparams = create_hparams()
     
-    emo_target = "angry"
+    emo_target = "fear"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -363,7 +363,7 @@ if __name__ == '__main__':
                                         ckpt_path.split("/")[2],
                                         "images_valid_{}".format(emo_target),
                                     )
-    for m in range(40000, 41000, 1000): #40000
+    for m in range(1000, 100000, 500): #40000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -409,8 +409,9 @@ if __name__ == '__main__':
         # pylab.title(emo_target)
         # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
         # pylab.close("all")
-        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-                                                                # "ttest_scores.pkl"))
+
+        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+                                                                "ttest_scores.pkl"))
 
 
         #%% Joint density plot and MI
