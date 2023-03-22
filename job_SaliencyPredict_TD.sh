@@ -4,7 +4,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=6
 #SBATCH --gres=gpu:1
-#SBATCH -t 48:00:00
+#SBATCH -t 30:00:00
 #SBATCH -A avenka14_gpu
 
 ###load modules
@@ -25,4 +25,4 @@ pip install --user Unidecode
 pip install --user matplotlib
 
 #python3 masked_saliency_predictor_TD_RL_trainer_postRate_backprop_salience.py
-python3 masked_saliency_predictor_TD_RL_trainer_postEmoRate.py
+python3 masked_saliency_predictor_TD_RL_trainer_maskEmoRate.py
