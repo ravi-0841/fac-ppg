@@ -71,10 +71,10 @@ class OnTheFlyAugmentor():
             random_sr = self.hparams.sampling_rate
 
         clean_data = librosa.resample(clean_data, orig_sr=sr, target_sr=random_sr)
-        energy = librosa.feature.rms(clean_data, 
-                                          frame_length=self.hparams.win_length,
-                                          hop_length=self.hparams.hop_length,
-                                          center=True)
+        energy = librosa.feature.rms(y=clean_data, 
+                                    frame_length=self.hparams.win_length,
+                                    hop_length=self.hparams.hop_length,
+                                    center=True)
         energy = energy.reshape(-1,)
         voice_mask = np.zeros((len(energy,)))
         voice_mask[np.where(energy>1e-3)[0]] = 1
