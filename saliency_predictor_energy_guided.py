@@ -15,7 +15,7 @@ from torch.autograd import Variable
 from medianPool import MedianPool1d
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import EntropyLoss
-from src.common.hparams_onflyaugmentor import create_hparams
+from src.common.hparams_onflyenergy import create_hparams
 from src.common.utils import load_filepaths
 from torch.utils.data import DataLoader
 
@@ -129,6 +129,8 @@ class MaskGenerator(nn.Module):
     
     def forward(self, x, e):
         # x -> [batch, 512, #Time]
+        # e - [batch, 1, #time//160]
+
         # x, _ = self.recurrent_layer(x.permute(2,0,1))
         # x = self.bn(x.permute(1,2,0))
         posterior = self.linear_layer(x.permute(0,2,1))        
@@ -139,10 +141,10 @@ class MaskGenerator(nn.Module):
         else:
             sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
 
-        sampled_val = torch.mul(sampled_val[:,:,1:2], 
-                                e.permute(0,2,1)[:,:sampled_val.size(1),:])
+        sampled_val = torch.mul(sampled_val[:,:,1:2].permute(0,2,1), 
+                                e[:,:,:sampled_val.size(1)])
 
-        mask = self.median_pool(sampled_val.permute(0,2,1))
+        mask = self.median_pool(sampled_val)
         mask = self.median_pool(self.median_pool(mask))
         return posterior, mask
 
