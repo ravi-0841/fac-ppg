@@ -139,7 +139,7 @@ def validate(model, criterion, valset, collate_fn, iteration,
         logger.log_validation(
                                 val_loss,
                                 model,
-                                feats,
+                                torch.abs(feats),
                                 y,
                                 y_pred,
                                 posterior[:,:,1].squeeze(),
