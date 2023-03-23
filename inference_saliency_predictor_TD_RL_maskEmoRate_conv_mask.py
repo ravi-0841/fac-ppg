@@ -350,8 +350,8 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 
 if __name__ == '__main__':
     hparams = create_hparams()
-    
-    emo_target = "fear"
+
+    emo_target = "happy"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -364,7 +364,7 @@ if __name__ == '__main__':
                                         ckpt_path.split("/")[2],
                                         "images_valid_{}".format(emo_target),
                                     )
-    for m in range(1000, 200000, 500): #40000
+    for m in range(53000, 53500, 500): #40000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -398,11 +398,11 @@ if __name__ == '__main__':
         print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
 
         #%% Checking difference in predictions
-        index = np.argmax(emo_prob_dict[emo_target])
+        index = 3 #np.argmax(emo_prob_dict[emo_target])
         saliency_diff = rate_array[:,index] - pred_array[:,index]
-        pylab.figure(), pylab.hist(saliency_diff, label="difference")
-        pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
-        pylab.close("all")
+        # pylab.figure(), pylab.hist(saliency_diff, label="difference")
+        # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
+        # pylab.close("all")
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
         print("1 sided T-test result (p-value): {}".format(ttest[1]))
         ttest_array.append(ttest[1])
@@ -411,8 +411,8 @@ if __name__ == '__main__':
         # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
         # pylab.close("all")
 
-        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
+        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
 
 
         #%% Joint density plot and MI
@@ -447,20 +447,20 @@ if __name__ == '__main__':
         # pylab.close("all")
 
     #%%
-    # x = np.arange(1000, 97000, 500)
-    # angry_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.75_mix_entropy_eval/images_valid_angry/ttest_scores.pkl")["ttest_scores"]
-    # happy_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.75_mix_entropy_eval/images_valid_happy/ttest_scores.pkl")["ttest_scores"]
-    # sad_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.75_mix_entropy_eval/images_valid_sad/ttest_scores.pkl")["ttest_scores"]
-    # fear_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_trans_rate_beta_0.75_mix_entropy_eval/images_valid_fear/ttest_scores.pkl")["ttest_scores"]
+    # x = np.arange(1000, 194000, 500)
+    # angry_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_mask_trans_rate_beta_0.75_mix_entropy_eval/images_valid_angry/ttest_scores.pkl")["ttest_scores"]
+    # happy_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_mask_trans_rate_beta_0.75_mix_entropy_eval/images_valid_happy/ttest_scores.pkl")["ttest_scores"]
+    # sad_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_mask_trans_rate_beta_0.75_mix_entropy_eval/images_valid_sad/ttest_scores.pkl")["ttest_scores"]
+    # fear_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_mask_trans_rate_beta_0.75_mix_entropy_eval/images_valid_fear/ttest_scores.pkl")["ttest_scores"]
     
     # pylab.figure()
     # pylab.plot(x, angry_scores, "o", label="angry")
     # pylab.plot(x, happy_scores, "o", label="happy")
     # pylab.plot(x, sad_scores, "o", label="sad")
     # pylab.plot(x, fear_scores, "o", label="fear")
-    # pylab.plot(x, [0.1]*192, label="baseline1")
-    # pylab.plot(x, [0.07]*192, label="baseline2")
-    # pylab.plot(x, [0.05]*192, label="baseline3")
+    # pylab.plot(x, [0.1]*386, label="baseline1")
+    # pylab.plot(x, [0.07]*386, label="baseline2")
+    # pylab.plot(x, [0.05]*386, label="baseline3")
     # pylab.legend()
 
 
