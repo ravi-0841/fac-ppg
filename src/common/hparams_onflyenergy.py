@@ -66,7 +66,7 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "energy_guided_noBLSTM_lr_fixed", # extra description for logging/identification
+        "extended_desc": "energy_guided_noBLSTM_lr_fixed_sparser", # extra description for logging/identification
         "checkpoint_path": "", #"./masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_mask_trans_rate_beta_0.75_mix_entropy_eval/checkpoint_193500",  # Path to a checkpoint file.
         "checkpoint_path_inference": "./masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_mask_trans_rate_beta_0.75_mix_entropy_eval/checkpoint",
         # "checkpoint_path_inference": "./masked_predictor_output/lr_opposing_1e-05_10.0_2e-07_5.0_AllEmo/checkpoint_145000",  # Path to a checkpoint file.
@@ -119,12 +119,12 @@ def create_hparams(**kwargs):
         ################################
         "lambda_prior_KL": 1e-5, # 5e-4
         "lambda_predict": 10.0, # 10
-        "lambda_sparse_KL": 2e-07, # 1e-07
+        "lambda_sparse_KL": 2e-04, # 1e-07
         "lambda_entropy": 1e-2,
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
         "learning_rate": 1e-5, #1e-5
-        "learning_rate_decay": 1.0, #0.955
+        "learning_rate_decay": 0.97724, #0.955
         "learning_rate_lb": 1e-7, #1e-6
         "weight_decay": 1e-6, #1e-6
         "grad_clip_thresh": 1.0,
@@ -132,7 +132,7 @@ def create_hparams(**kwargs):
         "minibatch_consistency": False,
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.01, # Bernoulli parameter for sampling 1st entry of the mask
-        "beta": 0.75, #0.95 Bernoulli parameter for mask persistence
+        "beta": 0.95, #0.95 Bernoulli parameter for mask persistence
     }
 
     for key, val in kwargs.items():

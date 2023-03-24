@@ -164,10 +164,10 @@ class MaskGenerator(nn.Module):
         posterior = self.linear_layer(x.permute(0,2,1))        
         posterior = self.softmax(posterior/self.temp_scale)
 
-        if not self.training:
-            sampled_val = torch.bernoulli(posterior)
-        else:
-            sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
+        # if not self.training:
+        #     sampled_val = torch.bernoulli(posterior)
+        # else:
+        sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
 
         sampled_val = torch.mul(sampled_val[:,:,1:2].permute(0,2,1), 
                                 e[:,:,:sampled_val.size(1)])
