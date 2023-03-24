@@ -24,5 +24,5 @@ pip install --user inflect
 pip install --user Unidecode
 pip install --user matplotlib
 
-#python3 masked_saliency_predictor_TD_RL_trainer_postRate_backprop_salience.py
-python3 masked_saliency_predictor_energy_guided_trainer.py
+# python3 masked_saliency_predictor_energy_guided_trainer.py
+python3 masked_saliency_predictor_EG_trainer_maskEmoRate.py
