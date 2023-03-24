@@ -147,10 +147,10 @@ class MaskGenerator(nn.Module):
     def __init__(self, temp_scale=10.0):
         super(MaskGenerator, self).__init__()
         self.temp_scale = temp_scale
-        # self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=512, 
-        #                                num_layers=1, bidirectional=False, 
-        #                                dropout=0)
-        # self.bn = nn.BatchNorm1d(512)
+        self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=512, 
+                                        num_layers=1, bidirectional=False, 
+                                        dropout=0)
+        self.bn = nn.BatchNorm1d(512)
         self.linear_layer = nn.Linear(in_features=512, out_features=2)
         self.median_pool = MedianPool1d(kernel_size=5, same=True)
         self.softmax = nn.Softmax(dim=-1)
@@ -159,8 +159,8 @@ class MaskGenerator(nn.Module):
         # x -> [batch, 512, #Time]
         # e - [batch, 1, #time//160]
 
-        # x, _ = self.recurrent_layer(x.permute(2,0,1))
-        # x = self.bn(x.permute(1,2,0))
+        x, _ = self.recurrent_layer(x.permute(2,0,1))
+        x = self.bn(x.permute(1,2,0))
         posterior = self.linear_layer(x.permute(0,2,1))        
         posterior = self.softmax(posterior/self.temp_scale)
 

@@ -166,7 +166,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     torch.cuda.manual_seed(hparams.seed)
 
     model = load_model(hparams)
-    learning_rate = hparams.learning_rate
+    learning_rate = hparams.learning_rate_saliency
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams.weight_decay)
 
