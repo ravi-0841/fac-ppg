@@ -155,7 +155,7 @@ class MaskGenerator(nn.Module):
         self.median_pool = MedianPool1d(kernel_size=5, same=True)
         self.softmax = nn.Softmax(dim=-1)
     
-    def forward(self, x): # (x, e)
+    def forward(self, x, e): # (x, e)
         # x -> [batch, 512, #Time]
         # e - [batch, 1, #time//160]
 
@@ -169,9 +169,9 @@ class MaskGenerator(nn.Module):
         # else:
         sampled_val = gumbel_softmax(torch.log(posterior), 0.8)
 
-        # sampled_val = torch.mul(sampled_val[:,:,1:2].permute(0,2,1), 
-        #                         e[:,:,:sampled_val.size(1)])
-        sampled_val = sampled_val[:,:,1:2].permute(0,2,1)
+        sampled_val = torch.mul(sampled_val[:,:,1:2].permute(0,2,1), 
+                                e[:,:,:sampled_val.size(1)])
+        # sampled_val = sampled_val[:,:,1:2].permute(0,2,1)
 
         mask = self.median_pool(sampled_val)
         mask = self.median_pool(self.median_pool(mask))
@@ -195,7 +195,7 @@ class MaskedSaliencePredictor(nn.Module):
         self.elu = nn.ELU(inplace=True)
         self.softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x, pre_computed_mask=None, use_posterior=False):
+    def forward(self, x, e, pre_computed_mask=None, use_posterior=False):
         # x shape - [batch, 1, #time]
         # e - [batch, 1, #time//160]
         # pre_computed_mask shape - [batch, #time, 512]
@@ -203,7 +203,7 @@ class MaskedSaliencePredictor(nn.Module):
         # conv_features -> [batch, 512, #time]
         conv_features = self.conv_encoder(x)
 
-        posterior, mask = self.mask_generator(conv_features) # (conv_features, e)
+        posterior, mask = self.mask_generator(conv_features, e) # (conv_features, e)
         # mask = torch.mul(mask, e[:,:,:mask.size(2)])
         mask = mask.repeat(1,512,1)
 
