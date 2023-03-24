@@ -127,7 +127,7 @@ def validate(model, criterion, valset, collate_fn, iteration,
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
             x, e, y = batch[0].to("cuda"), batch[1].to("cuda"), batch[2].to("cuda")
-            feats, posterior, mask_sample, y_pred = model(x, e)
+            feats, posterior, mask_sample, y_pred = model(x) #(x, e)
             loss = criterion(y_pred, y)
             reduced_val_loss = loss.item()
             val_loss += reduced_val_loss
@@ -212,7 +212,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             l = torch.div(l, 160, rounding_mode="floor")
             # input_shape should be [#batch_size, #freq_channels, #time]
 
-            _, posterior, mask, y_pred = model(x, e)
+            _, posterior, mask, y_pred = model(x) #(x, e)
             
             loss = (
                     hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l)
