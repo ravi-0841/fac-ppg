@@ -147,9 +147,9 @@ class MaskGenerator(nn.Module):
     def __init__(self, temp_scale=10.0):
         super(MaskGenerator, self).__init__()
         self.temp_scale = temp_scale
-        self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=512, 
-                                        num_layers=1, bidirectional=False, 
-                                        dropout=0)
+        self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
+                                        num_layers=1, bidirectional=True, 
+                                        dropout=0.2)
         self.bn = nn.BatchNorm1d(512)
         self.linear_layer = nn.Linear(in_features=512, out_features=2)
         self.median_pool = MedianPool1d(kernel_size=5, same=True)
