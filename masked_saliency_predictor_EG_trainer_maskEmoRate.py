@@ -336,7 +336,8 @@ def train(output_directory, log_directory, checkpoint_path,
 
                 loss_rate_l1 = torch.sum(torch.abs(s - intent_saliency), dim=-1)
                 corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
-                loss_rate_l1 = torch.mean(torch.mul(loss_rate_l1.detach(), corresp_probs))
+                loss_rate_l1 = torch.mean(torch.mul(loss_rate_l1.detach(), 
+                                                    torch.log(corresp_probs)))
                 loss_rate_ent = criterion4(rate_distribution)
                 loss_rate = loss_rate_l1 + hparams.lambda_entropy * loss_rate_ent
                 

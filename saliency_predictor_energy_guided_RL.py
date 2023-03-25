@@ -191,13 +191,13 @@ class RatePredictor(nn.Module):
         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=512, 
                                                                nhead=8, 
                                                                dim_feedforward=512,
-                                                               dropout=0.0)
+                                                               dropout=0.2)
         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
                                                          num_layers=2)
         self.bn2 = nn.BatchNorm1d(512)
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
                                        num_layers=2, bidirectional=False, 
-                                       dropout=0.0)
+                                       dropout=0.2)
         self.bn3 = nn.BatchNorm1d(256)
         self.linear_layer = nn.Linear(in_features=256, out_features=6)
         self.softmax = nn.Softmax(dim=-1)
@@ -345,10 +345,10 @@ if __name__ == "__main__":
             mod_speech = mod_speech.to("cuda")
             mod_e = mod_e.to("cuda")
 
-            # with torch.no_grad():
-            model_saliency.eval()
-            _, _, _, pred_sal = model_saliency(mod_speech, mod_e)
-            model_saliency.train()
+            with torch.no_grad():
+            # model_saliency.eval()
+                _, _, _, pred_sal = model_saliency(mod_speech, mod_e)
+            # model_saliency.train()
             
             # Optimizing the models
             loss_saliency = criterion(s, target_saliency)
@@ -357,7 +357,7 @@ if __name__ == "__main__":
             loss_rate_idiotic = torch.mean(loss_rate.detach() * r.gather(1,index.view(-1,1)))
             loss_rate_idiotic += 0.1 * criterion_ent(r)
             corresp_probs = r.gather(1,index.view(-1,1)).view(-1)
-            loss_rate = torch.mean(torch.mul(loss_rate.detach(), corresp_probs))
+            loss_rate = torch.mean(torch.mul(loss_rate.detach(), torch.log(corresp_probs)))
             loss_rate += 0.1 * criterion_ent(r)
             
             print("Idiotic Loss: {}".format(loss_rate_idiotic.item()))
