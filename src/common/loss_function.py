@@ -260,7 +260,7 @@ class EntropyLoss(nn.Module):
     
     def forward(self, distribution):
         # distribution -> [batch, n_categories]
-        loss = torch.sum(-1*torch.mul(distribution, torch.log2(distribution)), dim=-1)
+        loss = -1*torch.sum(torch.mul(distribution, torch.log2(distribution)), dim=-1)
         return torch.mean(loss)
 
 

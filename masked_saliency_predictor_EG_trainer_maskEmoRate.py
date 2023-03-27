@@ -320,7 +320,7 @@ def train(output_directory, log_directory, checkpoint_path,
                 rate_distribution = model_rate(feats.detach(), # .detach()
                                                mask_sample.detach(), 
                                                intent_saliency)
-                if np.random.rand() < 0.25:
+                if np.random.rand() < 0.5:
                     index = torch.multinomial(rate_distribution, 1)
                 else:
                     index = torch.argmax(rate_distribution, dim=-1)
@@ -409,10 +409,11 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "energy_guided_{}_{}_{}_{}_{}".format(
+                                        "energy_guided_{}_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
+                                            hparams.lambda_entropy,
                                             hparams.temp_scale,
                                             hparams.extended_desc,
                                         )
