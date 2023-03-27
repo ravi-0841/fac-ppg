@@ -138,7 +138,7 @@ def plot_gate_outputs_to_numpy(gate_targets, gate_outputs):
 def plot_saliency_to_numpy(saliency):
     fig, ax = plt.subplots(figsize=(12, 3))
     # im = ax.bar(np.arange(len(saliency)), saliency)
-    im = ax.bar(["neu", "ang", "hap", "sad", "fea"], saliency)
+    im = ax.bar(["neu", "ang", "hap", "sad", "fea"], saliency, color="red", alpha=0.7)
     plt.xlabel("Classes")
     plt.ylabel("Scores")
     plt.tight_layout()
@@ -153,7 +153,7 @@ def plot_rate_to_numpy(rate, rate_classes):
     fig, ax = plt.subplots(figsize=(12, 3))
     # im = ax.bar(np.arange(len(saliency)), saliency)
     if rate_classes is not None:
-        im = ax.bar(rate_classes, rate)
+        im = ax.bar(rate_classes, rate, alpha=0.7)
     elif len(rate) == 7:
         im = ax.bar(["0.7", "0.8", "0.9", "1.0", "1.1", "1.2", "1.3"], rate)
     elif len(rate) == 11:

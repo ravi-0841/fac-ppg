@@ -147,7 +147,7 @@ def validate(model_saliency, model_rate, WSOLA, criterion, valset,
         for i, batch in enumerate(val_loader):
             x, em = batch[0].to("cuda"), batch[1].to("cuda")
             intent = intended_saliency(batch_size=batch_size, consistent=consistency)
-            feats, posterior, mask_sample, _ = model_saliency(x, em)
+            feats, posterior, mask_sample, orig_pred = model_saliency(x, em)
 
             rate_distribution = model_rate(feats, mask_sample, intent)
             index = torch.argmax(rate_distribution, dim=-1)
@@ -175,7 +175,7 @@ def validate(model_saliency, model_rate, WSOLA, criterion, valset,
                                 model_rate,
                                 x,
                                 intent,
-                                y_pred,
+                                y_pred - orig_pred,
                                 posterior[:,:,1:2],
                                 mask_sample[:,:,0:1],
                                 rate_distribution,
