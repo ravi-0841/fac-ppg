@@ -199,7 +199,7 @@ class RatePredictor(nn.Module):
                                        num_layers=2, bidirectional=False, 
                                        dropout=0.2)
         self.bn3 = nn.BatchNorm1d(256)
-        self.linear_layer = nn.Linear(in_features=256, out_features=6)
+        self.linear_layer = nn.Linear(in_features=256, out_features=11) #6
         self.softmax = nn.Softmax(dim=-1)
         self.elu = nn.ELU(inplace=True)
     

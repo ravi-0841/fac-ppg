@@ -151,7 +151,7 @@ def validate(model_saliency, model_rate, WSOLA, criterion, valset,
 
             rate_distribution = model_rate(feats, mask_sample, intent)
             index = torch.argmax(rate_distribution, dim=-1)
-            rate = 0.5 + 0.2*index
+            rate = 0.5 + 0.1*index # 0.2*index
             mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
                                          rate=rate, speech=x)
             mod_speech = mod_speech.to("cuda")
@@ -231,8 +231,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
 
     train_loader, valset, collate_fn = prepare_dataloaders(hparams)
     
-    rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.2)]
-    # rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.1)]
+    # rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.2)]
+    rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.1)]
 
     # Load checkpoint if one exists
     iteration = 0
@@ -305,7 +305,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 else:
                     index = torch.argmax(rate_distribution, dim=-1)
 
-                rate = 0.5 + 0.2*index
+                rate = 0.5 + 0.1*index #0.2*index
                 mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
                                              rate=rate, speech=x)
             
