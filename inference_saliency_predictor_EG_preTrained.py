@@ -280,10 +280,10 @@ def test(output_directory, checkpoint_path_rate,
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            plot_figures(feats, x, posterior, 
-                          mask_sample, y, y_pred, 
-                          rate_distribution,
-                          iteration+1, hparams)
+            # plot_figures(feats, x, posterior, 
+            #               mask_sample, y, y_pred, 
+            #               rate_distribution,
+            #               iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
