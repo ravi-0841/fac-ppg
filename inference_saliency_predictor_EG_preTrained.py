@@ -19,8 +19,8 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from trans_rate_conv_mask_trans_masked_maskEmoRate import MaskedRateModifier, RatePredictor
-from on_the_fly_augmentor_raw import OnTheFlyAugmentor, acoustics_collate_raw
+from saliency_predictor_energy_guided_RL import MaskedRateModifier, RatePredictor
+from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
                                         VecExpectedKLDivergence, 
@@ -29,8 +29,11 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
                               )
-from src.common.hparams_onflyaugmentor import create_hparams
-from src.common.interpolation_block import WSOLAInterpolation, BatchWSOLAInterpolation
+from src.common.hparams_onflyenergy_rate import create_hparams
+from src.common.interpolation_block import (WSOLAInterpolation, 
+                                            WSOLAInterpolationEnergy,
+                                            BatchWSOLAInterpolation,
+                                            BatchWSOLAInterpolationEnergy)
 from pprint import pprint
 
 
@@ -74,19 +77,26 @@ def load_model(hparams):
     return model_saliency, model_rate
 
 
-def load_checkpoint(checkpoint_path, model_saliency, model_rate):
+def load_checkpoint_rate(checkpoint_path, model_rate):
     assert os.path.isfile(checkpoint_path)
     print("Loading checkpoint '{}'".format(checkpoint_path))
     checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
-    model_saliency.load_state_dict(checkpoint_dict['state_dict_saliency'])
     model_rate.load_state_dict(checkpoint_dict['state_dict_rate'])
-    learning_rate_saliency = checkpoint_dict['learning_rate_saliency']
-    learning_rate_rate = checkpoint_dict['learning_rate_rate']
     iteration = checkpoint_dict['iteration']
     print("Loaded checkpoint '{}' from iteration {}" .format(
         checkpoint_path, iteration))
-    return (model_saliency, model_rate, learning_rate_saliency, 
-            learning_rate_rate, iteration)
+    return model_rate, iteration
+
+
+def load_checkpoint_saliency(checkpoint_path, model_saliency):
+    assert os.path.isfile(checkpoint_path)
+    print("Loading checkpoint '{}'".format(checkpoint_path))
+    checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
+    model_saliency.load_state_dict(checkpoint_dict['state_dict'])
+    iteration = checkpoint_dict['iteration']
+    print("Loaded checkpoint saliency '{}' from iteration {}" .format(
+        checkpoint_path, iteration))
+    return model_saliency, iteration
 
 
 def intended_saliency(batch_size, relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
@@ -142,61 +152,6 @@ def plot_figures(feats, waveform, posterior, mask, y, y_pred,
     pylab.close("all")
 
 
-def multi_sampling(model, x, y, criterion, num_samples=5):
-    
-    assert num_samples >= 3, "Sample at least 3 times"
-    
-    mask_samples = []
-    posterior, mask, y_pred = model(x)
-    loss = criterion(y_pred, y)
-    reduced_loss = loss.item()
-
-    y = y.squeeze().cpu().numpy()
-    posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-    mask = mask.squeeze().detach().cpu().numpy()[:,1]
-    y_pred = y_pred.squeeze().detach().cpu().numpy()
-    
-    # mask_samples.append(refining_mask_sample(mask)[1])
-    mask_samples.append(medfilt(mask, kernel_size=3))
-    
-    for _ in range(num_samples-1):
-        _, m, _ = model(x)
-        m = m.squeeze().detach().cpu().numpy()[:,1]
-        # mask_samples.append(refining_mask_sample(m)[1])
-        mask_samples.append(medfilt(m, kernel_size=3))
-    
-    mask_intersect = np.multiply(np.logical_and(mask_samples[0], mask_samples[1]), 1)
-    for i in range(2, num_samples):
-        mask_intersect = np.multiply(np.logical_and(mask_intersect, mask_samples[i]), 1)
-    
-    for _ in range(7): #7
-        mask_intersect = medfilt(mask_intersect, kernel_size=7) #7
-    
-    x = x.squeeze().cpu().numpy()
-    return x, y, y_pred, posterior, mask_intersect, reduced_loss
-
-
-def random_mask_thresholding(mask, threshold=5):
-    start_pointer = None
-    end_pointer = None
-
-    for i, m in enumerate(mask):
-        if m > 0 and start_pointer is None:
-            start_pointer = i
-            end_pointer = None
-        
-        elif m < 1 and start_pointer is not None:
-            end_pointer = i-1
-    
-            if (end_pointer - start_pointer + 1) < threshold:
-                mask[start_pointer:end_pointer+1] = 0
-                # break
-            
-            start_pointer = None
-
-    return mask        
-
-
 def intersection(lst1, lst2):
     lst3 = [value for value in lst1 if value in lst2]
     return lst3
@@ -231,7 +186,9 @@ def compute_MI(marg1, marg2, joint):
     return mi
 
 
-def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
+def test(output_directory, checkpoint_path_rate, 
+        checkpoint_path_saliency, hparams, 
+        relative_prob, valid=True):
     """Training and validation logging results to tensorboard and stdout
 
     Params
@@ -251,13 +208,15 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 
     # Load checkpoint
     iteration = 0
-    model_saliency, model_rate, _, _, _ = load_checkpoint(checkpoint_path, 
-                                                           model_saliency, 
-                                                           model_rate)
+    model_saliency, _ = load_checkpoint_saliency(checkpoint_path_saliency,
+                                                 model_saliency,
+                                                 )
+    model_rate, _ = load_checkpoint_rate(checkpoint_path_rate, 
+                                        model_rate)
     
-    WSOLA = WSOLAInterpolation(win_size=hparams.win_length, 
-                                hop_size=hparams.hop_length,
-                                tolerance=hparams.hop_length)
+    WSOLA = WSOLAInterpolationEnergy(win_size=hparams.win_length, 
+                                   hop_size=hparams.hop_length,
+                                   tolerance=hparams.hop_length)
 
     model_saliency.eval()
     model_rate.eval()
@@ -276,28 +235,28 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
         start = time.perf_counter()
 
         try:
-            x, y, _ = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
+            x, e, y = batch[0].to("cuda"), batch[1].to("cuda"), batch[2].to("cuda")
             # input_shape should be [#batch_size, 1, #time]
     
             #%% Sampling the mask only once
     
-            feats, posterior, mask_sample, y_pred = model_saliency(x)
+            feats, posterior, mask_sample, y_pred = model_saliency(x, e)
             loss = criterion(y_pred, y)
             saliency_reduced_loss = loss.item()
             
             intent_saliency = intended_saliency(batch_size=1, 
                                                 relative_prob=relative_prob)
-            
-            # rate_distribution = model_rate(feats, posterior, intent_saliency)
+    
             rate_distribution = model_rate(feats, mask_sample, intent_saliency)
             # index = torch.multinomial(rate_distribution, 1)
             index = torch.argmax(rate_distribution, 1)
             rate = 0.5 + 0.2*index
-            mod_speech, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                     rate=rate, speech=x)
+            mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                        rate=rate, speech=x)
         
             mod_speech = mod_speech.to("cuda")
-            _, _, _, s = model_saliency(mod_speech)
+            mod_e = mod_e.to("cuda")
+            _, _, m, s = model_saliency(mod_speech, mod_e)
             
             loss = criterion(intent_saliency, s)
             rate_reduced_loss = loss.item()
@@ -321,10 +280,10 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            # plot_figures(feats, x, posterior, 
-            #               mask_sample, y, y_pred, 
-            #               rate_distribution,
-            #               iteration+1, hparams)
+            plot_figures(feats, x, posterior, 
+                          mask_sample, y, y_pred, 
+                          rate_distribution,
+                          iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -334,9 +293,9 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
                 #     iteration, rate_reduced_loss, duration))
     
             iteration += 1
-            
-            # if iteration >= 100:
-            #     break
+        
+        # if iteration >= 100:
+        #     break
         
         except Exception as ex:
             print(ex)
@@ -351,7 +310,7 @@ def test(output_directory, checkpoint_path, hparams, relative_prob, valid=True):
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "happy"
+    emo_target = "angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -364,7 +323,7 @@ if __name__ == '__main__':
                                         ckpt_path.split("/")[2],
                                         "images_valid_{}".format(emo_target),
                                     )
-    for m in range(53000, 53500, 500): #40000
+    for m in range(500, 70000, 500): #40000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -382,6 +341,7 @@ if __name__ == '__main__':
          factor_array, factor_dist_array) = test(
                                                 hparams.output_directory,
                                                 hparams.checkpoint_path_inference,
+                                                hparams.checkpoint_path_saliency,
                                                 hparams,
                                                 emo_prob_dict[emo_target],
                                                 valid=True,
@@ -411,8 +371,8 @@ if __name__ == '__main__':
         # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
         # pylab.close("all")
 
-        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-        #                                                         "ttest_scores.pkl"))
+        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+                                                                "ttest_scores.pkl"))
 
 
         #%% Joint density plot and MI

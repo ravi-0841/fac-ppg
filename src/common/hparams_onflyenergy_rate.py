@@ -66,11 +66,11 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "TD_RL_fixed_lr_logGrad", # extra description for logging/identification
+        "extended_desc": "TD_RL_fixed_lr_logGrad_test", # extra description for logging/identification
         "checkpoint_path": "", #"./masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_mask_trans_rate_beta_0.75_mix_entropy_eval/checkpoint_193500",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen/checkpoint_102000",
-        "checkpoint_path_rate": "",
-        "checkpoint_path_inference": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen/checkpoint_102000",
+        "checkpoint_path_rate": "./masked_predictor_output/OnlyRate_entropy_0.1_TD_RL_fixed_lr_logGrad/checkpoint_42500",
+        "checkpoint_path_inference": "./masked_predictor_output/OnlyRate_entropy_0.1_TD_RL_fixed_lr_logGrad/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
