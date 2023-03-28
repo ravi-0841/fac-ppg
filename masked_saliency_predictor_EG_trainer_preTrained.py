@@ -315,7 +315,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
 
                 loss_rate_l1 = torch.sum(torch.abs(s - intent_saliency), dim=-1)
                 corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
-                unbiased_multiplier = torch.mul(corresp_probs, torch.log(corresp_probs))
+                log_corresp_prob = torch.log(corresp_probs)
+                unbiased_multiplier = torch.mul(corresp_probs.detach(), log_corresp_prob)
                 # loss_rate_l1 = torch.mean(torch.mul(loss_rate_l1.detach(), 
                 #                                     torch.log(corresp_probs)))
                 loss_rate_l1 = torch.mean(torch.mul(loss_rate_l1.detach(), 
