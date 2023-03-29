@@ -300,10 +300,10 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 rate_distribution = model_rate(feats.detach(), # .detach()
                                                mask_sample.detach(), 
                                                intent_saliency)
-                if np.random.rand() < 0.9:
-                    index = torch.argmax(rate_distribution, dim=-1)
+                if np.random.rand() <= hparams.exploitation_prob:
+                    index = torch.argmax(rate_distribution, dim=-1) #exploit
                 else:
-                    index = torch.multinomial(rate_distribution, 1)
+                    index = torch.multinomial(rate_distribution, 1) #explore
                     
 
                 rate = 0.5 + 0.1*index #0.2*index
@@ -373,8 +373,9 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "OnlyRate_entropy_{}_{}".format(
+                                        "OnlyRate_entropy_{}_exploit_{}_{}".format(
                                             hparams.lambda_entropy,
+                                            hparams.exploitation_prob,
                                             hparams.extended_desc,
                                         )
                                     )
