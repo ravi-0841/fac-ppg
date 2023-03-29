@@ -139,7 +139,7 @@ def plot_figures(feats, waveform, posterior, mask, y, y_pred,
     ax[3].set_ylabel('Dimension', fontsize=15) #ylabel
     # pylab.tight_layout()
     
-    classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.2)]
+    classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
     ax[4].bar(classes, rate_dist, alpha=0.5, color="r", label="pred")
     ax[4].legend(loc=1)
     ax[4].set_xlabel('Classes',fontsize=15) #xlabel
@@ -250,7 +250,7 @@ def test(output_directory, checkpoint_path_rate,
             rate_distribution = model_rate(feats, mask_sample, intent_saliency)
             # index = torch.multinomial(rate_distribution, 1)
             index = torch.argmax(rate_distribution, 1)
-            rate = 0.5 + 0.2*index
+            rate = 0.5 + 0.1*index # 0.2*index
             mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
                                         rate=rate, speech=x)
         
@@ -280,10 +280,10 @@ def test(output_directory, checkpoint_path_rate,
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            plot_figures(feats, x, posterior, 
-                          mask_sample, y, y_pred, 
-                          rate_distribution,
-                          iteration+1, hparams)
+            # plot_figures(feats, x, posterior, 
+            #               mask_sample, y, y_pred, 
+            #               rate_distribution,
+            #               iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -323,7 +323,7 @@ if __name__ == '__main__':
                                         ckpt_path.split("/")[2],
                                         "images_valid_{}".format(emo_target),
                                     )
-    for m in range(20000, 20500, 500): #40000
+    for m in range(500, 99500, 500): #40000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -360,9 +360,9 @@ if __name__ == '__main__':
         #%% Checking difference in predictions
         index = np.argmax(emo_prob_dict[emo_target])
         saliency_diff = rate_array[:,index] - pred_array[:,index]
-        pylab.figure(), pylab.hist(saliency_diff, label="difference")
-        pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
-        pylab.close("all")
+        # pylab.figure(), pylab.hist(saliency_diff, label="difference")
+        # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
+        # pylab.close("all")
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
         print("1 sided T-test result (p-value): {}".format(ttest[1]))
         ttest_array.append(ttest[1])
@@ -372,40 +372,39 @@ if __name__ == '__main__':
         # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
         # pylab.close("all")
 
-        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-        #                                                         "ttest_scores.pkl"))
+        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+                                                                "ttest_scores.pkl"))
 
 
         #%% Joint density plot and MI
-        epsilon = 1e-3
-        corn_mat = np.zeros((5,5))
-        for (t,p) in zip(targ_array, pred_array):
-            for et in range(5):
-                for ep in range(5):
-                    if t[et]>epsilon and p[ep]>epsilon:
-                        corn_mat[ep, et] += 1
-                        
-        corn_mat = corn_mat / np.sum(corn_mat)
-        x = np.arange(0, 6, 1)
-        y = np.arange(0, 6, 1)
-        x_center = 0.5 * (x[:-1] + x[1:])
-        y_center = 0.5 * (y[:-1] + y[1:])
-        X, Y = np.meshgrid(x_center, y_center)
-        plot = pylab.pcolormesh(x, y, corn_mat, cmap='RdBu', shading='flat')
-        cset = pylab.contour(X, Y, corn_mat, cmap='gray')
-        pylab.clabel(cset, inline=True)
-        pylab.colorbar(plot)
-        pylab.title("Joint density estimate")
-        pylab.savefig(os.path.join(hparams.output_directory, "joint_density_plot.png"))
-        pylab.close("all")
+        # epsilon = 1e-3
+        # corn_mat = np.zeros((5,5))
+        # for (t,p) in zip(targ_array, pred_array):
+        #     for et in range(5):
+        #         for ep in range(5):
+        #             if t[et]>epsilon and p[ep]>epsilon:
+        #                 corn_mat[ep, et] += 1
+        # corn_mat = corn_mat / np.sum(corn_mat)
+        # x = np.arange(0, 6, 1)
+        # y = np.arange(0, 6, 1)
+        # x_center = 0.5 * (x[:-1] + x[1:])
+        # y_center = 0.5 * (y[:-1] + y[1:])
+        # X, Y = np.meshgrid(x_center, y_center)
+        # plot = pylab.pcolormesh(x, y, corn_mat, cmap='RdBu', shading='flat')
+        # cset = pylab.contour(X, Y, corn_mat, cmap='gray')
+        # pylab.clabel(cset, inline=True)
+        # pylab.colorbar(plot)
+        # pylab.title("Joint density estimate")
+        # pylab.savefig(os.path.join(hparams.output_directory, "joint_density_plot.png"))
+        # pylab.close("all")
 
         # Mutual Info
-        mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
-        sns.histplot(mi_array, bins=30, kde=True)
-        print("MI value: {}".format(np.mean(mi_array)))
-        pylab.title("Mutual Information distribution")
-        pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
-        pylab.close("all")
+        # mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
+        # sns.histplot(mi_array, bins=30, kde=True)
+        # print("MI value: {}".format(np.mean(mi_array)))
+        # pylab.title("Mutual Information distribution")
+        # pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
+        # pylab.close("all")
 
     #%%
     # x = np.arange(500, 70000, 500)
