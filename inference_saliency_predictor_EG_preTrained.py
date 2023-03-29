@@ -113,8 +113,9 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     pylab.yticks(fontsize=18)
     fig, ax = pylab.subplots(5, 1, figsize=(30, 20))
     
-    ax[0].plot(waveform, linewidth=1.5)
-    ax[0].plot(mod_waveform, linewidth=1.5)
+    ax[0].plot(waveform, linewidth=1.5, label="original")
+    ax[0].plot(mod_waveform, linewidth=1.5, label="modified")
+    ax[0].legend()
     ax[0].set_xlabel('Time',fontsize=15) #xlabel
     ax[0].set_ylabel('Magnitude', fontsize=15) #ylabel
     # pylab.tight_layout()
@@ -282,10 +283,10 @@ def test(output_directory, checkpoint_path_rate,
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            plot_figures(feats, x, mod_speech, posterior, 
-                          mask_sample, y, y_pred, 
-                          rate_distribution,
-                          iteration+1, hparams)
+            # plot_figures(feats, x, mod_speech, posterior, 
+            #               mask_sample, y, y_pred, 
+            #               rate_distribution,
+            #               iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -312,7 +313,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "angry"
+    emo_target = "sad"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -323,9 +324,9 @@ if __name__ == '__main__':
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
                                         ckpt_path.split("/")[2],
-                                        "images_test_{}_2500".format(emo_target),
+                                        "images_valid_{}".format(emo_target),
                                     )
-    for m in range(2500, 3000, 500): #40000
+    for m in range(500, 50000, 500): #40000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -346,7 +347,7 @@ if __name__ == '__main__':
                                                 hparams.checkpoint_path_saliency,
                                                 hparams,
                                                 emo_prob_dict[emo_target],
-                                                valid=False,
+                                                valid=True,
                                             )
         
         pred_array = np.asarray(pred_array)
@@ -362,9 +363,9 @@ if __name__ == '__main__':
         #%% Checking difference in predictions
         index = np.argmax(emo_prob_dict[emo_target])
         saliency_diff = rate_array[:,index] - pred_array[:,index]
-        pylab.figure(), pylab.hist(saliency_diff, label="difference")
-        pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
-        pylab.close("all")
+        # pylab.figure(), pylab.hist(saliency_diff, label="difference")
+        # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
+        # pylab.close("all")
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
         print("1 sided T-test result (p-value): {}".format(ttest[1]))
         ttest_array.append(ttest[1])
