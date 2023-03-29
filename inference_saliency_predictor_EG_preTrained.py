@@ -106,16 +106,17 @@ def intended_saliency(batch_size, relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
     return emotion_codes
 
 
-def plot_figures(feats, waveform, posterior, mask, y, y_pred, 
-                 rate_dist, iteration, hparams):
+def plot_figures(feats, waveform, mod_waveform, posterior, 
+                 mask, y, y_pred, rate_dist, iteration, hparams):
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
     fig, ax = pylab.subplots(5, 1, figsize=(30, 20))
     
-    ax[0].plot(waveform, linewidth=1.5, color='k')
+    ax[0].plot(waveform, linewidth=1.5)
+    ax[0].plot(mod_waveform, linewidth=1.5)
     ax[0].set_xlabel('Time',fontsize=15) #xlabel
-    ax[0].set_ylabel('Frequency', fontsize=15) #ylabel
+    ax[0].set_ylabel('Magnitude', fontsize=15) #ylabel
     # pylab.tight_layout()
 
     ax[1].plot(posterior, linewidth=2.5, color='g')
@@ -269,6 +270,7 @@ def test(output_directory, checkpoint_path_rate,
             posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
             mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
             rate_distribution = rate_distribution.squeeze().detach().cpu().numpy()
+            mod_speech = mod_speech.squeeze().cpu().numpy()
     
             #%% Plotting
     
@@ -280,10 +282,10 @@ def test(output_directory, checkpoint_path_rate,
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            # plot_figures(feats, x, posterior, 
-            #               mask_sample, y, y_pred, 
-            #               rate_distribution,
-            #               iteration+1, hparams)
+            plot_figures(feats, x, mod_speech, posterior, 
+                          mask_sample, y, y_pred, 
+                          rate_distribution,
+                          iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -310,7 +312,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "fear"
+    emo_target = "angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
