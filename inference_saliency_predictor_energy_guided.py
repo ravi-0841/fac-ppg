@@ -68,17 +68,17 @@ def load_model(hparams):
     return model
 
 
-def load_checkpoint(checkpoint_path, model, optimizer):
+def load_checkpoint(checkpoint_path, model):
     assert os.path.isfile(checkpoint_path)
     print("Loading checkpoint '{}'".format(checkpoint_path))
     checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
     model.load_state_dict(checkpoint_dict['state_dict'])
-    optimizer.load_state_dict(checkpoint_dict['optimizer'])
-    learning_rate = checkpoint_dict['learning_rate']
+    # optimizer.load_state_dict(checkpoint_dict['optimizer'])
+    # learning_rate = checkpoint_dict['learning_rate']
     iteration = checkpoint_dict['iteration']
     print("Loaded checkpoint '{}' from iteration {}" .format(
         checkpoint_path, iteration))
-    return model, optimizer, learning_rate, iteration
+    return model, iteration
 
 
 def plot_figures(waveform, feats, posterior, mask, y, y_pred, iteration, hparams):
@@ -237,16 +237,13 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     """
 
     model = load_model(hparams)
-    learning_rate = hparams.learning_rate_saliency
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
-                                 weight_decay=hparams.weight_decay)
     criterion = torch.nn.L1Loss()
 
     test_loader, collate_fn = prepare_dataloaders(hparams, valid=valid)
 
     # Load checkpoint
     iteration = 0
-    model, _, _, _ = load_checkpoint(checkpoint_path, model, optimizer)
+    model, _ = load_checkpoint(checkpoint_path, model)
 
     model.eval()
 

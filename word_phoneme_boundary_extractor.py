@@ -23,10 +23,10 @@ import seaborn as sns
 from pprint import pprint
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from saliency_predictor import SaliencyPredictor
-from src.common.hparams_onflyaugmentor import create_hparams
+from saliency_predictor_energy_guided import MaskedSaliencePredictor
+from src.common.hparams_onflyenergy import create_hparams
 
-from on_the_fly_augmentor import OnTheFlyAugmentor, acoustics_collate
+from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
                                         VecExpectedKLDivergence, 
@@ -38,10 +38,10 @@ from src.common.utils import (median_mask_filtering,
 from dialog_path_forForcedAligner import (format_audio_text,
                                           prepare_dialog_lookup,
                                           )
-from inference_saliency_predictor import (load_model,
-                                          load_checkpoint,
-                                          multi_sampling,
-                                          )
+from inference_saliency_predictor_energy_guided import (load_model,
+                                                        load_checkpoint,
+                                                        multi_sampling,
+                                                        )
 
 
 def prepare_dataloaders_and_lookup_dict(hparams, valid=True):
@@ -63,7 +63,7 @@ def prepare_dataloaders_and_lookup_dict(hparams, valid=True):
     hparams.is_cache_feats = False
     hparams.feats_cache_path = ''
 
-    collate_fn = acoustics_collate
+    collate_fn = acoustics_collate_raw
     
     test_loader = DataLoader(
                             testset,
@@ -80,59 +80,57 @@ def prepare_dataloaders_and_lookup_dict(hparams, valid=True):
     return lookup_dict, testset, test_loader, collate_fn
 
 
-def plot_figures(spectrogram, posterior, mask, 
+def plot_figures(feats, posterior, mask, 
                  y, y_pred, iteration, hparams, 
                  phones=None, words=None):
 
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
-    fig, ax = pylab.subplots(4, 1, figsize=(32, 18))
+    fig, ax = pylab.subplots(3, 1, figsize=(30, 15))
     
-    ax[0].imshow(np.log10(spectrogram + 1e-10), aspect="auto", origin="lower",
+    ax[0].imshow(np.log10(np.abs(feats) + 1e-10), aspect="auto", origin="lower",
                    interpolation='none')
-    ax[0].plot(151*mask, "w", linewidth=4.0)
+    ax[0].plot(251*mask, "w", linewidth=4.0)
     ax[0].set_xlabel('Time',fontsize = 20) #xlabel
     ax[0].set_ylabel('Frequency', fontsize = 20) #ylabel
     if phones is not None:
         for p in phones:
             ax[0].axvline(x=p[4], linewidth=2.5, color="k")
-            ax[0].text(x=int((p[4]+p[3])/2), y=257, s=p[0], 
+            ax[0].text(x=int((p[4]+p[3])/2), y=512, s=p[0], 
                        fontsize="large", fontweight="bold")
     if words is not None:
         for w in words:
-            ax[0].text(x=int((w[4]+w[3])/2), y=275, s=w[0], 
+            ax[0].text(x=int((w[4]+w[3])/2), y=540, s=w[0], 
                        fontsize="large", fontweight="demibold")
     # pylab.tight_layout()
 
-    energy = np.sum(spectrogram**2, axis=0)
-    ax[1].plot(energy, linewidth=2.5, color='r')
-    ax[1].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[1].set_ylabel('Energy', fontsize = 20) #ylabel
+    # energy = np.sum(spectrogram**2, axis=0)
+    # ax[1].plot(energy, linewidth=2.5, color='r')
+    # ax[1].set_xlabel('Time',fontsize = 20) #xlabel
+    # ax[1].set_ylabel('Energy', fontsize = 20) #ylabel
     # pylab.tight_layout()
 
-    ax[2].plot(posterior, linewidth=2.5, color='k')
-    ax[2].set_xlabel('Time',fontsize = 20) #xlabel
-    ax[2].set_ylabel('Probability', fontsize = 20) #ylabel
+    ax[1].plot(posterior, linewidth=2.5, color='k')
+    ax[1].set_xlabel('Time',fontsize = 20) #xlabel
+    ax[1].set_ylabel('Probability', fontsize = 20) #ylabel
     # pylab.tight_layout()
     
     classes = ["neu", "ang", "hap", "sad", "fea"]
-    ax[3].bar(classes, y, alpha=0.5, label="target")
-    ax[3].bar(classes, y_pred, alpha=0.5, label="pred")
-    ax[3].legend(loc=1)
-    ax[3].set_xlabel('Classes',fontsize = 20) #xlabel
-    ax[3].set_ylabel('Softmax Score', fontsize = 20) #ylabel
+    ax[2].bar(classes, y, alpha=0.5, label="target")
+    ax[2].bar(classes, y_pred, alpha=0.5, label="pred")
+    ax[2].legend(loc=1)
+    ax[2].set_xlabel('Classes',fontsize = 20) #xlabel
+    ax[2].set_ylabel('Softmax Score', fontsize = 20) #ylabel
     # pylab.tight_layout()
 
-    correlation = np.corrcoef(energy, posterior)[0,1]
+    # correlation = np.corrcoef(energy, posterior)[0,1]
 
-    pylab.suptitle("Utterance- {}, correlation (energy/posterior)- {}".format(iteration, 
-                    np.round(correlation, 2)), 
-                    fontsize=24)
+    pylab.suptitle("Utterance- {}".format(iteration), fontsize=24)
     
     pylab.savefig(os.path.join(hparams.output_directory, "{}.png".format(iteration)))
     pylab.close("all")
-    return correlation
+    return None #correlation
 
 
 def get_phones_and_words(textgrid_object, hparams):
@@ -183,9 +181,6 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     """
 
     model = load_model(hparams)
-    learning_rate = hparams.learning_rate
-    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
-                                 weight_decay=hparams.weight_decay)
 
     criterion = torch.nn.L1Loss()
 
@@ -194,7 +189,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
 
     # Load checkpoint
     iteration = 0
-    model, _, _, _ = load_checkpoint(checkpoint_path, model, optimizer)
+    model, _ = load_checkpoint(checkpoint_path, model)
 
     model.eval()
 
@@ -211,32 +206,49 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     for i in range(len(testset)):
         start = time.perf_counter()
         
-        x, speech, y, sr = testset[i]
-        x, y = x.unsqueeze(dim=0).to("cuda"), y.to("cuda")
+        # x, speech, y, sr = testset[i]
+        _, x, e, y, sr = testset[i]
+        x = x.unsqueeze(dim=1).to("cuda")
+        e = e.unsqueeze(dim=1).to("cuda")
+        y = y.to("cuda")
+        # input_shape should be [#batch_size, 1, #time]
+
+        #%% Sampling the mask only once
+        
+        feats, posterior, mask, y_pred = model(x, e)
+        loss = criterion(y_pred, y)
+        reduced_loss = loss.item()
+        feats = feats.squeeze().detach().cpu().numpy()
+        posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
+        mask = mask.squeeze().detach().cpu().numpy()[:,0]
+        y_pred = y_pred.squeeze().detach().cpu().numpy()
+        y = y.squeeze().detach().cpu().numpy()
+        
+        # x, y = x.unsqueeze(dim=0).to("cuda"), y.to("cuda")
         # input_shape should be [#batch_size, #freq_channels, #time]
 
         #%% Sampling masks multiple times for same utterance
         
-        (x, y, y_pred, posterior, 
-         mask, reduced_loss) = multi_sampling(model, x, y, criterion)
+        # (x, y, y_pred, posterior, 
+        #  mask, reduced_loss) = multi_sampling(model, x, y, criterion)
 
         text_grid = format_audio_text(data_object=testset, 
-                                                 index=i, 
-                                                 lookup_dict=lookup_dict,
-                                                 )
+                                    index=i, 
+                                    lookup_dict=lookup_dict,
+                                    )
         phones, words = get_phones_and_words(text_grid, hparams)
         phones[0][3] = 0
-        phones[-1][4] = x.shape[1]-1
+        phones[-1][4] = feats.shape[1]-1
         words[0][3] = 0
-        words[-1][4] = x.shape[1]-1
+        words[-1][4] = feats.shape[1]-1
         
-        corr_sign, corr_grad = get_posterior_pitch_correlation(
-                                                                speech,
-                                                                sr,
-                                                                posterior,
-                                                                hparams,
-                                                            )
-        pitch_post_array.append([corr_sign, corr_grad])
+        # corr_sign, corr_grad = get_posterior_pitch_correlation(
+        #                                                         speech,
+        #                                                         sr,
+        #                                                         posterior,
+        #                                                         hparams,
+        #                                                     )
+        # pitch_post_array.append([corr_sign, corr_grad])
 
         loss_array.append(reduced_loss)
         pred_array.append(y_pred)
@@ -247,9 +259,9 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
                                                filtering=False)) # will only get chunks of active regions
         
         #%% Plotting
-        # corr_array.append(plot_figures(x, posterior, mask, y, 
-        #                                 y_pred, iteration+1, hparams,
-        #                                 phones, words))
+        corr_array.append(plot_figures(feats, posterior, mask, y, 
+                                        y_pred, iteration+1, hparams,
+                                        phones, words))
 
         if not math.isnan(reduced_loss):
             duration = time.perf_counter() - start
@@ -272,17 +284,12 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
 
 if __name__ == '__main__':
     hparams = create_hparams()
-
+    
+    ckpt_path = hparams.checkpoint_path_inference
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "libri_{}_{}_{}_{}_{}".format(
-                                            hparams.lambda_prior_KL,
-                                            hparams.lambda_predict,
-                                            hparams.lambda_sparse_KL,
-                                            hparams.temp_scale,
-                                            hparams.extended_desc,
-                                        ),
-                                        "images_phones_words"
+                                        ckpt_path.split("/")[2],
+                                        "images_phones_words",
                                     )
 
     if not hparams.output_directory:
@@ -303,7 +310,7 @@ if __name__ == '__main__':
         pitch_posterior,
      ) = test(
                 hparams.output_directory,
-                hparams.checkpoint_path,
+                hparams.checkpoint_path_inference,
                 hparams,
                 valid=False,
             )
