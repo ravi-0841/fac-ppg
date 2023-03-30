@@ -24,6 +24,6 @@ pip install --user inflect
 pip install --user Unidecode
 pip install --user matplotlib
 
-# python3 masked_saliency_predictor_energy_guided_trainer.py
+python3 masked_saliency_predictor_energy_guided_trainer.py
 # python3 masked_saliency_predictor_EG_trainer_maskEmoRate.py
-python3 masked_saliency_predictor_EG_trainer_preTrained.py
+# python3 masked_saliency_predictor_EG_trainer_preTrained.py

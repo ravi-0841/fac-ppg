@@ -47,7 +47,7 @@ def get_target_emotions(target_saliency):
 
 #%% Read the important data
 
-chunk_phone_data = joblib.load("./masked_predictor_output/libri_1e-05_10.0_2e-07_5.0_tflayers_3_batchsize_8/test_chunks_array.pkl")
+chunk_phone_data = joblib.load("./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen/test_chunks_array.pkl")
 with open("./grouped_consonants_vowels.json", "rb") as f:
     monophone_dict = json.load(f)
     f.close()
