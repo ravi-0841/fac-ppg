@@ -136,10 +136,12 @@ for (chunk_mask, target, phones) in zip(chunks_array, targets_array, phones_arra
 pylab.xticks(fontsize=5)
 pylab.yticks(fontsize=5)
 fig, ax = pylab.subplots(1, 5, figsize=(35, 15))
+# neutral_data = np.asarray(list(emotional_data["neutral"]["monoclass"].values()))
 for i in range(5):
     emotion = emotion_classes[i]
     labels = list(emotional_data[emotion]["monoclass"].keys())
     data = np.asarray(list(emotional_data[emotion]["monoclass"].values()))
+    # data = data / neutral_data
     data /= np.sum(data)
     ax[i].bar(labels, data, label=emotion)
     ax[i].legend(loc=1), ax[i].title.set_text(emotion)
@@ -174,10 +176,12 @@ for (chunk_mask, target, phones) in zip(chunks_array, targets_array, phones_arra
 pylab.xticks(fontsize=5)
 pylab.yticks(fontsize=5)
 fig, ax = pylab.subplots(1, 5, figsize=(40, 20))
+# neutral_data = np.asarray(list(emotional_data["neutral"]["biclass"].values())) + 1e-6
 for i in range(5):
     emotion = emotion_classes[i]
     labels = list(emotional_data[emotion]["biclass"].keys())
-    data = np.asarray(list(emotional_data[emotion]["biclass"].values()))
+    data = np.asarray(list(emotional_data[emotion]["biclass"].values())) + 1e-6
+    # data = data / neutral_data
     data /= np.sum(data)
     ax[i].bar(labels, data, label=emotion)
     ax[i].legend(loc=1), ax[i].title.set_text(emotion)
@@ -188,8 +192,77 @@ pylab.suptitle("Biphones (boundaries)")
 pylab.savefig("/home/ravi/Desktop/biphones_saliency.png")
 pylab.close("all")
 
+#%% Relative Monophones
+
+for (chunk_mask, target, phones) in zip(chunks_array, targets_array, phones_array):
+    emotions = get_target_emotions(target)
+    chunks, mask = chunk_mask[0], chunk_mask[1]
+    for p in phones:
+        if np.sum(mask[p[3]:p[4]]) == (p[4] - p[3]):
+            phone_class = get_phone_class(p[0], monophone_dict)
+            for e in emotions:
+                emotional_data[e]["monoclass"][phone_class] += 1/monophone_wt[phone_class]
+
+pylab.xticks(fontsize=5)
+pylab.yticks(fontsize=5)
+fig, ax = pylab.subplots(1, 4, figsize=(35, 15))
+neutral_data = np.asarray(list(emotional_data["neutral"]["monoclass"].values()))
+for i in range(1, 5):
+    emotion = emotion_classes[i]
+    labels = list(emotional_data[emotion]["monoclass"].keys())
+    data = np.asarray(list(emotional_data[emotion]["monoclass"].values()))
+    data = data / neutral_data
+    data /= np.sum(data)
+    ax[i-1].bar(labels, data, label=emotion)
+    ax[i-1].legend(loc=1)
+    ax[i-1].title.set_text(emotion)
+    ax[i-1].set_xticklabels(labels=labels, fontsize=13, rotation=90, fontweight="bold")
+    # pylab.tight_layout()
+
+pylab.suptitle("Relative Monophones")
+pylab.savefig("/home/ravi/Desktop/monophones_saliency_relative.png")
+pylab.close("all")
+
+#%% Relative Phone boundaries
+
+for (chunk_mask, target, phones) in zip(chunks_array, targets_array, phones_array):
+    emotions = get_target_emotions(target)
+    chunks, mask = chunk_mask[0], chunk_mask[1]
+    for n in range(len(phones)-1):
+        p_left = phones[n]
+        p_right = phones[n+1]
+        index = (p_left[4] + p_right[3])//2
+
+        if mask[index]>0:
+            phone_class_l = get_phone_class(p_left[0], monophone_dict)
+            phone_class_r = get_phone_class(p_right[0], monophone_dict)
+            if phone_class_l+"_"+phone_class_r in pairwise_dicts.keys():
+                key = phone_class_l+"_"+phone_class_r
+            else:
+                key = phone_class_r+"_"+phone_class_l
+            for e in emotions:
+                emotional_data[e]["biclass"][key] += 1/biphone_wt[key]
 
 
+pylab.xticks(fontsize=5)
+pylab.yticks(fontsize=5)
+fig, ax = pylab.subplots(1, 4, figsize=(40, 20))
+neutral_data = np.asarray(list(emotional_data["neutral"]["biclass"].values())) + 1e-6
+for i in range(1, 5):
+    emotion = emotion_classes[i]
+    labels = list(emotional_data[emotion]["biclass"].keys())
+    data = np.asarray(list(emotional_data[emotion]["biclass"].values())) + 1e-6
+    data = data / neutral_data
+    data /= np.sum(data)
+    ax[i-1].bar(labels, data, label=emotion)
+    ax[i-1].legend(loc=1)
+    ax[i-1].title.set_text(emotion)
+    ax[i-1].set_xticklabels(labels=labels, fontsize=10, rotation=90, fontweight="bold")
+    # pylab.tight_layout()
+
+pylab.suptitle("Relative Biphones (boundaries)")
+pylab.savefig("/home/ravi/Desktop/biphones_saliency_relative.png")
+pylab.close("all")
 
 
 
