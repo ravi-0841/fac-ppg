@@ -32,6 +32,7 @@
 
 import torch
 from torch import nn
+import numpy as np
 
 
 class Tacotron2Loss(nn.Module):
@@ -265,6 +266,38 @@ class EntropyLoss(nn.Module):
         return torch.mean(loss)
 
 
+class RateLoss(nn.Module):
+    def __init__(self):
+        super(RateLoss, self).__init__()
+        
+    def forward(self, x, hparams, WSOLA, 
+                model_saliency, rate_distribution, 
+                mask_sample, intent_saliency, additional_criterion):
+        if np.random.rand() <= hparams.exploitation_prob:
+            index = torch.argmax(rate_distribution, dim=-1) #exploit
+        else:
+            index = torch.multinomial(rate_distribution, 1) #explore
+            
+
+        rate = 0.5 + 0.1*index #0.2*index
+        mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                     rate=rate, speech=x)
+    
+        mod_speech = mod_speech.to("cuda")
+        mod_e = mod_e.to("cuda")
+        _, _, m, s = model_saliency(mod_speech, mod_e)
+
+        loss_rate_l1 = torch.sum(torch.abs(s - intent_saliency), dim=-1)
+        corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
+        log_corresp_prob = torch.log(corresp_probs)
+        unbiased_multiplier = torch.mul(corresp_probs.detach(), log_corresp_prob)
+        # loss_rate_l1 = torch.mean(torch.mul(loss_rate_l1.detach(), 
+        #                                     torch.log(corresp_probs)))
+        loss_rate_l1 = torch.mean(torch.mul(loss_rate_l1.detach(), 
+                                            unbiased_multiplier))
+        loss_rate_ent = additional_criterion(rate_distribution)
+        loss_rate = loss_rate_l1 + hparams.lambda_entropy * loss_rate_ent
+        return loss_rate
 
 
 
