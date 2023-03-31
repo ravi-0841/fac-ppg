@@ -323,6 +323,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                     if learning_rate_rate < hparams.learning_rate_ub:
                         learning_rate_rate *= (1/hparams.learning_rate_decay)
                     
+                    if hparams.exploitation_prob <= 0.95:
+                        hparams.exploitation_prob *= hparams.exploration_decay
+                    
                     # Saving the model
                     if rank == 0:
                         checkpoint_path = os.path.join(output_directory, 
