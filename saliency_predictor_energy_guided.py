@@ -81,40 +81,6 @@ class ConvolutionalEncoder(nn.Module):
         return e6_enc
 
 
-class SaliencePredictor(nn.Module):
-    def __init__(self):
-        super(SaliencePredictor, self).__init__()
-
-        transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=512, 
-                                                                nhead=8, 
-                                                                dim_feedforward=512)
-        self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
-                                                          num_layers=3)
-        
-        self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
-                                        num_layers=2, bidirectional=True, 
-                                        dropout=0.2)
-        self.bn_transformer = nn.BatchNorm1d(512)
-        self.bn_recurrent = nn.BatchNorm1d(512)
-        self.linear_layer = nn.Linear(in_features=512, out_features=5)
-        self.softmax = nn.Softmax(dim=-1)
-    
-    def forward(self, x, m):
-        # x -> [batch, 512, #time]
-        # m -> [batch, 512, #time]
-        t1_enc = self.transformer_encoder(x.permute(2,0,1))
-        # t1_enc -> [#time, batch, 512] -> [batch, 512, #time]
-        t1_enc = t1_enc.permute(1,2,0)
-        t1_enc = self.bn_transformer(t1_enc)
-        t1_enc = t1_enc * m
-
-        lstm_out, _ = self.recurrent_layer(t1_enc.permute(2,0,1))
-        lstm_out = torch.mean(lstm_out, dim=0)  # lstm_out[-1, :, :]
-        lstm_out = self.bn_recurrent(lstm_out)
-        output = self.softmax(self.linear_layer(lstm_out))
-        return output
-
-
 # class SaliencePredictor(nn.Module):
 #     def __init__(self):
 #         super(SaliencePredictor, self).__init__()
@@ -124,7 +90,12 @@ class SaliencePredictor(nn.Module):
 #                                                                 dim_feedforward=512)
 #         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
 #                                                           num_layers=3)
+        
+#         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
+#                                         num_layers=2, bidirectional=True, 
+#                                         dropout=0.2)
 #         self.bn_transformer = nn.BatchNorm1d(512)
+#         self.bn_recurrent = nn.BatchNorm1d(512)
 #         self.linear_layer = nn.Linear(in_features=512, out_features=5)
 #         self.softmax = nn.Softmax(dim=-1)
     
@@ -136,11 +107,40 @@ class SaliencePredictor(nn.Module):
 #         t1_enc = t1_enc.permute(1,2,0)
 #         t1_enc = self.bn_transformer(t1_enc)
 #         t1_enc = t1_enc * m
-        
-#         t1_enc = torch.mean(t1_enc, dim=-1)
 
-#         output = self.softmax(self.linear_layer(t1_enc))
+#         lstm_out, _ = self.recurrent_layer(t1_enc.permute(2,0,1))
+#         lstm_out = torch.mean(lstm_out, dim=0)  # lstm_out[-1, :, :]
+#         lstm_out = self.bn_recurrent(lstm_out)
+#         output = self.softmax(self.linear_layer(lstm_out))
 #         return output
+
+
+class SaliencePredictor(nn.Module):
+    def __init__(self):
+        super(SaliencePredictor, self).__init__()
+
+        transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=512, 
+                                                                nhead=8, 
+                                                                dim_feedforward=512)
+        self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
+                                                          num_layers=3)
+        self.bn_transformer = nn.BatchNorm1d(512)
+        self.linear_layer = nn.Linear(in_features=512, out_features=5)
+        self.softmax = nn.Softmax(dim=-1)
+    
+    def forward(self, x, m):
+        # x -> [batch, 512, #time]
+        # m -> [batch, 512, #time]
+        t1_enc = self.transformer_encoder(x.permute(2,0,1))
+        # t1_enc -> [#time, batch, 512] -> [batch, 512, #time]
+        t1_enc = t1_enc.permute(1,2,0)
+        t1_enc = self.bn_transformer(t1_enc)
+        t1_enc = t1_enc * m
+        
+        t1_enc = torch.mean(t1_enc, dim=-1)
+
+        output = self.softmax(self.linear_layer(t1_enc))
+        return output
 
 
 class MaskGenerator(nn.Module):
