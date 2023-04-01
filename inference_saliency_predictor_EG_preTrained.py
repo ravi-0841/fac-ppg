@@ -324,9 +324,9 @@ if __name__ == '__main__':
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
                                         ckpt_path.split("/")[2],
-                                        "images_valid_{}".format(emo_target),
+                                        "images_valid_{}_45".format(emo_target),
                                     )
-    for m in range(500, 200000, 500): #40000
+    for m in range(45000, 45500, 500): #40000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -362,7 +362,7 @@ if __name__ == '__main__':
 
         #%% Checking difference in predictions
         index = np.argmax(emo_prob_dict[emo_target])
-        saliency_diff = rate_array[:,index] - pred_array[:,index]
+        saliency_diff = (rate_array[:,index] - pred_array[:,index]) / (pred_array[:,index] + 1e-6)
         # pylab.figure(), pylab.hist(saliency_diff, label="difference")
         # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
         # pylab.close("all")
@@ -375,8 +375,8 @@ if __name__ == '__main__':
         # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
         # pylab.close("all")
 
-        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
+        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
 
 
         #%% Joint density plot and MI
@@ -410,20 +410,20 @@ if __name__ == '__main__':
         # pylab.close("all")
 
     #%%
-    # x = np.arange(500, 99500, 500)
-    # angry_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.1_TD_RL_logGrad_11/images_valid_angry/ttest_scores.pkl")["ttest_scores"]
-    # happy_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.1_TD_RL_logGrad_11/images_valid_happy/ttest_scores.pkl")["ttest_scores"]
-    # sad_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.1_TD_RL_logGrad_11/images_valid_sad/ttest_scores.pkl")["ttest_scores"]
-    # fear_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.1_TD_RL_logGrad_11/images_valid_fear/ttest_scores.pkl")["ttest_scores"]
+    # x = np.arange(500, 200000, 500)
+    # angry_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.5_TD_RL_lr_1e-7_declut_annealed_exploit/images_valid_angry/ttest_scores.pkl")["ttest_scores"]
+    # happy_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.5_TD_RL_lr_1e-7_declut_annealed_exploit/images_valid_happy/ttest_scores.pkl")["ttest_scores"]
+    # sad_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.5_TD_RL_lr_1e-7_declut_annealed_exploit/images_valid_sad/ttest_scores.pkl")["ttest_scores"]
+    # fear_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.5_TD_RL_lr_1e-7_declut_annealed_exploit/images_valid_fear/ttest_scores.pkl")["ttest_scores"]
     
     # pylab.figure()
     # pylab.plot(x, angry_scores, "o", label="angry")
     # pylab.plot(x, happy_scores, "o", label="happy")
     # pylab.plot(x, sad_scores, "o", label="sad")
     # pylab.plot(x, fear_scores, "o", label="fear")
-    # pylab.plot(x, [0.1]*198, label="baseline1")
-    # pylab.plot(x, [0.07]*198, label="baseline2")
-    # pylab.plot(x, [0.05]*198, label="baseline3")
+    # pylab.plot(x, [0.1]*len(angry_scores), label="baseline1")
+    # pylab.plot(x, [0.07]*len(angry_scores), label="baseline2")
+    # pylab.plot(x, [0.05]*len(angry_scores), label="baseline3")
     # pylab.legend()
 
 
