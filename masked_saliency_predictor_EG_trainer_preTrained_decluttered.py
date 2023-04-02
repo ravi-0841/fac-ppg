@@ -292,7 +292,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 
                 loss_rate = criterion3(x, hparams, WSOLA, model_saliency, 
                                        rate_distribution, mask_sample, 
-                                       intent_saliency, criterion2)
+                                       intent_saliency, criterion2, uniform=True)
                 
                 
                 reduced_loss_rate = loss_rate.item()

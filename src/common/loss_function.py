@@ -272,11 +272,17 @@ class RateLoss(nn.Module):
         
     def forward(self, x, hparams, WSOLA, 
                 model_saliency, rate_distribution, 
-                mask_sample, intent_saliency, additional_criterion):
+                mask_sample, intent_saliency, 
+                additional_criterion, uniform=False):
         if np.random.rand() <= hparams.exploitation_prob:
             index = torch.argmax(rate_distribution, dim=-1) #exploit
         else:
-            index = torch.multinomial(rate_distribution, 1) #explore
+            if uniform:
+                index = torch.multinomial(torch.ones((rate_distribution.shape[1])), 
+                                        x.shape[0])
+                index = index.to("cuda")
+            else:
+                index = torch.multinomial(rate_distribution, 1) #explore
             
 
         rate = 0.5 + 0.1*index #0.2*index
