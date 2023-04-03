@@ -53,7 +53,7 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 200,
+        "epochs": 400,
         "iters_per_checkpoint": 500,
         "seed": 1107,
         "dynamic_loss_scaling": True,
@@ -67,9 +67,9 @@ def create_hparams(**kwargs):
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
         "extended_desc": "TD_RL_lr_1e-7_declut_annealed_explore_uniform", # extra description for logging/identification
-        "checkpoint_path": "", #"./masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_mask_trans_rate_beta_0.75_mix_entropy_eval/checkpoint_193500",  # Path to a checkpoint file.
+        "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen/checkpoint_102000",
-        "checkpoint_path_rate": "", #"./masked_predictor_output/OnlyRate_entropy_0.1_TD_RL_fixed_lr_logGrad/checkpoint_20000",
+        "checkpoint_path_rate": "./masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.99_TD_RL_lr_1e-7_declut_annealed_explore_uniform/checkpoint_290500",
         "checkpoint_path_inference": "./masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.5_TD_RL_lr_1e-7_declut_annealed_exploit/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
@@ -120,8 +120,8 @@ def create_hparams(**kwargs):
         "exploitation_prob": 0.99,
         "lambda_entropy": 0.1,
         "temp_scale": 5.0, #15.0
-        "exploration_decay": 1,#1.03183,
-        "use_saved_learning_rate": False,
+        "exploration_decay": 1, #1.03183,
+        "use_saved_learning_rate": True,
         "learning_rate_rate": 1e-7, #1e-6
         "learning_rate_decay": 1, #0.955
         "learning_rate_lb": 1e-6, #1e-6
