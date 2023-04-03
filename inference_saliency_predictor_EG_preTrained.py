@@ -313,7 +313,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "sad"
+    emo_target = "angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -347,7 +347,7 @@ if __name__ == '__main__':
                                                 hparams.checkpoint_path_saliency,
                                                 hparams,
                                                 emo_prob_dict[emo_target],
-                                                valid=False,
+                                                valid=True,
                                             )
         
         pred_array = np.asarray(pred_array)
