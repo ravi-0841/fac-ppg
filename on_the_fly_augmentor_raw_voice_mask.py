@@ -80,7 +80,7 @@ class OnTheFlyAugmentor():
         voice_mask[np.where(energy>1e-3)[0]] = 1
         idx = np.where(voice_mask==1)[0]
         voice_mask[idx[0]:idx[-1]] = 1
-        # voice_mask = voice_mask * energy
+        voice_mask = np.multiply(voice_mask, energy)
         # voice_mask[idx[0]:] = 1
         # voice_mask[:idx[-1]] = 1
 

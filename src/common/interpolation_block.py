@@ -36,7 +36,7 @@ class WSOLAInterpolation():
         x = librosa.frames_to_samples(np.arange(0, len(mask)), 
                                       hop_length=self.hop_size)
         y = np.ones((len(mask),))
-        y[np.where(mask==1)[0]] = rate
+        y[np.where(mask>0)[0]] = rate
         y = librosa.frames_to_samples(np.cumsum(y), 
                                       hop_length=self.hop_size)
         
@@ -72,7 +72,7 @@ class WSOLAInterpolationEnergy():
         x = librosa.frames_to_samples(np.arange(0, len(mask)), 
                                       hop_length=self.hop_size)
         y = np.ones((len(mask),))
-        y[np.where(mask==1)[0]] = rate
+        y[np.where(mask>0)[0]] = rate
         y = librosa.frames_to_samples(np.cumsum(y), 
                                       hop_length=self.hop_size)
         
@@ -94,7 +94,7 @@ class WSOLAInterpolationEnergy():
         energy_mask[idx[0]:idx[-1]] = 1
         
         speech_modified = torch.from_numpy(speech_modified.reshape(1,1,-1)).float()
-        energy_modified = torch.from_numpy(energy_modified.reshape(1,1,-1)).float() #energy_mask
+        energy_modified = torch.from_numpy(energy_mask.reshape(1,1,-1)).float() #energy_mask
         return speech_modified, energy_modified, samp_points
 
 
@@ -109,7 +109,7 @@ class BatchWSOLAInterpolation():
         x = librosa.frames_to_samples(np.arange(0, len(mask)), 
                                       hop_length=self.hop_size)
         y = np.ones((len(mask),))
-        y[np.where(mask==1)[0]] = rate
+        y[np.where(mask>0)[0]] = rate
         y = librosa.frames_to_samples(np.cumsum(y), 
                                       hop_length=self.hop_size)
         
@@ -178,7 +178,7 @@ class BatchWSOLAInterpolationEnergy():
         x = librosa.frames_to_samples(np.arange(0, len(mask)), 
                                       hop_length=self.hop_size)
         y = np.ones((len(mask),))
-        y[np.where(mask==1)[0]] = rate
+        y[np.where(mask>0)[0]] = rate
         y = librosa.frames_to_samples(np.cumsum(y), 
                                       hop_length=self.hop_size)
         
