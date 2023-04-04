@@ -66,10 +66,10 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "TD_RL_lr_1e-7_declut_annealed_explore_uniform", # extra description for logging/identification
+        "extended_desc": "TD_RL_lr_1e-7_energy_value_mask", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
-        "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen/checkpoint_102000",
-        "checkpoint_path_rate": "./masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.99_TD_RL_lr_1e-7_declut_annealed_explore_uniform/checkpoint_290500",
+        "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_energy_value_mask/checkpoint_154000", #"./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen/checkpoint_102000",
+        "checkpoint_path_rate": "",
         "checkpoint_path_inference": "./masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.5_TD_RL_lr_1e-7_declut_annealed_exploit/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
@@ -117,11 +117,11 @@ def create_hparams(**kwargs):
         ################################
         # Optimization Hyperparameters #
         ################################
-        "exploitation_prob": 0.99,
+        "exploitation_prob": 0.5,
         "lambda_entropy": 0.1,
         "temp_scale": 5.0, #15.0
-        "exploration_decay": 1, #1.03183,
-        "use_saved_learning_rate": True,
+        "exploration_decay": 1.03183,
+        "use_saved_learning_rate": False,
         "learning_rate_rate": 1e-7, #1e-6
         "learning_rate_decay": 1, #0.955
         "learning_rate_lb": 1e-6, #1e-6

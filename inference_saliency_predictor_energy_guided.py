@@ -82,6 +82,10 @@ def load_checkpoint(checkpoint_path, model):
 
 
 def plot_figures(waveform, feats, posterior, mask, y, y_pred, iteration, hparams):
+    
+    mask_thresh = np.zeros((len(mask),))
+    mask_thresh[np.where(mask>0)[0]] = 1
+
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
@@ -94,13 +98,13 @@ def plot_figures(waveform, feats, posterior, mask, y, y_pred, iteration, hparams
     
     ax[1].imshow(np.log10(np.abs(feats) + 1e-10), aspect="auto", origin="lower",
                    interpolation='none')
-    ax[1].plot(251*mask, "w", linewidth=4.0)
+    ax[1].plot(251*mask_thresh, "w", linewidth=4.0)
     ax[1].set_xlabel('Time',fontsize = 20) #xlabel
     ax[1].set_ylabel('Frequency', fontsize = 20) #ylabel
     # pylab.tight_layout()
 
     ax[2].plot(posterior, linewidth=2.5, color='b')
-    ax[2].plot(mask, linewidth=2.5, color='g')
+    ax[2].plot(mask_thresh, linewidth=2.5, color='g')
     ax[2].set_xlabel('Time',fontsize = 20) #xlabel
     ax[2].set_ylabel('Probability', fontsize = 20) #ylabel
     # pylab.tight_layout()
@@ -279,8 +283,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pred_array.append(y_pred)
         targ_array.append(y)
 
-        plot_figures(x, feats, posterior, mask_sample, y, 
-                      y_pred, iteration+1, hparams)
+        # plot_figures(x, feats, posterior, mask_sample, y, 
+        #               y_pred, iteration+1, hparams)
 
         # if not math.isnan(reduced_loss):
         #     duration = time.perf_counter() - start
@@ -317,7 +321,7 @@ if __name__ == '__main__':
                                                 hparams.output_directory,
                                                 hparams.checkpoint_path_inference,
                                                 hparams,
-                                                valid=True,
+                                                valid=False,
                                                 )
     
     pred_array = np.asarray(pred_array)

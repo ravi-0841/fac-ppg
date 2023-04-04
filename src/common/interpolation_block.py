@@ -94,7 +94,7 @@ class WSOLAInterpolationEnergy():
         energy_mask[idx[0]:idx[-1]] = 1
         
         speech_modified = torch.from_numpy(speech_modified.reshape(1,1,-1)).float()
-        energy_modified = torch.from_numpy(energy_mask.reshape(1,1,-1)).float() #energy_mask
+        energy_modified = torch.from_numpy(energy_modified.reshape(1,1,-1)).float() #energy_mask
         return speech_modified, energy_modified, samp_points
 
 

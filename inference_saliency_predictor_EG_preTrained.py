@@ -108,6 +108,10 @@ def intended_saliency(batch_size, relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
 
 def plot_figures(feats, waveform, mod_waveform, posterior, 
                  mask, y, y_pred, rate_dist, iteration, hparams):
+    
+    mask_thresh = np.zeros((len(mask), ))
+    mask_thresh[np.where(mask>0)[0]] = 1
+
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
@@ -121,7 +125,7 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     # pylab.tight_layout()
 
     ax[1].plot(posterior, linewidth=2.5, color='g')
-    ax[1].plot(mask, "b", linewidth=2.5)
+    ax[1].plot(mask_thresh, "b", linewidth=2.5)
     ax[1].set_xlabel('Time',fontsize=15) #xlabel
     ax[1].set_ylabel('Probability', fontsize=15) #ylabel
     # pylab.tight_layout()
@@ -136,7 +140,7 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     
     ax[3].imshow(feats, aspect="auto", origin="lower",
                    interpolation='none')
-    ax[3].plot(257*mask, "w", linewidth=4.0)
+    ax[3].plot(257*mask_thresh, "w", linewidth=4.0)
     ax[3].set_xlabel('Time',fontsize=15) #xlabel
     ax[3].set_ylabel('Dimension', fontsize=15) #ylabel
     # pylab.tight_layout()
@@ -283,10 +287,10 @@ def test(output_directory, checkpoint_path_rate,
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            # plot_figures(feats, x, mod_speech, posterior, 
-            #               mask_sample, y, y_pred, 
-            #               rate_distribution,
-            #               iteration+1, hparams)
+            plot_figures(feats, x, mod_speech, posterior, 
+                          mask_sample, y, y_pred, 
+                          rate_distribution,
+                          iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -313,7 +317,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "sad"
+    emo_target = "fear"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -324,9 +328,9 @@ if __name__ == '__main__':
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
                                         ckpt_path.split("/")[2],
-                                        "images_valid_{}_45".format(emo_target),
+                                        "images_valid_{}_45_2".format(emo_target),
                                     )
-    for m in range(500, 200000, 500): #40000
+    for m in range(45000, 45500, 500): #40000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -375,8 +379,8 @@ if __name__ == '__main__':
         # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
         # pylab.close("all")
 
-        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
+        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
 
         #%% Joint density plot and MI
         # epsilon = 1e-3
