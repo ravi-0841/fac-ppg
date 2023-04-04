@@ -320,8 +320,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                              hparams.minibatch_consistency, n_gpus, logger, 
                              hparams.distributed_run, rank)
                     
-                    if learning_rate_rate < hparams.learning_rate_ub:
-                        learning_rate_rate *= (1/hparams.learning_rate_decay)
+                    if learning_rate_rate > hparams.learning_rate_lb:
+                        learning_rate_rate *= hparams.learning_rate_decay
                     
                     if hparams.exploitation_prob <= 0.96:
                         hparams.exploitation_prob *= hparams.exploration_decay
