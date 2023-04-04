@@ -66,7 +66,7 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "TD_RL_lr_1e-7_energy_value_mask", # extra description for logging/identification
+        "extended_desc": "TD_RL_lr_1e-7_energy_value_mask_intent_score_maximization", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_energy_value_mask/checkpoint_154000", #"./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen/checkpoint_102000",
         "checkpoint_path_rate": "",

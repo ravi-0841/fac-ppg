@@ -277,12 +277,13 @@ class RateLoss(nn.Module):
         if np.random.rand() <= hparams.exploitation_prob:
             index = torch.argmax(rate_distribution, dim=-1) #exploit
         else:
-            if uniform:
-                index = torch.multinomial(torch.ones((rate_distribution.shape[1])), 
-                                        x.shape[0])
-                index = index.to("cuda")
-            else:
-                index = torch.multinomial(rate_distribution, 1) #explore
+            index = torch.multinomial(rate_distribution, 1) #explore using predictive distribution
+            # if uniform:
+            #     index = torch.multinomial(torch.ones((rate_distribution.shape[1])), 
+            #                             x.shape[0])
+            #     index = index.to("cuda")
+            # else:
+            #     index = torch.multinomial(rate_distribution, 1) #explore
             
 
         rate = 0.5 + 0.1*index #0.2*index
@@ -291,14 +292,16 @@ class RateLoss(nn.Module):
     
         mod_speech = mod_speech.to("cuda")
         mod_e = mod_e.to("cuda")
-        _, _, m, s = model_saliency(mod_speech, mod_e)
+        _, _, mod_mask, mod_saliency = model_saliency(mod_speech, mod_e)
+        
+        # directly maximize score of intended index
+        intent_saliency_indices = torch.argmax(intent_saliency, dim=-1)
+        loss_rate_l1 = -1 * mod_saliency.gather(1,intent_saliency_indices.view(-1,1)).view(-1)
 
-        loss_rate_l1 = torch.sum(torch.abs(s - intent_saliency), dim=-1)
+        # loss_rate_l1 = torch.sum(torch.abs(mod_saliency - intent_saliency), dim=-1)
         corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
         log_corresp_prob = torch.log(corresp_probs)
         unbiased_multiplier = torch.mul(corresp_probs.detach(), log_corresp_prob)
-        # loss_rate_l1 = torch.mean(torch.mul(loss_rate_l1.detach(), 
-        #                                     torch.log(corresp_probs)))
         loss_rate_l1 = torch.mean(torch.mul(loss_rate_l1.detach(), 
                                             unbiased_multiplier))
         loss_rate_ent = additional_criterion(rate_distribution)
