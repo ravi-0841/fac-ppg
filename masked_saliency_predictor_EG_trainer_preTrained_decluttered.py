@@ -159,8 +159,11 @@ def validate(model_saliency, model_rate, WSOLA, criterion, valset,
             mod_speech = mod_speech.to("cuda")
             mod_e = mod_e.to("cuda")
             _, _, _, y_pred = model_saliency(mod_speech, mod_e)
+            
+            intent_indices = torch.argmax(intent, dim=-1)
+            loss_rate = -1 * y_pred.gather(1,intent_indices.view(-1,1)).view(-1)
 
-            loss_rate = torch.sum(torch.abs(y_pred - intent), dim=-1)
+            # loss_rate = torch.sum(torch.abs(y_pred - intent), dim=-1)
             corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
             loss_rate = torch.mean(torch.mul(loss_rate, torch.log(corresp_probs)))
             reduced_val_loss = loss_rate.item()
