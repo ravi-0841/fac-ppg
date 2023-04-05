@@ -126,7 +126,7 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
 
     ax[1].plot(posterior, linewidth=2.5, color='g')
     ax[1].plot(mask_thresh, "b", linewidth=2.5)
-    ax[1].set_xlabel('Time',fontsize=15) #xlabel
+    ax[1].set_xlabel('Frame',fontsize=15) #xlabel
     ax[1].set_ylabel('Probability', fontsize=15) #ylabel
     # pylab.tight_layout()
     
@@ -141,7 +141,7 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     ax[3].imshow(feats, aspect="auto", origin="lower",
                    interpolation='none')
     ax[3].plot(257*mask_thresh, "w", linewidth=4.0)
-    ax[3].set_xlabel('Time',fontsize=15) #xlabel
+    ax[3].set_xlabel('Frame',fontsize=15) #xlabel
     ax[3].set_ylabel('Dimension', fontsize=15) #ylabel
     # pylab.tight_layout()
     
@@ -317,7 +317,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "angry"
+    emo_target = "fear"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -328,9 +328,9 @@ if __name__ == '__main__':
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
                                         ckpt_path.split("/")[2],
-                                        "images_valid_{}_25".format(emo_target),
+                                        "images_valid_{}".format(emo_target),
                                     )
-    for m in range(25500, 26000, 500): #40000
+    for m in range(500, 200000, 500): #40000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -351,7 +351,7 @@ if __name__ == '__main__':
                                                 hparams.checkpoint_path_saliency,
                                                 hparams,
                                                 emo_prob_dict[emo_target],
-                                                valid=False,
+                                                valid=True,
                                             )
         
         pred_array = np.asarray(pred_array)
@@ -367,20 +367,20 @@ if __name__ == '__main__':
         #%% Checking difference in predictions
         index = np.argmax(emo_prob_dict[emo_target])
         saliency_diff = (rate_array[:,index] - pred_array[:,index]) / (pred_array[:,index] + 1e-10)
-        pylab.figure(), pylab.hist(saliency_diff, label="difference")
-        # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
-        # pylab.close("all")
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
         print("1 sided T-test result (p-value): {}".format(ttest[1]))
         ttest_array.append(ttest[1])
+        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+                                                                "ttest_scores.pkl"))
+
+        # pylab.figure(), pylab.hist(saliency_diff, label="difference")
+        # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
+        # pylab.close("all")
         
         # pylab.figure(), pylab.plot([x for x in range(1000, 188000, 1000)], ttest_array)
         # pylab.title(emo_target)
         # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
         # pylab.close("all")
-
-        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-        #                                                         "ttest_scores.pkl"))
 
         #%% Joint density plot and MI
         # epsilon = 1e-3

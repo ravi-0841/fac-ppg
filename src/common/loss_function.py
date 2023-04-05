@@ -304,7 +304,7 @@ class RateLoss(nn.Module):
         unbiased_multiplier = torch.mul(corresp_probs.detach(), log_corresp_prob)
         loss_rate_l1 = torch.mean(torch.mul(loss_rate_l1.detach(), 
                                             unbiased_multiplier))
-        loss_rate_ent = additional_criterion(rate_distribution)
+        loss_rate_ent = -1*additional_criterion(rate_distribution)
         loss_rate = loss_rate_l1 + hparams.lambda_entropy * loss_rate_ent
         return loss_rate
 
