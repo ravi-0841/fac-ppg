@@ -295,7 +295,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 
                 loss_rate = criterion3(x, hparams, WSOLA, model_saliency, 
                                        rate_distribution, mask_sample, 
-                                       intent_saliency, criterion2, uniform=False)
+                                       intent_saliency, criterion2, uniform=True)
                 
                 
                 reduced_loss_rate = loss_rate.item()
@@ -326,7 +326,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                     if learning_rate_rate > hparams.learning_rate_lb:
                         learning_rate_rate *= hparams.learning_rate_decay
                     
-                    if hparams.exploitation_prob <= 0.96:
+                    if hparams.exploitation_prob <= 0.85:
                         hparams.exploitation_prob *= hparams.exploration_decay
                     
                     # Saving the model

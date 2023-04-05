@@ -277,13 +277,13 @@ class RateLoss(nn.Module):
         if np.random.rand() <= hparams.exploitation_prob:
             index = torch.argmax(rate_distribution, dim=-1) #exploit
         else:
-            index = torch.multinomial(rate_distribution, 1) #explore using predictive distribution
-            # if uniform:
-            #     index = torch.multinomial(torch.ones((rate_distribution.shape[1])), 
-            #                             x.shape[0])
-            #     index = index.to("cuda")
-            # else:
-            #     index = torch.multinomial(rate_distribution, 1) #explore
+            # index = torch.multinomial(rate_distribution, 1) #explore using predictive distribution
+            if uniform:
+                index = torch.multinomial(torch.ones((rate_distribution.shape[1])), 
+                                        x.shape[0])
+                index = index.to("cuda")
+            else:
+                index = torch.multinomial(rate_distribution, 1) #explore
             
 
         rate = 0.5 + 0.1*index #0.2*index
