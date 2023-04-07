@@ -325,7 +325,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "fear"
+    emo_target = "angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -339,7 +339,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(47000, 47500, 500): #40000
+    for m in range(23500, 24000, 500): #40000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -382,9 +382,9 @@ if __name__ == '__main__':
         # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
         #                                                         "ttest_scores.pkl"))
 
-        # pylab.figure(), pylab.hist(saliency_diff, label="difference")
-        # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
-        # pylab.close("all")
+        pylab.figure(), pylab.hist(saliency_diff, label="difference")
+        pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
+        pylab.close("all")
         
         # pylab.figure(), pylab.plot([x for x in range(1000, 188000, 1000)], ttest_array)
         # pylab.title(emo_target)

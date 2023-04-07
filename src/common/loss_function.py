@@ -294,11 +294,13 @@ class RateLoss(nn.Module):
         mod_e = mod_e.to("cuda")
         _, _, mod_mask, mod_saliency = model_saliency(mod_speech, mod_e)
         
-        # directly maximize score of intended index
+        ## directly maximize score of intended index
         intent_saliency_indices = torch.argmax(intent_saliency, dim=-1)
         loss_rate_l1 = -1 * mod_saliency.gather(1,intent_saliency_indices.view(-1,1)).view(-1)
-
+        
+        ## Minimizing intended saliency
         # loss_rate_l1 = torch.sum(torch.abs(mod_saliency - intent_saliency), dim=-1)
+
         corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
         log_corresp_prob = torch.log(corresp_probs)
         unbiased_multiplier = torch.mul(corresp_probs.detach(), log_corresp_prob)
