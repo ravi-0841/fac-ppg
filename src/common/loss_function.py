@@ -296,7 +296,8 @@ class RateLoss(nn.Module):
         
         ## directly maximize score of intended index
         intent_saliency_indices = torch.argmax(intent_saliency, dim=-1)
-        loss_rate_l1 = -1 * mod_saliency.gather(1,intent_saliency_indices.view(-1,1)).view(-1)
+        # loss_rate_l1 = -1 * mod_saliency.gather(1,intent_saliency_indices.view(-1,1)).view(-1)
+        loss_rate_l1 = 1 - mod_saliency.gather(1,intent_saliency_indices.view(-1,1)).view(-1)
         
         ## Minimizing intended saliency
         # loss_rate_l1 = torch.sum(torch.abs(mod_saliency - intent_saliency), dim=-1)

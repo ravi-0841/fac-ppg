@@ -20,6 +20,7 @@ import numpy as np
 import scipy.signal as scisig
 
 from src.common.hparams_onflychopper import create_hparams
+from src.common.wsolatsm import wsola
 from src.common.utils import load_filepaths
 from torch.utils.data import DataLoader
 
@@ -37,6 +38,7 @@ class OnTheFlyAugmentor():
         self.base_folder = base_folder
         self.augment = augment
         self.hparams = hparams
+        self.wsola_func = wsola
 
         
     def _extract_stft_feats(self, data):
@@ -57,6 +59,12 @@ class OnTheFlyAugmentor():
                        upper_sr_factor=1.25): #1.25
         act_sr = self.hparams.sampling_rate
         return int(act_sr * (lower_sr_factor + (upper_sr_factor - lower_sr_factor)*np.random.rand()))
+
+
+    def _get_random_factor(self, 
+                           lower_factor=0.75,
+                           upper_factor=1.5):
+        return lower_factor + (upper_factor - lower_factor)*np.random.rand()
 
 
     def _get_signal(self, path):
@@ -85,6 +93,42 @@ class OnTheFlyAugmentor():
         # voice_mask[:idx[-1]] = 1
 
         return clean_data.reshape(1,-1), voice_mask.reshape(1,-1), random_sr
+
+
+    def _get_signal_factor(self, path):
+        clean_data, sr = sf.read(os.path.join(self.base_folder, path))
+
+        # if sr != self.hparams.sampling_rate:
+        #     clean_data = librosa.resample(clean_data, sr, self.hparams.sampling_rate)
+        
+        clean_data = librosa.resample(clean_data.reshape(-1,), 
+                                      orig_sr=sr, 
+                                      target_sr=self.hparams.sampling_rate)
+        
+        if self.augment:
+            random_factor = self._get_random_factor()
+            clean_data = self.wsola_func(x=clean_data, s=random_factor, 
+                                         win_size=self.hparams.win_length,
+                                         syn_hop_size=self.hparams.hop_length,
+                                         tolerance=self.hparams.hop_length,
+                                         )
+        else:
+            random_factor = 1
+        
+        energy = librosa.feature.rms(y=clean_data, 
+                                    frame_length=self.hparams.win_length,
+                                    hop_length=self.hparams.hop_length,
+                                    center=True)
+        energy = energy.reshape(-1,)
+        voice_mask = np.zeros((len(energy,)))
+        voice_mask[np.where(energy>1e-3)[0]] = 1
+        idx = np.where(voice_mask==1)[0]
+        voice_mask[idx[0]:idx[-1]] = 1
+        voice_mask = np.multiply(voice_mask, energy)
+        # voice_mask[idx[0]:] = 1
+        # voice_mask[:idx[-1]] = 1
+
+        return clean_data.reshape(1,-1), voice_mask.reshape(1,-1), random_factor
     
     
     def _rating_structure(self, rating):
@@ -97,7 +141,7 @@ class OnTheFlyAugmentor():
     def __getitem__(self, index):
         path, rating = self.utterance_rating_paths[index].split(" ,")
         rating = ast.literal_eval(rating)
-        speech_data, voice_mask, sr = self._get_signal(path)
+        speech_data, voice_mask, sr = self._get_signal_factor(path) # self._get_signal()
         speech_stft = self._extract_stft_feats(speech_data)
         speech_stft = torch.sqrt(speech_stft[:,:,0]**2 + speech_stft[:,:,1]**2)
         rating = self._rating_structure(rating)

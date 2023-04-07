@@ -295,10 +295,10 @@ def test(output_directory, checkpoint_path_rate,
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            plot_figures(feats, x, mod_speech, posterior, 
-                          mask_sample, y, y_pred, 
-                          rate_distribution,
-                          iteration+1, hparams)
+            # plot_figures(feats, x, mod_speech, posterior, 
+            #               mask_sample, y, y_pred, 
+            #               rate_distribution,
+            #               iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -339,7 +339,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(23500, 24000, 500): #40000
+    for m in range(31000, 31500, 500): #40000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -360,7 +360,7 @@ if __name__ == '__main__':
                                                 hparams.checkpoint_path_saliency,
                                                 hparams,
                                                 emo_prob_dict[emo_target],
-                                                valid=True,
+                                                valid=False,
                                             )
         
         pred_array = np.asarray(pred_array)
@@ -382,9 +382,9 @@ if __name__ == '__main__':
         # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
         #                                                         "ttest_scores.pkl"))
 
-        pylab.figure(), pylab.hist(saliency_diff, label="difference")
-        pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
-        pylab.close("all")
+        # pylab.figure(), pylab.hist(saliency_diff, label="difference")
+        # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
+        # pylab.close("all")
         
         # pylab.figure(), pylab.plot([x for x in range(1000, 188000, 1000)], ttest_array)
         # pylab.title(emo_target)
