@@ -339,7 +339,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(31000, 31500, 500): #40000
+    for m in range(500, 65000, 500): #31000
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -379,8 +379,8 @@ if __name__ == '__main__':
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
         print("1 sided T-test result (p-value): {}".format(ttest[1]))
         ttest_array.append(ttest[1])
-        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-        #                                                         "ttest_scores.pkl"))
+        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+                                                                "ttest_scores.pkl"))
 
         # pylab.figure(), pylab.hist(saliency_diff, label="difference")
         # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))

@@ -96,7 +96,7 @@ def plot_figures(waveform, feats, posterior, mask, y, y_pred, iteration, hparams
     ax[0].set_ylabel('Magnitude', fontsize = 20) #ylabel
     # pylab.tight_layout()
     
-    ax[1].imshow(np.log10(np.abs(feats) + 1e-10), aspect="auto", origin="lower",
+    ax[1].imshow(np.abs(feats), aspect="auto", origin="lower",
                    interpolation='none')
     ax[1].plot(251*mask_thresh, "w", linewidth=4.0)
     ax[1].set_xlabel('Time',fontsize = 20) #xlabel
@@ -283,8 +283,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pred_array.append(y_pred)
         targ_array.append(y)
 
-        # plot_figures(x, feats, posterior, mask_sample, y, 
-        #               y_pred, iteration+1, hparams)
+        plot_figures(x, feats, posterior, mask_sample, y, 
+                      y_pred, iteration+1, hparams)
 
         # if not math.isnan(reduced_loss):
         #     duration = time.perf_counter() - start
@@ -321,7 +321,7 @@ if __name__ == '__main__':
                                                 hparams.output_directory,
                                                 hparams.checkpoint_path_inference,
                                                 hparams,
-                                                valid=False,
+                                                valid=True,
                                                 )
     
     pred_array = np.asarray(pred_array)

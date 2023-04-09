@@ -70,7 +70,7 @@ def create_hparams(**kwargs):
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_78000", #"./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_energy_value_mask/checkpoint_154000",
         "checkpoint_path_rate": "",
-        "checkpoint_path_inference": "./masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.5_TD_RL_lr_1e-7_energy_value_mask/checkpoint", #"./masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.15_TD_RL_lr_1e-7_energy_value_mask_intent_score_maximization_inc_ent/checkpoint",
+        "checkpoint_path_inference": "./masked_predictor_output/OnlyRate_entropy_0.08_exploit_0.15_TD_RL_lr_1e-7_evm_intent_max_inc_ent_wsola_aug/checkpoint", #"./masked_predictor_output/OnlyRate_entropy_0.1_exploit_0.15_TD_RL_lr_1e-7_energy_value_mask_intent_score_maximization_inc_ent/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
