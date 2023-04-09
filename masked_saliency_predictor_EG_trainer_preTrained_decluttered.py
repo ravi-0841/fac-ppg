@@ -162,7 +162,7 @@ def validate(model_saliency, model_rate, WSOLA, criterion, valset,
             
             ## direct score maximization
             intent_indices = torch.argmax(intent, dim=-1)
-            loss_rate = -1 * y_pred.gather(1,intent_indices.view(-1,1)).view(-1)
+            loss_rate = 1 - y_pred.gather(1,intent_indices.view(-1,1)).view(-1)
             
             ## minimizing a target saliency distribution
             # loss_rate = torch.sum(torch.abs(y_pred - intent), dim=-1)
