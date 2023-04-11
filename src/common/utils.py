@@ -238,7 +238,7 @@ def intended_saliency(batch_size, consistent=False,
                                           replacement=True)
 
     emotion_codes = torch.nn.functional.one_hot(emotion_cats, 5).float().to("cuda")
-    return emotion_codes
+    return emotion_codes, emotion_cats.to("cuda")
 
 
 

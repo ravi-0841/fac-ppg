@@ -272,7 +272,7 @@ class RateLoss(nn.Module):
         
     def forward(self, x, hparams, WSOLA, 
                 model_saliency, rate_distribution, 
-                mask_sample, intent_saliency, 
+                mask_sample, intent_cats, 
                 additional_criterion, uniform=False):
         if np.random.rand() <= hparams.exploitation_prob:
             index = torch.argmax(rate_distribution, dim=-1) #exploit
@@ -295,9 +295,9 @@ class RateLoss(nn.Module):
         _, _, mod_mask, mod_saliency = model_saliency(mod_speech, mod_e)
         
         ## directly maximize score of intended index
-        intent_saliency_indices = torch.argmax(intent_saliency, dim=-1)
+        # intent_saliency_indices = torch.argmax(intent_saliency, dim=-1)
         # loss_rate_l1 = -1 * mod_saliency.gather(1,intent_saliency_indices.view(-1,1)).view(-1)
-        loss_rate_l1 = 1 - mod_saliency.gather(1,intent_saliency_indices.view(-1,1)).view(-1)
+        loss_rate_l1 = 1 - mod_saliency.gather(1,intent_cats.view(-1,1)).view(-1)
         
         ## Minimizing intended saliency
         # loss_rate_l1 = torch.sum(torch.abs(mod_saliency - intent_saliency), dim=-1)

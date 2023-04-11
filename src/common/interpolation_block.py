@@ -22,8 +22,17 @@ class WSOLAInterpolation():
         self.tolerance = tolerance
         self.wsola_func = wsola
     
-    def __create_tsf__(self, ):
-        return None
+    def __create_tsf__(self, mask, rate):
+        x = librosa.frames_to_samples(np.arange(0, len(mask)), 
+                                      hop_length=self.hop_size)
+        y = np.ones((len(mask),))
+        y[0] = 0
+        y[np.where(mask>0)[0]] = rate
+        y = librosa.frames_to_samples(np.cumsum(y), 
+                                      hop_length=self.hop_size)
+        
+        samp_points = np.vstack((x.reshape(1,-1), y.reshape(1,-1)))
+        return samp_points
     
     def __call__(self, mask, rate, speech):
         # mask -> [1, #Time]
@@ -33,14 +42,8 @@ class WSOLAInterpolation():
         rate = rate.cpu().numpy()
         speech = speech.detach().squeeze().cpu().numpy()
         
-        x = librosa.frames_to_samples(np.arange(0, len(mask)), 
-                                      hop_length=self.hop_size)
-        y = np.ones((len(mask),))
-        y[np.where(mask>0)[0]] = rate
-        y = librosa.frames_to_samples(np.cumsum(y), 
-                                      hop_length=self.hop_size)
+        samp_points = self.__create_tsf__(mask, rate)
         
-        samp_points = np.vstack((x.reshape(1,-1), y.reshape(1,-1)))
         speech_modified = self.wsola_func(x=speech, 
                                          s=samp_points,
                                          win_size=self.win_size,
@@ -58,8 +61,17 @@ class WSOLAInterpolationEnergy():
         self.tolerance = tolerance
         self.wsola_func = wsola
     
-    def __create_tsf__(self, ):
-        return None
+    def __create_tsf__(self, mask, rate):
+        x = librosa.frames_to_samples(np.arange(0, len(mask)), 
+                                      hop_length=self.hop_size)
+        y = np.ones((len(mask),))
+        y[0] = 0
+        y[np.where(mask>0)[0]] = rate
+        y = librosa.frames_to_samples(np.cumsum(y), 
+                                      hop_length=self.hop_size)
+        
+        samp_points = np.vstack((x.reshape(1,-1), y.reshape(1,-1)))
+        return samp_points
     
     def __call__(self, mask, rate, speech):
         # mask -> [1, #Time]
@@ -69,14 +81,7 @@ class WSOLAInterpolationEnergy():
         rate = rate.cpu().numpy()
         speech = speech.detach().squeeze().cpu().numpy()
         
-        x = librosa.frames_to_samples(np.arange(0, len(mask)), 
-                                      hop_length=self.hop_size)
-        y = np.ones((len(mask),))
-        y[np.where(mask>0)[0]] = rate
-        y = librosa.frames_to_samples(np.cumsum(y), 
-                                      hop_length=self.hop_size)
-        
-        samp_points = np.vstack((x.reshape(1,-1), y.reshape(1,-1)))
+        samp_points = self.__create_tsf__(mask, rate)
         speech_modified = self.wsola_func(x=speech, 
                                          s=samp_points,
                                          win_size=self.win_size,
@@ -109,6 +114,7 @@ class BatchWSOLAInterpolation():
         x = librosa.frames_to_samples(np.arange(0, len(mask)), 
                                       hop_length=self.hop_size)
         y = np.ones((len(mask),))
+        y[0] = 0
         y[np.where(mask>0)[0]] = rate
         y = librosa.frames_to_samples(np.cumsum(y), 
                                       hop_length=self.hop_size)
@@ -178,6 +184,7 @@ class BatchWSOLAInterpolationEnergy():
         x = librosa.frames_to_samples(np.arange(0, len(mask)), 
                                       hop_length=self.hop_size)
         y = np.ones((len(mask),))
+        y[0] = 0
         y[np.where(mask>0)[0]] = rate
         y = librosa.frames_to_samples(np.cumsum(y), 
                                       hop_length=self.hop_size)

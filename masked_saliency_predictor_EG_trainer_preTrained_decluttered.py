@@ -148,7 +148,8 @@ def validate(model_saliency, model_rate, WSOLA, criterion, valset,
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
             x, em = batch[0].to("cuda"), batch[1].to("cuda")
-            intent = intended_saliency(batch_size=batch_size, consistent=consistency)
+            intent, cats = intended_saliency(batch_size=batch_size, 
+                                             consistent=consistency)
             feats, posterior, mask_sample, orig_pred = model_saliency(x, em)
 
             rate_distribution = model_rate(feats, mask_sample, intent)
@@ -161,8 +162,8 @@ def validate(model_saliency, model_rate, WSOLA, criterion, valset,
             _, _, _, y_pred = model_saliency(mod_speech, mod_e)
             
             ## direct score maximization
-            intent_indices = torch.argmax(intent, dim=-1)
-            loss_rate = 1 - y_pred.gather(1,intent_indices.view(-1,1)).view(-1)
+            # intent_indices = torch.argmax(intent, dim=-1)
+            loss_rate = 1 - y_pred.gather(1,cats.view(-1,1)).view(-1)
             
             ## minimizing a target saliency distribution
             # loss_rate = torch.sum(torch.abs(y_pred - intent), dim=-1)
@@ -288,8 +289,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 feats, posterior, mask_sample, y_pred = model_saliency(x, e)
                 
                 # Intended Saliency
-                intent_saliency = intended_saliency(batch_size=hparams.batch_size, 
-                                                    consistent=hparams.minibatch_consistency)
+                intent_saliency, intent_cats = intended_saliency(batch_size=hparams.batch_size, 
+                                                                 consistent=hparams.minibatch_consistency)
                 
                 # Rate prediction
                 rate_distribution = model_rate(feats.detach(), # .detach()
@@ -298,7 +299,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 
                 loss_rate = criterion3(x, hparams, WSOLA, model_saliency, 
                                        rate_distribution, mask_sample, 
-                                       intent_saliency, criterion2, uniform=True)
+                                       intent_cats, criterion2, uniform=True)
                 
                 
                 reduced_loss_rate = loss_rate.item()

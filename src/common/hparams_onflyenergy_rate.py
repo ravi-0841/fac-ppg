@@ -66,7 +66,7 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "TD_RL_lr_1e-7_evm_intent_max_inc_ent_wsola_aug", # extra description for logging/identification
+        "extended_desc": "TD_RL_lr_1e-7_evm_bs_16", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_78000",
         "checkpoint_path_rate": "",
@@ -122,13 +122,13 @@ def create_hparams(**kwargs):
         "temp_scale": 5.0, #15.0
         "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,
-        "learning_rate_rate": 1e-7, #1e-6
+        "learning_rate_rate": 1e-7, #1e-7
         "learning_rate_decay": 0.912011, #0.955
         "learning_rate_lb": 1e-6, #1e-6
         "learning_rate_ub": 1e-5, #1e-4
         "weight_decay": 1e-6, #1e-6
         "grad_clip_thresh": 1.0,
-        "batch_size": 8, #8
+        "batch_size": 16, #8
         "minibatch_consistency": False,
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.01, # Bernoulli parameter for sampling 1st entry of the mask
