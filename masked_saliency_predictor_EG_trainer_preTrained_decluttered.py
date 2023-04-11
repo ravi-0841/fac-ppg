@@ -318,8 +318,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                     print("Train loss {} {:.6f} Grad Norm Rate {:.6f} {:.2f}s/it".format(
                         iteration, reduced_loss_rate, grad_norm_rate, duration))
                     logger.log_training_rate(reduced_loss_rate, grad_norm_rate, 
-                                             learning_rate_rate, duration, 
-                                             iteration)
+                                             learning_rate_rate, 
+                                             hparams.exploitation_prob, 
+                                             duration, iteration)
 
                 if (iteration % hparams.iters_per_checkpoint == 0):
                     validate(model_saliency, model_rate, WSOLA, criterion1, valset, 
@@ -330,7 +331,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                     if learning_rate_rate > hparams.learning_rate_lb:
                         learning_rate_rate *= hparams.learning_rate_decay
                     
-                    if hparams.exploitation_prob <= 0.75:
+                    if hparams.exploitation_prob <= 0.8:
                         hparams.exploitation_prob *= hparams.exploration_decay
                     
                     # Saving the model
