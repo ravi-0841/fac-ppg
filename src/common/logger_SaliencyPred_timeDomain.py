@@ -67,7 +67,7 @@ class SaliencyPredictorLogger(SummaryWriter):
         self.add_scalar("training.loss.rate", reduced_loss, iteration)
         self.add_scalar("grad.norm.rate", grad_norm, iteration)
         self.add_scalar("learning.rate.rate", learning_rate, iteration)
-        self.add_scaler("exploitation.probability", exploitation_prob)
+        self.add_scalar("exploitation.probability", exploitation_prob)
 
     def log_validation(self, reduced_loss, model_saliency, model_rate, x, y, 
                        y_pred, posterior, mask_sample, rate_dist, 
