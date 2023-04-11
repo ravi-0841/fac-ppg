@@ -280,10 +280,12 @@ class RateLoss(nn.Module):
             # index = torch.multinomial(rate_distribution, 1) #explore using predictive distribution
             if uniform:
                 index = torch.multinomial(torch.ones((rate_distribution.shape[1])), 
-                                        x.shape[0])
+                                        x.shape[0], 
+                                        replacement=True)
                 index = index.to("cuda")
             else:
-                index = torch.multinomial(rate_distribution, 1) #explore
+                index = torch.multinomial(rate_distribution, 1, 
+                                          replacement=True) #explore
             
 
         rate = 0.5 + 0.1*index #0.2*index
