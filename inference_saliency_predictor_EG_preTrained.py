@@ -199,7 +199,7 @@ def compute_MI(marg1, marg2, joint):
             mi += (joint[r,c]*np.log(joint[r,c]/(marg1[r]*marg2[c])))         
     return mi
 
-
+#%%
 def test(output_directory, checkpoint_path_rate, 
         checkpoint_path_saliency, hparams, 
         relative_prob, valid=True):
@@ -321,7 +321,7 @@ def test(output_directory, checkpoint_path_rate,
     return (cunk_array, saliency_targ_array, saliency_pred_array, 
             rate_pred_array, factor_array, factor_dist_array)
 
-
+#%%
 if __name__ == '__main__':
     hparams = create_hparams()
 
@@ -339,7 +339,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(750, 150750, 750):
+    for m in range(137250, 137500, 750):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -360,7 +360,7 @@ if __name__ == '__main__':
                                                 hparams.checkpoint_path_saliency,
                                                 hparams,
                                                 emo_prob_dict[emo_target],
-                                                valid=True,
+                                                valid=False,
                                             )
         
         pred_array = np.asarray(pred_array)
@@ -379,8 +379,8 @@ if __name__ == '__main__':
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
         print("1 sided T-test result (p-value): {}".format(ttest[1]))
         ttest_array.append(ttest[1])
-        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
+        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
 
         # pylab.figure(), pylab.hist(saliency_diff, label="difference")
         # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
@@ -422,11 +422,11 @@ if __name__ == '__main__':
         # pylab.close("all")
 
     #%%
-    # x = np.arange(500, 65000, 500)
-    # angry_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.08_exploit_0.15_TD_RL_lr_1e-7_evm_intent_max_inc_ent_wsola_aug/images_valid_angry/ttest_scores.pkl")["ttest_scores"]
-    # happy_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.08_exploit_0.15_TD_RL_lr_1e-7_evm_intent_max_inc_ent_wsola_aug/images_valid_happy/ttest_scores.pkl")["ttest_scores"]
-    # sad_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.08_exploit_0.15_TD_RL_lr_1e-7_evm_intent_max_inc_ent_wsola_aug/images_valid_sad/ttest_scores.pkl")["ttest_scores"]
-    # fear_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.08_exploit_0.15_TD_RL_lr_1e-7_evm_intent_max_inc_ent_wsola_aug/images_valid_fear/ttest_scores.pkl")["ttest_scores"]
+    # x = np.arange(750, 150750, 750)
+    # angry_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/images_valid_angry/ttest_scores.pkl")["ttest_scores"]
+    # happy_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/images_valid_happy/ttest_scores.pkl")["ttest_scores"]
+    # sad_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/images_valid_sad/ttest_scores.pkl")["ttest_scores"]
+    # fear_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/images_valid_fear/ttest_scores.pkl")["ttest_scores"]
     
     # pylab.figure()
     # pylab.plot(x, angry_scores, "o", label="angry")
