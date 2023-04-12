@@ -63,7 +63,7 @@ class OnTheFlyAugmentor():
 
     def _get_random_factor(self, 
                            lower_factor=0.75,
-                           upper_factor=1.5):
+                           upper_factor=1.35):
         return lower_factor + (upper_factor - lower_factor)*np.random.rand()
 
 

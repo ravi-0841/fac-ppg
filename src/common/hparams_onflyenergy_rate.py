@@ -53,8 +53,8 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 400,
-        "iters_per_checkpoint": 500,
+        "epochs": 500,
+        "iters_per_checkpoint": 750,
         "seed": 1107,
         "dynamic_loss_scaling": True,
         "fp16_run": False,
@@ -66,11 +66,11 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "TD_RL_lr_1e-7_evm_bs_12", # extra description for logging/identification
+        "extended_desc": "TD_RL_lr_1e-7_evm_bs_4", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_78000",
         "checkpoint_path_rate": "",
-        "checkpoint_path_inference": "./masked_predictor_output/OnlyRate_entropy_0.08_exploit_0.15_TD_RL_lr_1e-7_evm_intent_max_inc_ent_wsola_aug/checkpoint",
+        "checkpoint_path_inference": "./masked_predictor_output/OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
@@ -128,7 +128,7 @@ def create_hparams(**kwargs):
         "learning_rate_ub": 1e-5, #1e-4
         "weight_decay": 1e-6, #1e-6
         "grad_clip_thresh": 1.0,
-        "batch_size": 12, #8
+        "batch_size": 4, #8
         "minibatch_consistency": False,
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.01, # Bernoulli parameter for sampling 1st entry of the mask
