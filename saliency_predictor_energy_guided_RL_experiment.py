@@ -183,23 +183,24 @@ class MaskGenerator(nn.Module):
 class RatePredictor(nn.Module):
     def __init__(self, temp_scale=1.0): #50
         super(RatePredictor, self).__init__()
+        self.thresh = nn.Threshold(-1e-6, -1)
         self.temp_scale = temp_scale
         self.emo_projection = nn.Linear(in_features=5, out_features=64)
         # self.bn1 = nn.BatchNorm1d(576)
         self.joint_projection = nn.Linear(in_features=576, out_features=512)
         self.bn1 = nn.BatchNorm1d(512)
         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=512, 
-                                                               nhead=8, 
+                                                               nhead=4, 
                                                                dim_feedforward=512,
                                                                dropout=0.1)
         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
-                                                         num_layers=4)
+                                                         num_layers=3)
         self.bn2 = nn.BatchNorm1d(512)
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
-                                       num_layers=1, bidirectional=False, 
+                                       num_layers=2, bidirectional=True, 
                                        dropout=0.1)
-        self.bn3 = nn.BatchNorm1d(256)
-        self.linear_layer = nn.Linear(in_features=256, out_features=11) #6
+        self.bn3 = nn.BatchNorm1d(512)
+        self.linear_layer = nn.Linear(in_features=512, out_features=11) #6
         self.softmax = nn.Softmax(dim=-1)
         self.elu = nn.ELU(inplace=True)
     
@@ -208,7 +209,7 @@ class RatePredictor(nn.Module):
         # e -> [batch, 5] one-hot encoding for [Neutral, Angry, Happy, Sad, Fearful]
         # m -> [batch, #time, 512] -> [batch, 512, #time]
         
-        m = m.permute(0,2,1)
+        m = -1*self.thresh(-1*m.permute(0,2,1))
         x = x + x*m
         e_proj = self.emo_projection(e).unsqueeze(dim=-1).repeat(1,1,x.shape[2])
         joint_x = torch.cat((x, e_proj), dim=1)
