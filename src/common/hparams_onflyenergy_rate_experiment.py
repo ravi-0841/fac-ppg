@@ -70,7 +70,7 @@ def create_hparams(**kwargs):
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_78000",
         "checkpoint_path_rate": "",
-        "checkpoint_path_inference": "./masked_predictor_output/OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/checkpoint",
+        "checkpoint_path_inference": "./masked_predictor_output/OnlyRate_entropy_0.05_exploit_0.15_lr_1e-7_evm_bs_8_cosine_lr_bigger/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
@@ -118,7 +118,7 @@ def create_hparams(**kwargs):
         # Optimization Hyperparameters #
         ################################
         "exploitation_prob": 0.15,
-        "lambda_entropy": 0.25, # 0.1
+        "lambda_entropy": 0.05, # 0.1
         "temp_scale": 5.0, #15.0
         "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,
