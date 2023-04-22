@@ -305,8 +305,7 @@ if __name__ == '__main__':
     
     ckpt_path = hparams.checkpoint_path_inference
     hparams.output_directory = os.path.join(
-                                        hparams.output_directory, 
-                                        ckpt_path.split("/")[2],
+                                        hparams.output_directory,
                                         "cremad_images_valid",
                                         )
 
