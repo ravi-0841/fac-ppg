@@ -8,6 +8,7 @@ Created on Tue Feb  7 14:28:20 2023
 
 
 import os
+import sys
 import time
 import math
 import torch
@@ -295,10 +296,10 @@ def test(output_directory, checkpoint_path_rate,
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            # plot_figures(feats, x, mod_speech, posterior, 
-            #               mask_sample, y, y_pred, 
-            #               rate_distribution,
-            #               iteration+1, hparams)
+            plot_figures(feats, x, mod_speech, posterior, 
+                          mask_sample, y, y_pred, 
+                          rate_distribution,
+                          iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -325,7 +326,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "happy"
+    emo_target = sys.argv[1] #"angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -339,7 +340,8 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(137250, 137500, 750):
+    # for m in range(137250, 137500, 750):
+    for m in range(85500, 85700, 750):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -360,7 +362,7 @@ if __name__ == '__main__':
                                                 hparams.checkpoint_path_saliency,
                                                 hparams,
                                                 emo_prob_dict[emo_target],
-                                                valid=False,
+                                                valid=True,
                                             )
         
         pred_array = np.asarray(pred_array)

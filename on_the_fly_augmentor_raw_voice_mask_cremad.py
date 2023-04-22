@@ -137,17 +137,22 @@ class OnTheFlyAugmentor():
         
         rate_vals = np.zeros((1,5))
         if emo_level[1] == "HI":
-            rate_vals[0,emo_dict[emo_level[0]]] = 1
+            rate_vals[0,emo_dict[emo_level[0]]] += 1
         elif emo_level[1] == "MD":
-            rate_vals[0,emo_dict[emo_level[0]]] = 0.7
-            rate_vals[0,0] = 0.3
+            rate_vals[0,emo_dict[emo_level[0]]] += 0.8
+            rate_vals[0,0] += 0.2
         elif emo_level[1] == "LO":
-            rate_vals[0,emo_dict[emo_level[0]]] = 0.5
-            rate_vals[0,0] = 0.3
+            rate_vals[0,emo_dict[emo_level[0]]] += 0.6
+            rate_vals[0,0] += 0.3
             new_choice = np.random.choice(list(emo_dict.keys()))
-            rate_vals[0,emo_dict[new_choice]] = 0.2
+            rate_vals[0,emo_dict[new_choice]] += 0.1
         else:
-            rate_vals[0,:] = 0.2
+            rate_vals[0,emo_dict[emo_level[0]]] = 0.5
+            rate_vals[0,0] += 0.3
+            new_choice = np.random.choice(list(emo_dict.keys()))
+            rate_vals[0,emo_dict[new_choice]] += 0.1
+            new_choice = np.random.choice(list(emo_dict.keys()))
+            rate_vals[0,emo_dict[new_choice]] += 0.1
 
         return rate_vals
 
@@ -157,11 +162,10 @@ class OnTheFlyAugmentor():
         emo_level = os.path.splitext(os.path.basename(path))[0]
         emo_level = emo_level.split("_")[-2:]
         speech_data, voice_mask, sr = self._get_signal_factor(path) # self._get_signal()
-        speech_stft = self._extract_stft_feats(speech_data)
-        speech_stft = torch.sqrt(speech_stft[:,:,0]**2 + speech_stft[:,:,1]**2)
+        # speech_stft = self._extract_stft_feats(speech_data)
+        # speech_stft = torch.sqrt(speech_stft[:,:,0]**2 + speech_stft[:,:,1]**2)
         rating = self._rating_structure(emo_level)
         return (
-                speech_stft,
                 torch.from_numpy(speech_data).float(),
                 torch.from_numpy(voice_mask).float(),
                 torch.from_numpy(rating).float(),
@@ -179,7 +183,7 @@ def acoustics_collate_raw(batch):
 
     Args:
         batch: An array with B elements, each is a tuple 
-        (stft, speech_wav, tar_rating, sampling_rate).
+        (speech_wav, energy_mask, tar_rating, sampling_rate, path_name).
 
     Returns:
         speech_padded: A (batch_size, 1, num_samples)
@@ -191,12 +195,12 @@ def acoustics_collate_raw(batch):
     # Right zero-pad all PPG sequences to max input length.
     # x is (PPG, acoustic), x[0] is PPG, which is an (L(varied), D) tensor.
     input_lengths, ids_sorted_decreasing = torch.sort(
-        torch.LongTensor([x[1].shape[1] for x in batch]), dim=0,
+        torch.LongTensor([x[0].shape[1] for x in batch]), dim=0,
         descending=True)
     max_input_len = input_lengths[0]
 
     input_lengths_mask, _ = torch.sort(
-        torch.LongTensor([x[2].shape[1] for x in batch]), dim=0,
+        torch.LongTensor([x[1].shape[1] for x in batch]), dim=0,
         descending=True)
     max_input_len_mask = input_lengths_mask[0]
 
@@ -210,10 +214,10 @@ def acoustics_collate_raw(batch):
     tar_ratings.zero_()
     
     for i in range(len(ids_sorted_decreasing)):
-        curr_speech = batch[ids_sorted_decreasing[i]][1]
-        curr_voice_mask = batch[ids_sorted_decreasing[i]][2]
-        curr_tar_rate = batch[ids_sorted_decreasing[i]][3]
-        curr_path = batch[ids_sorted_decreasing[i]][5]
+        curr_speech = batch[ids_sorted_decreasing[i]][0]
+        curr_voice_mask = batch[ids_sorted_decreasing[i]][1]
+        curr_tar_rate = batch[ids_sorted_decreasing[i]][2]
+        curr_path = batch[ids_sorted_decreasing[i]][4]
 
         speech_padded[i, :, :curr_speech.shape[1]] = curr_speech
         speech_padded[i, :, curr_speech.shape[1]:] = 0
@@ -250,7 +254,9 @@ if __name__ == "__main__":
     for i, batch in enumerate(dataloader):
         signal = batch[0][2].cpu().numpy().reshape(-1,)
         voice_mask = batch[1][2].cpu().numpy().reshape(-1,)
-        name = batch[2][2]   
+        rate = batch[2][2].cpu().numpy().reshape(-1,)
+        name = batch[3][2]
+        print(np.sum(rate))
         
         pylab.xticks(fontsize=18)
         pylab.yticks(fontsize=18)
@@ -264,7 +270,7 @@ if __name__ == "__main__":
         ax[1].set_xlabel('Time',fontsize=15) #xlabel
         ax[1].set_ylabel('RMS Value', fontsize=15) #ylabel
         
-        pylab.suptitle("Utterance {}, name-{}".format(i+1, name))
+        pylab.suptitle("Utterance {}, rate- {}, name-{}".format(i+1, rate, name))
         
         pylab.savefig("./masked_predictor_output/test_images/{}.png".format(i+1))
         pylab.close()
