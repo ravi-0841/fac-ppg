@@ -67,10 +67,10 @@ def create_hparams(**kwargs):
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
         "extended_desc": "BiLSTM_maskGen_evm_wsola_aug", # extra description for logging/identification
-        "checkpoint_path": "", #"./masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_mask_trans_rate_beta_0.75_mix_entropy_eval/checkpoint_193500",  # Path to a checkpoint file.
-        "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen/checkpoint_102000",
+        "checkpoint_path": "", # Path to a checkpoint file.
+        "checkpoint_path_saliency": "",
         "checkpoint_path_rate": "",
-        "checkpoint_path_inference": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_78000", #"./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_energy_value_mask/checkpoint_154000",
+        "checkpoint_path_inference": "",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
