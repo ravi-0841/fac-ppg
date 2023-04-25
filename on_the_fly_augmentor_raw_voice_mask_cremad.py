@@ -101,9 +101,9 @@ class OnTheFlyAugmentor():
         # if sr != self.hparams.sampling_rate:
         #     clean_data = librosa.resample(clean_data, sr, self.hparams.sampling_rate)
         
-        clean_data = librosa.resample(clean_data.reshape(-1,), 
-                                      orig_sr=sr, 
-                                      target_sr=self.hparams.sampling_rate)
+        # clean_data = librosa.resample(clean_data.reshape(-1,), 
+        #                               orig_sr=sr, 
+        #                               target_sr=self.hparams.sampling_rate)
         
         if self.augment:
             random_factor = self._get_random_factor()
@@ -119,9 +119,10 @@ class OnTheFlyAugmentor():
                                     frame_length=self.hparams.win_length,
                                     hop_length=self.hparams.hop_length,
                                     center=True)
+        # print(path)
         energy = energy.reshape(-1,)
         voice_mask = np.zeros((len(energy,)))
-        voice_mask[np.where(energy>7e-3)[0]] = 1
+        voice_mask[np.where(energy>1e-3)[0]] = 1
         idx = np.where(voice_mask==1)[0]
         voice_mask[idx[0]:idx[-1]] = 1
         voice_mask = np.multiply(voice_mask, energy)
@@ -140,19 +141,21 @@ class OnTheFlyAugmentor():
             rate_vals[0,emo_dict[emo_level[0]]] += 1
         elif emo_level[1] == "MD":
             rate_vals[0,emo_dict[emo_level[0]]] += 0.8
-            rate_vals[0,0] += 0.2
+            new_choices = np.random.choice(list(emo_dict.keys()), 2, replace=True)
+            rate_vals[0,emo_dict[new_choices[0]]] += 0.1
+            rate_vals[0,emo_dict[new_choices[1]]] += 0.1
         elif emo_level[1] == "LO":
-            rate_vals[0,emo_dict[emo_level[0]]] += 0.6
-            rate_vals[0,0] += 0.3
-            new_choice = np.random.choice(list(emo_dict.keys()))
-            rate_vals[0,emo_dict[new_choice]] += 0.1
+            rate_vals[0,emo_dict[emo_level[0]]] += 0.7
+            new_choices = np.random.choice(list(emo_dict.keys()), 3, replace=True)
+            rate_vals[0,emo_dict[new_choices[0]]] += 0.1
+            rate_vals[0,emo_dict[new_choices[1]]] += 0.1
+            rate_vals[0,emo_dict[new_choices[2]]] += 0.1
         else:
-            rate_vals[0,emo_dict[emo_level[0]]] = 0.5
-            rate_vals[0,0] += 0.3
-            new_choice = np.random.choice(list(emo_dict.keys()))
-            rate_vals[0,emo_dict[new_choice]] += 0.1
-            new_choice = np.random.choice(list(emo_dict.keys()))
-            rate_vals[0,emo_dict[new_choice]] += 0.1
+            rate_vals[0,emo_dict[emo_level[0]]] += 0.6
+            new_choices = np.random.choice(list(emo_dict.keys()), 3, replace=True)
+            rate_vals[0,emo_dict[new_choices[0]]] += 0.2
+            rate_vals[0,emo_dict[new_choices[1]]] += 0.1
+            rate_vals[0,emo_dict[new_choices[2]]] += 0.1
 
         return rate_vals
 
@@ -236,7 +239,7 @@ if __name__ == "__main__":
     hparams = create_hparams()
 
     dataclass = OnTheFlyAugmentor(
-                                utterance_paths_file="./speechbrain_data/cremad_train.txt",
+                                utterance_paths_file="./speechbrain_data/cremad_valid.txt",
                                 hparams=hparams,
                                 augment=False,
                                 )
@@ -244,42 +247,42 @@ if __name__ == "__main__":
     print(dataclass[10][1].shape)
     dataloader = DataLoader(
                             dataclass,
-                            num_workers=1,
+                            num_workers=0,
                             shuffle=False,
                             sampler=None,
-                            batch_size=8,
+                            batch_size=1,
                             drop_last=True,
                             collate_fn=acoustics_collate_raw,
                             )
     for i, batch in enumerate(dataloader):
-        signal = batch[0][2].cpu().numpy().reshape(-1,)
-        voice_mask = batch[1][2].cpu().numpy().reshape(-1,)
-        rate = batch[2][2].cpu().numpy().reshape(-1,)
-        name = batch[3][2]
-        print(np.sum(rate))
+        signal = batch[0][0].cpu().numpy().reshape(-1,)
+        voice_mask = batch[1][0].cpu().numpy().reshape(-1,)
+        rate = batch[2][0].cpu().numpy().reshape(-1,)
+        name = batch[3][0]
+        print(name, np.sum(rate))
         
-        pylab.xticks(fontsize=18)
-        pylab.yticks(fontsize=18)
-        fig, ax = pylab.subplots(2, 1, figsize=(30, 10))
+        # pylab.xticks(fontsize=18)
+        # pylab.yticks(fontsize=18)
+        # fig, ax = pylab.subplots(2, 1, figsize=(30, 10))
         
-        ax[0].plot(signal, linewidth=1.5, color='k')
-        ax[0].set_xlabel('Time',fontsize=15) #xlabel
-        ax[0].set_ylabel('Magnitude', fontsize=15) #ylabel
+        # ax[0].plot(signal, linewidth=1.5, color='k')
+        # ax[0].set_xlabel('Time',fontsize=15) #xlabel
+        # ax[0].set_ylabel('Magnitude', fontsize=15) #ylabel
 
-        ax[1].plot(voice_mask, linewidth=2.5)
-        ax[1].set_xlabel('Time',fontsize=15) #xlabel
-        ax[1].set_ylabel('RMS Value', fontsize=15) #ylabel
+        # ax[1].plot(voice_mask, linewidth=2.5)
+        # ax[1].set_xlabel('Time',fontsize=15) #xlabel
+        # ax[1].set_ylabel('RMS Value', fontsize=15) #ylabel
         
-        pylab.suptitle("Utterance {}, rate- {}, name-{}".format(i+1, rate, name))
+        # pylab.suptitle("Utterance {}, rate- {}, name-{}".format(i+1, rate, name))
         
-        pylab.savefig("./masked_predictor_output/test_images/{}.png".format(i+1))
-        pylab.close()
+        # pylab.savefig("./masked_predictor_output/test_images/{}.png".format(i+1))
+        # pylab.close()
         
-        # print(torch.div(batch[2], 160, rounding_mode="floor") - len(energy))
-        # print(batch[2].dtype, torch.div(batch[2], 160, rounding_mode="floor").dtype)
+        # # print(torch.div(batch[2], 160, rounding_mode="floor") - len(energy))
+        # # print(batch[2].dtype, torch.div(batch[2], 160, rounding_mode="floor").dtype)
         
-        if i >= 100:
-            break
+        # if i >= 100:
+        #     break
 
     # src_stft, l, src = dataloader[19]
 

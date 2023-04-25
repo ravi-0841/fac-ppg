@@ -205,53 +205,55 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
             start = time.perf_counter()
             for param_group in optimizer.param_groups:
                 param_group['lr'] = learning_rate
-
-            model.zero_grad()
-            x, e, y, l = (batch[0].to("cuda"), batch[1].to("cuda"),
-                          batch[2].to("cuda"), batch[4])
-            l = torch.div(l, 160, rounding_mode="floor")
-            # input_shape should be [#batch_size, #freq_channels, #time]
-
-            _, posterior, mask, y_pred = model(x, e) #(x, e)
-            
-            loss = (
-                    hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l)
-                    + hparams.lambda_predict*criterion2(y_pred, y)
-                    + hparams.lambda_sparse_KL*criterion3(posterior)
-                )
-            reduced_loss = loss.item()
-
-            loss.backward()
-            grad_norm = torch.nn.utils.clip_grad_norm_(
-                                                        model.parameters(),
-                                                        hparams.grad_clip_thresh,
-                                                    )
-
-            optimizer.step()
-
-            if not math.isnan(reduced_loss) and rank == 0:
-                duration = time.perf_counter() - start
-                print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
-                    iteration, reduced_loss, grad_norm, duration))
-                logger.log_training(reduced_loss, grad_norm, 
-                                    learning_rate, duration, 
-                                    iteration)
-
-            if (iteration % hparams.iters_per_checkpoint == 0):
-                validate(model, criterion2, valset, collate_fn, 
-                         iteration, hparams.batch_size, n_gpus, logger, 
-                         hparams.distributed_run, rank)
-                if learning_rate > hparams.learning_rate_lb:
-                    learning_rate *= hparams.learning_rate_decay
+            try:
+                model.zero_grad()
+                x, e, y, l = (batch[0].to("cuda"), batch[1].to("cuda"),
+                              batch[2].to("cuda"), batch[4])
+                l = torch.div(l, 160, rounding_mode="floor")
+                # input_shape should be [#batch_size, #freq_channels, #time]
+    
+                _, posterior, mask, y_pred = model(x, e) #(x, e)
                 
-                # Saving the model
-                if rank == 0:
-                    checkpoint_path = os.path.join(
-                        output_directory, "checkpoint_{}".format(iteration))
-                    save_checkpoint(model, optimizer, learning_rate, iteration,
-                                    checkpoint_path)
-
-            iteration += 1
+                loss = (
+                        hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l)
+                        + hparams.lambda_predict*criterion2(y_pred, y)
+                        + hparams.lambda_sparse_KL*criterion3(posterior)
+                    )
+                reduced_loss = loss.item()
+    
+                loss.backward()
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                                                            model.parameters(),
+                                                            hparams.grad_clip_thresh,
+                                                        )
+    
+                optimizer.step()
+    
+                if not math.isnan(reduced_loss) and rank == 0:
+                    duration = time.perf_counter() - start
+                    print("Train loss {} {:.6f} Grad Norm {:.6f} {:.2f}s/it".format(
+                        iteration, reduced_loss, grad_norm, duration))
+                    logger.log_training(reduced_loss, grad_norm, 
+                                        learning_rate, duration, 
+                                        iteration)
+    
+                if (iteration % hparams.iters_per_checkpoint == 0):
+                    validate(model, criterion2, valset, collate_fn, 
+                             iteration, hparams.batch_size, n_gpus, logger, 
+                             hparams.distributed_run, rank)
+                    if learning_rate > hparams.learning_rate_lb:
+                        learning_rate *= hparams.learning_rate_decay
+                    
+                    # Saving the model
+                    if rank == 0:
+                        checkpoint_path = os.path.join(
+                            output_directory, "checkpoint_{}".format(iteration))
+                        save_checkpoint(model, optimizer, learning_rate, iteration,
+                                        checkpoint_path)
+    
+                iteration += 1
+            except Exception as ex:
+                print(ex)
 
 
 if __name__ == '__main__':
