@@ -122,7 +122,7 @@ class OnTheFlyAugmentor():
         # print(path)
         energy = energy.reshape(-1,)
         voice_mask = np.zeros((len(energy,)))
-        voice_mask[np.where(energy>1e-3)[0]] = 1
+        voice_mask[np.where(energy>7e-3)[0]] = 1
         idx = np.where(voice_mask==1)[0]
         voice_mask[idx[0]:idx[-1]] = 1
         voice_mask = np.multiply(voice_mask, energy)
@@ -141,18 +141,18 @@ class OnTheFlyAugmentor():
             rate_vals[0,emo_dict[emo_level[0]]] += 1
         elif emo_level[1] == "MD":
             rate_vals[0,emo_dict[emo_level[0]]] += 0.8
-            new_choices = np.random.choice(list(emo_dict.keys()), 2, replace=True)
+            new_choices = np.random.choice(list(emo_dict.keys()), 2, replace=False)
             rate_vals[0,emo_dict[new_choices[0]]] += 0.1
             rate_vals[0,emo_dict[new_choices[1]]] += 0.1
         elif emo_level[1] == "LO":
             rate_vals[0,emo_dict[emo_level[0]]] += 0.7
-            new_choices = np.random.choice(list(emo_dict.keys()), 3, replace=True)
+            new_choices = np.random.choice(list(emo_dict.keys()), 3, replace=False)
             rate_vals[0,emo_dict[new_choices[0]]] += 0.1
             rate_vals[0,emo_dict[new_choices[1]]] += 0.1
             rate_vals[0,emo_dict[new_choices[2]]] += 0.1
         else:
             rate_vals[0,emo_dict[emo_level[0]]] += 0.6
-            new_choices = np.random.choice(list(emo_dict.keys()), 3, replace=True)
+            new_choices = np.random.choice(list(emo_dict.keys()), 3, replace=False)
             rate_vals[0,emo_dict[new_choices[0]]] += 0.2
             rate_vals[0,emo_dict[new_choices[1]]] += 0.1
             rate_vals[0,emo_dict[new_choices[2]]] += 0.1
@@ -239,7 +239,7 @@ if __name__ == "__main__":
     hparams = create_hparams()
 
     dataclass = OnTheFlyAugmentor(
-                                utterance_paths_file="./speechbrain_data/cremad_valid.txt",
+                                utterance_paths_file="./speechbrain_data/cremad_train.txt",
                                 hparams=hparams,
                                 augment=False,
                                 )
@@ -259,7 +259,7 @@ if __name__ == "__main__":
         voice_mask = batch[1][0].cpu().numpy().reshape(-1,)
         rate = batch[2][0].cpu().numpy().reshape(-1,)
         name = batch[3][0]
-        print(name, np.sum(rate))
+        print(name, np.sum(voice_mask))
         
         # pylab.xticks(fontsize=18)
         # pylab.yticks(fontsize=18)
