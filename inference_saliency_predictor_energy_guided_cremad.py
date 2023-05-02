@@ -262,19 +262,19 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
     for i, batch in enumerate(test_loader):
         start = time.perf_counter()
 
-        x, e, n = batch[0].to("cuda"), batch[1].to("cuda"), batch[2]
+        x, e, y = batch[0].to("cuda"), batch[1].to("cuda"), batch[2].to("cuda")
         # input_shape should be [#batch_size, #freq_channels, #time]
 
         #%% Sampling the mask only once
         
         feats, posterior, mask_sample, y_pred = model(x, e)
-        # loss = criterion(y_pred, y)
-        # reduced_loss = loss.item()
-        # loss_array.append(reduced_loss)
+        loss = criterion(y_pred, y)
+        reduced_loss = loss.item()
+        loss_array.append(reduced_loss)
 
         feats = feats.squeeze().detach().cpu().numpy()
         x = x.squeeze().cpu().numpy()
-        # y = y.squeeze().cpu().numpy()
+        y = y.squeeze().cpu().numpy()
         y_pred = y_pred.squeeze().detach().cpu().numpy()
         posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
         mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
@@ -283,10 +283,10 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
 
         # loss_array.append(reduced_loss)
         pred_array.append(y_pred)
-        targ_array.append(y_pred)
+        targ_array.append(y)
 
-        plot_figures(x, feats, posterior, mask_sample, y_pred, 
-                      y_pred, iteration+1, hparams, name=n[0])
+        # plot_figures(x, feats, posterior, mask_sample, y, 
+        #               y_pred, iteration+1, hparams)
 
         # if not math.isnan(reduced_loss):
         #     duration = time.perf_counter() - start
@@ -305,8 +305,9 @@ if __name__ == '__main__':
     
     ckpt_path = hparams.checkpoint_path_inference
     hparams.output_directory = os.path.join(
-                                        hparams.output_directory,
-                                        "cremad_images_valid",
+                                        hparams.output_directory, 
+                                        ckpt_path.split("/")[2],
+                                        "images_valid",
                                         )
 
     if not hparams.output_directory:
@@ -322,7 +323,7 @@ if __name__ == '__main__':
                                                 hparams.output_directory,
                                                 hparams.checkpoint_path_inference,
                                                 hparams,
-                                                valid=True,
+                                                valid=False,
                                                 )
     
     pred_array = np.asarray(pred_array)
