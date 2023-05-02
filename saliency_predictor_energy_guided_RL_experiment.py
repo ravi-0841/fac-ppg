@@ -190,17 +190,17 @@ class RatePredictor(nn.Module):
         self.joint_projection = nn.Linear(in_features=576, out_features=512)
         self.bn1 = nn.BatchNorm1d(512)
         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=512, 
-                                                               nhead=4, 
+                                                               nhead=8, 
                                                                dim_feedforward=512,
-                                                               dropout=0.1)
+                                                               dropout=0.2)
         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
-                                                         num_layers=3)
+                                                         num_layers=2)
         self.bn2 = nn.BatchNorm1d(512)
         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
-                                       num_layers=2, bidirectional=True, 
-                                       dropout=0.1)
-        self.bn3 = nn.BatchNorm1d(512)
-        self.linear_layer = nn.Linear(in_features=512, out_features=11) #6
+                                       num_layers=2, bidirectional=False, 
+                                       dropout=0.2)
+        self.bn3 = nn.BatchNorm1d(256)
+        self.linear_layer = nn.Linear(in_features=256, out_features=11) #6
         self.softmax = nn.Softmax(dim=-1)
         self.elu = nn.ELU(inplace=True)
     
