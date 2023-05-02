@@ -241,6 +241,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                     validate(model, criterion2, valset, collate_fn, 
                              iteration, hparams.batch_size, n_gpus, logger, 
                              hparams.distributed_run, rank)
+                    if iteration == 150000:
+                        learning_rate *= 0.1
                     if learning_rate > hparams.learning_rate_lb:
                         learning_rate *= hparams.learning_rate_decay
                     
