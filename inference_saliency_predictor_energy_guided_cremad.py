@@ -35,12 +35,14 @@ def prepare_dataloaders(hparams, valid=True):
     if valid:
         testset = OnTheFlyAugmentor(
                             utterance_paths_file=hparams.validation_files,
+                            tabular_path=hparams.tabular_path,
                             hparams=hparams,
                             augment=False,
                         )
     else:
         testset = OnTheFlyAugmentor(
                             utterance_paths_file=hparams.testing_files,
+                            tabular_path=hparams.tabular_path,
                             hparams=hparams,
                             augment=False,
                         )

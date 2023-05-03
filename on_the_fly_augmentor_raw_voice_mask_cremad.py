@@ -18,6 +18,7 @@ import librosa
 from collections import Counter
 import numpy as np
 import scipy.signal as scisig
+import pandas as pd
 
 from src.common.hparams_onflyenergy_cremad import create_hparams
 from src.common.wsolatsm import wsola
@@ -30,8 +31,9 @@ class OnTheFlyAugmentor():
                     self, 
                     utterance_paths_file,
                     hparams,
+                    tabular_path,
                     augment=True,
-                    base_folder=""
+                    base_folder="",
                 ):
         
         self.utterance_rating_paths = load_filepaths(utterance_paths_file)
@@ -39,6 +41,8 @@ class OnTheFlyAugmentor():
         self.augment = augment
         self.hparams = hparams
         self.wsola_func = wsola
+        self.tabular_path = tabular_path
+        self.tabular_data = pd.read_csv(self.tabular_path)
 
         
     def _extract_stft_feats(self, data):
@@ -132,7 +136,7 @@ class OnTheFlyAugmentor():
         return clean_data.reshape(1,-1), voice_mask.reshape(1,-1), random_factor
     
     
-    def _rating_structure(self, emo_level):
+    def _rating_structure_ad_hoc(self, emo_level):
 
         emo_dict = {"NEU":0, "ANG":1, "HAP":2, "SAD":3, "FEA":4}
         
@@ -158,6 +162,21 @@ class OnTheFlyAugmentor():
             rate_vals[0,emo_dict[new_choices[2]]] += 0.1
 
         return rate_vals
+    
+    
+    def _rating_structure(self, emo_level, path):
+
+        emo_dict = {"NEU":0, "ANG":1, "HAP":2, "SAD":3, "FEA":4}
+        basename = os.path.splitext(os.path.basename(path))[0]
+        count_N = sum(self.tabular_data.loc[self.tabular_data.fileName == basename]['N'])
+        count_A = sum(self.tabular_data.loc[self.tabular_data.fileName == basename]['A'])
+        count_H = sum(self.tabular_data.loc[self.tabular_data.fileName == basename]['H'])
+        count_S = sum(self.tabular_data.loc[self.tabular_data.fileName == basename]['S'])
+        count_F = sum(self.tabular_data.loc[self.tabular_data.fileName == basename]['F'])
+        array = np.asarray([count_N, count_A, count_H, count_S, count_F])
+        array = array / np.sum(array)
+
+        return np.round(array.reshape((1,5)), 2)
 
 
     def __getitem__(self, index):
@@ -167,7 +186,7 @@ class OnTheFlyAugmentor():
         speech_data, voice_mask, sr = self._get_signal_factor(path) # self._get_signal()
         # speech_stft = self._extract_stft_feats(speech_data)
         # speech_stft = torch.sqrt(speech_stft[:,:,0]**2 + speech_stft[:,:,1]**2)
-        rating = self._rating_structure(emo_level)
+        rating = self._rating_structure(emo_level, path)
         return (
                 torch.from_numpy(speech_data).float(),
                 torch.from_numpy(voice_mask).float(),
@@ -239,7 +258,8 @@ if __name__ == "__main__":
     hparams = create_hparams()
 
     dataclass = OnTheFlyAugmentor(
-                                utterance_paths_file="./speechbrain_data/cremad_train.txt",
+                                utterance_paths_file="./speechbrain_data/cremad_valid.txt",
+                                tabular_path=hparams.tabular_path,
                                 hparams=hparams,
                                 augment=False,
                                 )
@@ -259,7 +279,7 @@ if __name__ == "__main__":
         voice_mask = batch[1][0].cpu().numpy().reshape(-1,)
         rate = batch[2][0].cpu().numpy().reshape(-1,)
         name = batch[3][0]
-        print(name, np.sum(voice_mask))
+        print(name, "\t", np.round(np.sum(voice_mask),2), "\t", rate)
         
         # pylab.xticks(fontsize=18)
         # pylab.yticks(fontsize=18)

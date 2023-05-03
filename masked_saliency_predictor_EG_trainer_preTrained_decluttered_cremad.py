@@ -43,6 +43,7 @@ def prepare_dataloaders(hparams):
     # Get data, data loaders and collate function ready
     trainset = OnTheFlyAugmentor(
                         utterance_paths_file=hparams.training_files,
+                        tabular_path=hparams.tabular_path,
                         hparams=hparams,
                         augment=True,
                     )
@@ -51,6 +52,7 @@ def prepare_dataloaders(hparams):
     hparams.feats_cache_path = ''
     valset = OnTheFlyAugmentor(
                         utterance_paths_file=hparams.validation_files,
+                        tabular_path=hparams.tabular_path,
                         hparams=hparams,
                         augment=False,
                     )

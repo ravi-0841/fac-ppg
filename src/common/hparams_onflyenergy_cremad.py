@@ -67,6 +67,7 @@ def create_hparams(**kwargs):
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
         "extended_desc": "BiLSTM_maskGen_evm_wsola_aug", # extra description for logging/identification
+        "tabular_path": "./speechbrain_data/tabulatedVotes_CREMAD.csv",
         "checkpoint_path": "", # Path to a checkpoint file.
         "checkpoint_path_saliency": "",
         "checkpoint_path_rate": "",
@@ -119,7 +120,7 @@ def create_hparams(**kwargs):
         ################################
         "lambda_prior_KL": 1e-5, # 5e-4
         "lambda_predict": 10.0, # 10
-        "lambda_sparse_KL": 1e-05, # 2e-4
+        "lambda_sparse_KL": 5e-05, # 2e-4
         "lambda_entropy": 1,
         "temp_scale": 5.0, #15.0
         "use_saved_learning_rate": False,
