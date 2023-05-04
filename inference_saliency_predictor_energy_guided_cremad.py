@@ -287,8 +287,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pred_array.append(y_pred)
         targ_array.append(y)
 
-        # plot_figures(x, feats, posterior, mask_sample, y, 
-        #               y_pred, iteration+1, hparams)
+        plot_figures(x, feats, posterior, mask_sample, y, 
+                      y_pred, iteration+1, hparams)
 
         # if not math.isnan(reduced_loss):
         #     duration = time.perf_counter() - start
@@ -325,7 +325,7 @@ if __name__ == '__main__':
                                                 hparams.output_directory,
                                                 hparams.checkpoint_path_inference,
                                                 hparams,
-                                                valid=False,
+                                                valid=True,
                                                 )
     
     pred_array = np.asarray(pred_array)

@@ -69,7 +69,7 @@ def create_hparams(**kwargs):
         "extended_desc": "TD_RL_lr_1e-7_evm_bs_4", # extra description for logging/identification
         "tabular_path": "./speechbrain_data/tabulatedVotes_CREMAD.csv",
         "checkpoint_path": "", # Path to a checkpoint file.
-        "checkpoint_path_saliency": "./masked_predictor_output/cremad_1e-05_10.0_5e-05_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_259000",
+        "checkpoint_path_saliency": "./masked_predictor_output/cremad_1e-05_10.0_5e-05_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_227000",
         "checkpoint_path_rate": "",
         "checkpoint_path_inference": "./masked_predictor_output/CREMAD_OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/checkpoint",
         "warm_start": False,  # Load the model only (warm start)

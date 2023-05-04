@@ -71,7 +71,7 @@ def create_hparams(**kwargs):
         "checkpoint_path": "", # Path to a checkpoint file.
         "checkpoint_path_saliency": "",
         "checkpoint_path_rate": "",
-        "checkpoint_path_inference": "./masked_predictor_output/cremad_1e-05_10.0_5e-05_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_259000",
+        "checkpoint_path_inference": "./masked_predictor_output/cremad_1e-05_10.0_5e-05_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_227000",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
