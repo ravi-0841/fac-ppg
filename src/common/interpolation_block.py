@@ -94,7 +94,7 @@ class WSOLAInterpolationEnergy():
                                       center=True)
         energy_mod = energy_mod.reshape(-1,)
         energy_mask = np.zeros((len(energy_mod),))
-        energy_mask[np.where(energy_mod>1e-3)[0]] = 1
+        energy_mask[np.where(energy_mod>7e-3)[0]] = 1
         idx = np.where(energy_mask==1)[0]
         energy_mask[idx[0]:idx[-1]] = 1
         energy_mask = np.multiply(energy_mask, energy_mod)
@@ -245,7 +245,7 @@ class BatchWSOLAInterpolationEnergy():
                                           center=True)
             energy_mod = energy_mod.reshape(-1,)
             energy_mask = np.zeros((len(energy_mod),))
-            energy_mask[np.where(energy_mod>1e-3)[0]] = 1
+            energy_mask[np.where(energy_mod>7e-3)[0]] = 1
             idx = np.where(energy_mask==1)[0]
             energy_mask[idx[0]:idx[-1]] = 1
             energy_mask = np.multiply(energy_mask, energy_mod)
