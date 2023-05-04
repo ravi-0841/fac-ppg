@@ -82,24 +82,25 @@ class WSOLAInterpolationEnergy():
         speech = speech.detach().squeeze().cpu().numpy()
         
         samp_points = self.__create_tsf__(mask, rate)
-        speech_modified = self.wsola_func(x=speech, 
-                                         s=samp_points,
-                                         win_size=self.win_size,
-                                         syn_hop_size=self.hop_size,
-                                         tolerance=self.tolerance,
-                                         )
-        energy_modified = librosa.feature.rms(y=speech_modified, 
-                                              frame_length=self.win_size,
-                                              hop_length=self.hop_size,
-                                              center=True)
-        energy_modified = energy_modified.reshape(-1,)
-        energy_mask = np.zeros((len(energy_modified),))
-        energy_mask[np.where(energy_modified>1e-3)[0]] = 1
+        speech_mod = self.wsola_func(x=speech, 
+                                     s=samp_points,
+                                     win_size=self.win_size,
+                                     syn_hop_size=self.hop_size,
+                                     tolerance=self.tolerance,
+                                     )
+        energy_mod = librosa.feature.rms(y=speech_mod, 
+                                      frame_length=self.win_size,
+                                      hop_length=self.hop_size,
+                                      center=True)
+        energy_mod = energy_mod.reshape(-1,)
+        energy_mask = np.zeros((len(energy_mod),))
+        energy_mask[np.where(energy_mod>1e-3)[0]] = 1
         idx = np.where(energy_mask==1)[0]
         energy_mask[idx[0]:idx[-1]] = 1
+        energy_mask = np.multiply(energy_mask, energy_mod)
         
-        speech_modified = torch.from_numpy(speech_modified.reshape(1,1,-1)).float()
-        energy_modified = torch.from_numpy(energy_modified.reshape(1,1,-1)).float() #energy_mask
+        speech_modified = torch.from_numpy(speech_mod.reshape(1,1,-1)).float()
+        energy_modified = torch.from_numpy(energy_mask.reshape(1,1,-1)).float() #energy_mask
         return speech_modified, energy_modified, samp_points
 
 
@@ -231,32 +232,31 @@ class BatchWSOLAInterpolationEnergy():
             
             samp_points = self.__create_tsf__(mask, rate)
             batch_samp_points.append(samp_points)
-            speech_modified = self.wsola_func(x=speech, 
-                                             s=samp_points,
-                                             win_size=self.win_size,
-                                             syn_hop_size=self.hop_size,
-                                             tolerance=self.tolerance,
-                                             )
+            speech_mod = self.wsola_func(x=speech, 
+                                         s=samp_points,
+                                         win_size=self.win_size,
+                                         syn_hop_size=self.hop_size,
+                                         tolerance=self.tolerance,
+                                         )
             
-            energy_modified = librosa.feature.rms(y=speech_modified, 
-                                                  frame_length=self.win_size,
-                                                  hop_length=self.hop_size,
-                                                  center=True)
-            energy_modified = energy_modified.reshape(-1,)
-            energy_mask = np.zeros((len(energy_modified),))
-            energy_mask[np.where(energy_modified>1e-3)[0]] = 1
+            energy_mod = librosa.feature.rms(y=speech_mod, 
+                                          frame_length=self.win_size,
+                                          hop_length=self.hop_size,
+                                          center=True)
+            energy_mod = energy_mod.reshape(-1,)
+            energy_mask = np.zeros((len(energy_mod),))
+            energy_mask[np.where(energy_mod>1e-3)[0]] = 1
             idx = np.where(energy_mask==1)[0]
             energy_mask[idx[0]:idx[-1]] = 1
+            energy_mask = np.multiply(energy_mask, energy_mod)
             
             # speech_modified = torch.from_numpy(speech_modified.reshape(1,1,-1)).float()
-            batch_mod_speech.append(torch.from_numpy(speech_modified))
+            batch_mod_speech.append(torch.from_numpy(speech_mod))
             batch_mod_energy.append(torch.from_numpy(energy_mask))
         
         speech_modified_padded = self.__collate__(batch_mod_speech)
         energy_modified_padded = self.__collate__(batch_mod_energy)
         return speech_modified_padded, energy_modified_padded, batch_samp_points
-
-
 
 
 if __name__ == "__main__":
