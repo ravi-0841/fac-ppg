@@ -181,7 +181,7 @@ class MaskGenerator(nn.Module):
 
 
 class RatePredictor(nn.Module):
-    def __init__(self, temp_scale=1.0): #50
+    def __init__(self, temp_scale=0.5): #50
         super(RatePredictor, self).__init__()
         self.thresh = nn.Threshold(-1e-6, -1)
         self.temp_scale = temp_scale
