@@ -265,7 +265,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     
     WSOLA = BatchWSOLAInterpolationEnergy(win_size=hparams.win_length, 
                                    hop_size=hparams.hop_length,
-                                   tolerance=hparams.hop_length)
+                                   tolerance=hparams.hop_length,
+                                   thresh=1e-3)
 
     model_saliency.eval()
     model_rate.train()

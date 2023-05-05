@@ -55,11 +55,12 @@ class WSOLAInterpolation():
 
 
 class WSOLAInterpolationEnergy():
-    def __init__(self, win_size=320, hop_size=160, tolerance=160):
+    def __init__(self, win_size=320, hop_size=160, tolerance=160, thresh=1e-3):
         self.win_size = win_size
         self.hop_size = hop_size
         self.tolerance = tolerance
         self.wsola_func = wsola
+        self.thresh = thresh
     
     def __create_tsf__(self, mask, rate):
         x = librosa.frames_to_samples(np.arange(0, len(mask)), 
@@ -94,7 +95,7 @@ class WSOLAInterpolationEnergy():
                                       center=True)
         energy_mod = energy_mod.reshape(-1,)
         energy_mask = np.zeros((len(energy_mod),))
-        energy_mask[np.where(energy_mod>1e-3)[0]] = 1
+        energy_mask[np.where(energy_mod>self.thresh)[0]] = 1
         idx = np.where(energy_mask==1)[0]
         energy_mask[idx[0]:idx[-1]] = 1
         energy_mask = np.multiply(energy_mask, energy_mod)
@@ -175,11 +176,12 @@ class BatchWSOLAInterpolation():
     
 
 class BatchWSOLAInterpolationEnergy():
-    def __init__(self, win_size=320, hop_size=160, tolerance=160):
+    def __init__(self, win_size=320, hop_size=160, tolerance=160, thresh=1e-3):
         self.win_size = win_size
         self.hop_size = hop_size
         self.tolerance = tolerance
         self.wsola_func = wsola
+        self.thresh = thresh
     
     def __create_tsf__(self, mask, rate):
         x = librosa.frames_to_samples(np.arange(0, len(mask)), 
@@ -245,7 +247,7 @@ class BatchWSOLAInterpolationEnergy():
                                           center=True)
             energy_mod = energy_mod.reshape(-1,)
             energy_mask = np.zeros((len(energy_mod),))
-            energy_mask[np.where(energy_mod>1e-3)[0]] = 1
+            energy_mask[np.where(energy_mod>self.thresh)[0]] = 1
             idx = np.where(energy_mask==1)[0]
             energy_mask[idx[0]:idx[-1]] = 1
             energy_mask = np.multiply(energy_mask, energy_mod)
