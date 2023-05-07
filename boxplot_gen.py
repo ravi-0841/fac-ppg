@@ -5,7 +5,8 @@ Created on Wed Apr 19 17:43:21 2023
 
 @author: ravi
 """
-
+import numpy as np
+import pylab
 
 runfile('/home/ravi/Desktop/fac-ppg/inference_saliency_predictor_EG_preTrained.py', wdir='/home/ravi/Desktop/fac-ppg')
 idx = np.where(saliency_diff>0)[0]

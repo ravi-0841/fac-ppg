@@ -12,7 +12,7 @@ import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from saliency_predictor_energy_guided_RL_experiment import MaskedRateModifier, RatePredictor
+from saliency_predictor_energy_guided_RL import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask_cremad import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -85,7 +85,7 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictor(temp_scale=1.0).cuda()
+    model_rate = RatePredictor(temp_scale=0.2).cuda()
     return model_saliency, model_rate
 
 
@@ -334,7 +334,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                     if learning_rate_rate > hparams.learning_rate_lb:
                         learning_rate_rate *= hparams.learning_rate_decay
                     
-                    if hparams.exploitation_prob <= 0.8:
+                    if hparams.exploitation_prob < 0.9: #0.8
                         hparams.exploitation_prob *= hparams.exploration_decay
                     
                     # Saving the model
@@ -357,7 +357,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "Experiment_CREMAD_OnlyRate_entropy_{}_exploit_{}_{}".format(
+                                        "CREMAD_OnlyRate_entropy_{}_exploit_{}_{}_temp_0.2".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,

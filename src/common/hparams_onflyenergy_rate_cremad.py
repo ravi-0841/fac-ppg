@@ -71,7 +71,7 @@ def create_hparams(**kwargs):
         "checkpoint_path": "", # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/cremad_1e-05_10.0_5e-05_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_227000",
         "checkpoint_path_rate": "",
-        "checkpoint_path_inference": "./masked_predictor_output/Experiment_CREMAD_OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/checkpoint",
+        "checkpoint_path_inference": "./masked_predictor_output/CREMAD_OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4_temp_0.2/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
@@ -121,7 +121,7 @@ def create_hparams(**kwargs):
         "exploitation_prob": 0.15,
         "lambda_entropy": 0.07, # 0.1
         "temp_scale": 5.0, #15.0
-        "exploration_decay": 1.03183,
+        "exploration_decay": 1.0181, #1.03183,
         "use_saved_learning_rate": False,
         "learning_rate_rate": 1e-7, #1e-7
         "learning_rate_decay": 0.912011, #0.955
