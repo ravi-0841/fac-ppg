@@ -20,8 +20,8 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from saliency_predictor_energy_guided_RL import MaskedRateModifier, RatePredictor
-from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
+from saliency_predictor_energy_guided_RL_experiment import MaskedRateModifier, RatePredictor
+from on_the_fly_augmentor_raw_voice_mask_cremad import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
                                         VecExpectedKLDivergence, 
@@ -30,7 +30,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
                               )
-from src.common.hparams_onflyenergy_rate import create_hparams
+from src.common.hparams_onflyenergy_rate_cremad import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation, 
                                             WSOLAInterpolationEnergy,
                                             BatchWSOLAInterpolation,
@@ -44,12 +44,14 @@ def prepare_dataloaders(hparams, valid=True):
     if valid:
         testset = OnTheFlyAugmentor(
                             utterance_paths_file=hparams.validation_files,
+                            tabular_path=hparams.tabular_path,
                             hparams=hparams,
                             augment=False,
                         )
     else:
         testset = OnTheFlyAugmentor(
                             utterance_paths_file=hparams.testing_files,
+                            tabular_path=hparams.tabular_path,
                             hparams=hparams,
                             augment=False,
                         )
@@ -74,7 +76,7 @@ def prepare_dataloaders(hparams, valid=True):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictor(temp_scale=1.0).cuda()
+    model_rate = RatePredictor().cuda()
     return model_saliency, model_rate
 
 
@@ -296,10 +298,10 @@ def test(output_directory, checkpoint_path_rate,
             factor_dist_array.append(rate_distribution)
             factor_array.append(rate.item())
     
-            plot_figures(feats, x, mod_speech, posterior, 
-                          mask_sample, y, y_pred, 
-                          rate_distribution,
-                          iteration+1, hparams)
+            # plot_figures(feats, x, mod_speech, posterior, 
+            #               mask_sample, y, y_pred, 
+            #               rate_distribution,
+            #               iteration+1, hparams)
     
             if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
                 duration = time.perf_counter() - start
@@ -341,7 +343,7 @@ if __name__ == '__main__':
                                     )
 
     # for m in range(85500, 85700, 750):
-    for m in range(76500, 77000, 750):
+    for m in range(750, 150000, 750):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -381,8 +383,8 @@ if __name__ == '__main__':
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
         print("1 sided T-test result (p-value): {}".format(ttest[1]))
         ttest_array.append(ttest[1])
-        # joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
-        #                                                         "ttest_scores.pkl"))
+        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+                                                                "ttest_scores.pkl"))
 
         # pylab.figure(), pylab.hist(saliency_diff, label="difference")
         # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
