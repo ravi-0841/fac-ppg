@@ -357,7 +357,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "CREMAD_OnlyRate_entropy_{}_exploit_{}_{}_temp_0.2".format(
+                                        "CREMAD_OnlyRate_entropy_{}_exploit_{}_{}".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,
