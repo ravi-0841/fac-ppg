@@ -12,7 +12,7 @@ import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from saliency_predictor_energy_guided_RL import MaskedRateModifier, RatePredictor
+from saliency_predictor_energy_guided_RL_experiment import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -219,11 +219,11 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                       lr=learning_rate_rate, 
                                       weight_decay=hparams.weight_decay)
 
-    scheduler_rate = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer_rate, 
-                                                                T_max=20,
-                                                                eta_min=0,
-                                                                last_epoch=-1,
-                                                                verbose=False)
+    # scheduler_rate = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer_rate, 
+    #                                                             T_max=20,
+    #                                                             eta_min=0,
+    #                                                             last_epoch=-1,
+    #                                                             verbose=False)
 
     
     criterion1 = torch.nn.L1Loss()
@@ -235,7 +235,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     train_loader, valset, collate_fn = prepare_dataloaders(hparams)
     
     # rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.2)]
-    rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.1)]
+    rate_classes = [str(np.round(x,1)) for x in np.arange(0.5, 2.1, 0.1)]
 
     # Load checkpoint if one exists
     iteration = 0
@@ -336,13 +336,13 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                              hparams.minibatch_consistency, n_gpus, logger, 
                              hparams.distributed_run, rank)
                     
-                    # if learning_rate_rate > hparams.learning_rate_lb:
-                    #     learning_rate_rate *= hparams.learning_rate_decay
+                    if learning_rate_rate > hparams.learning_rate_lb:
+                        learning_rate_rate *= hparams.learning_rate_decay
 
-                    scheduler_rate.step()
-                    learning_rate_rate = scheduler_rate.get_lr()[0]
+                    # scheduler_rate.step()
+                    # learning_rate_rate = scheduler_rate.get_lr()[0]
                     
-                    if hparams.exploitation_prob <= 0.85:
+                    if hparams.exploitation_prob <= 0.9:
                         hparams.exploitation_prob *= hparams.exploration_decay
                     
                     # Saving the model
@@ -365,7 +365,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "OnlyRate_entropy_{}_exploit_{}_{}".format(
+                                        "Experiment_VESUS_OnlyRate_entropy_{}_exploit_{}_{}".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,

@@ -181,9 +181,9 @@ class MaskGenerator(nn.Module):
 
 
 class RatePredictor(nn.Module):
-    def __init__(self, temp_scale=0.5): #50
+    def __init__(self, temp_scale=0.2): #50
         super(RatePredictor, self).__init__()
-        self.thresh = nn.Threshold(-1e-6, -1)
+        # self.thresh = nn.Threshold(-1e-6, -1)
         self.temp_scale = temp_scale
         self.emo_projection = nn.Linear(in_features=5, out_features=64)
         # self.bn1 = nn.BatchNorm1d(576)
@@ -200,7 +200,7 @@ class RatePredictor(nn.Module):
                                        num_layers=2, bidirectional=False, 
                                        dropout=0.2)
         self.bn3 = nn.BatchNorm1d(256)
-        self.linear_layer = nn.Linear(in_features=256, out_features=11) #6
+        self.linear_layer = nn.Linear(in_features=256, out_features=16) #6
         self.softmax = nn.Softmax(dim=-1)
         self.elu = nn.ELU(inplace=True)
     
@@ -209,7 +209,8 @@ class RatePredictor(nn.Module):
         # e -> [batch, 5] one-hot encoding for [Neutral, Angry, Happy, Sad, Fearful]
         # m -> [batch, #time, 512] -> [batch, 512, #time]
         
-        m = -1*self.thresh(-1*m.permute(0,2,1))
+        # m = -1*self.thresh(-1*m.permute(0,2,1))
+        m = m.permute(0,2,1)
         x = x + x*m
         e_proj = self.emo_projection(e).unsqueeze(dim=-1).repeat(1,1,x.shape[2])
         joint_x = torch.cat((x, e_proj), dim=1)
@@ -224,7 +225,7 @@ class RatePredictor(nn.Module):
         trans_out = self.bn2(trans_out.permute(1,2,0))
 
         lstm_out, _ = self.recurrent_layer(trans_out.permute(2,0,1))
-        lstm_out = torch.mean(lstm_out, dim=0) #lstm_out[-1, :, :]
+        lstm_out = lstm_out[-1, :, :] #torch.mean(lstm_out, dim=0)
         lstm_out = self.bn3(lstm_out)
         output = self.softmax(self.linear_layer(lstm_out)/self.temp_scale)
         return output
