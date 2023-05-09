@@ -76,7 +76,7 @@ def prepare_dataloaders(hparams, valid=True):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictor(temp_scale=0.2).cuda()
+    model_rate = RatePredictor(temp_scale=0.5).cuda()
     return model_saliency, model_rate
 
 
