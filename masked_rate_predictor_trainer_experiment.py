@@ -12,7 +12,7 @@ import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from saliency_predictor_energy_guided_RL_experiment import MaskedRateModifier, RatePredictor
+from saliency_predictor_energy_guided_RL import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -83,7 +83,7 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictor(temp_scale=1.0).cuda()
+    model_rate = RatePredictor(temp_scale=0.2).cuda()
     return model_saliency, model_rate
 
 
