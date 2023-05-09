@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Feb  7 14:28:20 2023
+Created on Tue May  9 12:43:11 2023
 
 @author: ravi
 """
@@ -263,9 +263,10 @@ def test(output_directory, checkpoint_path_rate,
 
         rate_distribution = model_rate(feats, mask_sample, intent_saliency)
         # index = torch.multinomial(rate_distribution, 1)
-        value, index = torch.topk(rate_distribution, 2)
+        value, index = torch.topk(rate_distribution, 3)
         rate1 = 0.5 + 0.1*index[0, 0] # 0.2*index
         rate2 = 0.5 + 0.1*index[0, 1]
+        rate3 = 0.5 + 0.1*index[0, 2]
 
         # modification 1
         mod_speech1, mod_e1, _ = WSOLA(mask=mask_sample[:,:,0], 
@@ -282,15 +283,29 @@ def test(output_directory, checkpoint_path_rate,
         mod_speech2 = mod_speech2.to("cuda")
         mod_e2 = mod_e2.to("cuda")
         _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
+        
+        # modification 3
+        mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                    rate=rate3, speech=x)
+    
+        mod_speech3 = mod_speech3.to("cuda")
+        mod_e3 = mod_e3.to("cuda")
+        _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
+        
+        argmax_index = np.argmax(relative_prob)
 
-        if s1[0, np.argmax(relative_prob)] > s2[0, np.argmax(relative_prob)]:
+        if s1[0,argmax_index] > s2[0,argmax_index] and s1[0,argmax_index] > s3[0,argmax_index]:
             s = s1
             mod_speech = mod_speech1
             rate = rate1
-        else:
+        elif s2[0,argmax_index] > s1[0,argmax_index] and s2[0,argmax_index] > s3[0,argmax_index]:
             s = s2
             mod_speech = mod_speech2
             rate = rate2
+        else:
+            s = s3
+            mod_speech = mod_speech3
+            rate = rate3
 
         loss = criterion(intent_saliency, s)
         rate_reduced_loss = loss.item()
@@ -342,7 +357,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = sys.argv[1] #"angry"
+    emo_target = "angry"#sys.argv[1] #"angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
