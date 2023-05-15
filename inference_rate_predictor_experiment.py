@@ -73,7 +73,7 @@ def prepare_dataloaders(hparams, valid=True):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictor(temp_scale=1.0).cuda()
+    model_rate = RatePredictor(temp_scale=0.2).cuda()
     return model_saliency, model_rate
 
 
@@ -325,7 +325,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "fear"
+    emo_target = sys.argv[1] #"fear"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -339,7 +339,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(1000, 100000, 1000):
+    for m in range(750, 250000, 750):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -376,10 +376,13 @@ if __name__ == '__main__':
         #%% Checking difference in predictions
         index = np.argmax(emo_prob_dict[emo_target])
         saliency_diff = (rate_array[:,index] - pred_array[:,index]) / (pred_array[:,index] + 1e-10)
+        count = len(np.where(np.asarray(saliency_diff)>0)[0])
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
-        print("1 sided T-test result (p-value): {}".format(ttest[1]))
+        print("1 sided T-test result (p-value): {} and count greater zero: {}".format(ttest[1], count))
         ttest_array.append(ttest[1])
-        joblib.dump({"ttest_scores": ttest_array}, os.path.join(hparams.output_directory,
+        count_gr_zero_array.append(count)
+        joblib.dump({"ttest_scores": ttest_array, 
+                    "count_scores": count_gr_zero_array}, os.path.join(hparams.output_directory,
                                                                 "ttest_scores.pkl"))
 
         # pylab.figure(), pylab.hist(saliency_diff, label="difference")

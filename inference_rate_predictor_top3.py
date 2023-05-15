@@ -260,11 +260,11 @@ def test(output_directory, checkpoint_path_rate,
         
         intent_saliency = intended_saliency(batch_size=1, 
                                             relative_prob=relative_prob)
-        # start_time = time.time()
+        start_time = time.perf_counter()
         rate_distribution = model_rate(feats, mask_sample, intent_saliency)
-        # end_time = time.time()
-        # forward_elapsed = end_time - start_time
-        # print("Forward pass took {}sec".format(forward_elapsed))
+        end_time = time.perf_counter()
+        forward_elapsed = end_time - start_time
+        print("Forward pass took {}sec".format(forward_elapsed))
         
         # index = torch.multinomial(rate_distribution, 1)
         value, index = torch.topk(rate_distribution, 3)
@@ -273,16 +273,16 @@ def test(output_directory, checkpoint_path_rate,
         rate3 = 0.5 + 0.1*index[0, 2]
 
         # modification 1
-        # start_time = time.time()
+        start_time = time.perf_counter()
         mod_speech1, mod_e1, _ = WSOLA(mask=mask_sample[:,:,0], 
                                     rate=rate1, speech=x)
     
         mod_speech1 = mod_speech1.to("cuda")
         mod_e1 = mod_e1.to("cuda")
         _, _, m1, s1 = model_saliency(mod_speech1, mod_e1)
-        # end_time = time.time()
-        # modification_elapsed = end_time - start_time
-        # print("Modification took {}sec".format(modification_elapsed))
+        end_time = time.perf_counter()
+        modification_elapsed = end_time - start_time
+        print("Modification took {}sec".format(modification_elapsed))
 
         # modification 2
         mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
