@@ -8,6 +8,7 @@ Created on Tue Feb  7 14:28:20 2023
 
 
 import os
+import sys
 import time
 import math
 import torch
@@ -145,7 +146,7 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     ax[3].set_ylabel('Dimension', fontsize=15) #ylabel
     # pylab.tight_layout()
     
-    classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
+    classes = [str(np.round(r,1)) for r in np.arange(0.5, 2.1, 0.1)]
     ax[4].bar(classes, rate_dist, alpha=0.5, color="r", label="pred")
     ax[4].legend(loc=1)
     ax[4].set_xlabel('Classes',fontsize=15) #xlabel
@@ -332,6 +333,7 @@ if __name__ == '__main__':
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
 
     ttest_array = []
+    count_gr_zero_array = []
     ckpt_path = hparams.checkpoint_path_inference
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
