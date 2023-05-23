@@ -345,10 +345,10 @@ def test(output_directory, checkpoint_path_rate,
         factor_dist_array.append(rate_distribution)
         factor_array.append(rate.item())
 
-        plot_figures(feats, x, mod_speech, posterior, 
-                      mask_sample, y, y_pred, 
-                      rate_distribution,
-                      iteration+1, hparams)
+        # plot_figures(feats, x, mod_speech, posterior, 
+        #               mask_sample, y, y_pred, 
+        #               rate_distribution,
+        #               iteration+1, hparams)
 
         if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
             duration = time.perf_counter() - start
@@ -436,10 +436,24 @@ if __name__ == '__main__':
         # joblib.dump({"ttest_scores": ttest_array, 
         #             "count_scores": count_gr_zero_array}, os.path.join(hparams.output_directory,
         #                                                         "ttest_scores.pkl"))
-
-        # pylab.figure(), pylab.hist(saliency_diff, label="difference")
-        # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
-        # pylab.close("all")
+        
+        idx = np.where(saliency_diff>0)[0]
+        score_a = (rate_array[idx, 1] - pred_array[idx, 1]) / pred_array[idx, 1]
+        score_h = (rate_array[idx, 2] - pred_array[idx, 2]) / pred_array[idx, 2]
+        score_s = (rate_array[idx, 3] - pred_array[idx, 3]) / pred_array[idx, 3]
+        score_f = (rate_array[idx, 4] - pred_array[idx, 4]) / pred_array[idx, 4]
+        pylab.figure()
+        pylab.boxplot([score_a, score_h, score_s, score_f], 
+                      labels=["Angry", "Happy", "Sad", "Fear"], sym="")
+        pylab.title("CREMAD     Target: {}".format(emo_target.upper()))
+        pylab.savefig(os.path.join(hparams.output_directory, 
+                                   "{}_concentration_cremad.png".format(emo_target)))
+        pylab.close()
+        
+        pylab.figure(), pylab.hist(saliency_diff[idx], label="difference")
+        pylab.savefig(os.path.join(hparams.output_directory, 
+                                   "histplot_{}.png".format(emo_target)))
+        pylab.close()
         
         # pylab.figure(), pylab.plot([x for x in range(1000, 188000, 1000)], ttest_array)
         # pylab.title(emo_target)
