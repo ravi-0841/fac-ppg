@@ -244,6 +244,8 @@ def test(output_directory, checkpoint_path_rate,
     factor_array = []
     rate_pred_array = []
     saliency_targ_array = []
+    smart_modification_time = []
+    greedy_modification_time = []
     
     # ================ MAIN TESTING LOOP! ===================
     for i, batch in enumerate(test_loader):
@@ -264,7 +266,7 @@ def test(output_directory, checkpoint_path_rate,
         rate_distribution = model_rate(feats, mask_sample, intent_saliency)
         end_time = time.perf_counter()
         forward_elapsed = end_time - start_time
-        print("Forward pass took {}sec".format(forward_elapsed))
+        # print("Forward pass took {}sec".format(forward_elapsed))
         
         # index = torch.multinomial(rate_distribution, 1)
         value, index = torch.topk(rate_distribution, 3)
@@ -282,7 +284,10 @@ def test(output_directory, checkpoint_path_rate,
         _, _, m1, s1 = model_saliency(mod_speech1, mod_e1)
         end_time = time.perf_counter()
         modification_elapsed = end_time - start_time
-        print("Modification took {}sec".format(modification_elapsed))
+        greedy_modification_time.append(modification_elapsed*11)
+        # print("Modification took {}sec".format(modification_elapsed))
+        
+        smart_modification_time.append(modification_elapsed*3 + forward_elapsed)
 
         # modification 2
         mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
@@ -338,10 +343,10 @@ def test(output_directory, checkpoint_path_rate,
         factor_dist_array.append(rate_distribution)
         factor_array.append(rate.item())
 
-        # plot_figures(feats, x, mod_speech, posterior, 
-        #               mask_sample, y, y_pred, 
-        #               rate_distribution,
-        #               iteration+1, hparams)
+        plot_figures(feats, x, mod_speech, posterior, 
+                      mask_sample, y, y_pred, 
+                      rate_distribution,
+                      iteration+1, hparams)
 
         if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
             duration = time.perf_counter() - start
@@ -357,6 +362,9 @@ def test(output_directory, checkpoint_path_rate,
     
     print("Saliency | Avg. Loss: {:.3f}".format(np.mean(saliency_loss_array)))
     print("Rate     | Avg. Loss: {:.3f}".format(np.mean(rate_loss_array)))
+    
+    print("Smart: {:.4f}".format(np.mean(smart_modification_time)))
+    print("Greedy: {:.4f}".format(np.mean(greedy_modification_time)))
 
     return (cunk_array, saliency_targ_array, saliency_pred_array, 
             rate_pred_array, factor_array, factor_dist_array)

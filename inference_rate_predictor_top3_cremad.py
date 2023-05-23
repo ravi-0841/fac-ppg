@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Feb  7 14:28:20 2023
+Created on Tue May 23 14:12:14 2023
 
 @author: ravi
 """
@@ -246,80 +246,127 @@ def test(output_directory, checkpoint_path_rate,
     factor_array = []
     rate_pred_array = []
     saliency_targ_array = []
+    smart_modification_time = []
+    greedy_modification_time = []
     
     # ================ MAIN TESTING LOOP! ===================
     for i, batch in enumerate(test_loader):
         start = time.perf_counter()
 
-        try:
-            x, e, y = batch[0].to("cuda"), batch[1].to("cuda"), batch[2].to("cuda")
-            # input_shape should be [#batch_size, 1, #time]
-    
-            #%% Sampling the mask only once
-    
-            feats, posterior, mask_sample, y_pred = model_saliency(x, e)
-            loss = criterion(y_pred, y)
-            saliency_reduced_loss = loss.item()
-            
-            intent_saliency = intended_saliency(batch_size=1, 
-                                                relative_prob=relative_prob)
-    
-            rate_distribution = model_rate(feats, mask_sample, intent_saliency)
-            # index = torch.multinomial(rate_distribution, 1)
-            index = torch.argmax(rate_distribution, 1)
-            rate = 0.5 + 0.1*index # 0.2*index
-            mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                        rate=rate, speech=x)
+        x, e, y = batch[0].to("cuda"), batch[1].to("cuda"), batch[2].to("cuda")
+        # input_shape should be [#batch_size, 1, #time]
+
+        #%% Sampling the mask only once
+
+        feats, posterior, mask_sample, y_pred = model_saliency(x, e)
+        loss = criterion(y_pred, y)
+        saliency_reduced_loss = loss.item()
         
-            mod_speech = mod_speech.to("cuda")
-            mod_e = mod_e.to("cuda")
-            _, _, m, s = model_saliency(mod_speech, mod_e)
-            
-            loss = criterion(intent_saliency, s)
-            rate_reduced_loss = loss.item()
-    
-            feats = feats.detach().squeeze().cpu().numpy()
-            x = x.squeeze().cpu().numpy()
-            y = y.squeeze().cpu().numpy()
-            y_pred = y_pred.squeeze().detach().cpu().numpy()
-            s = s.squeeze().detach().cpu().numpy()
-            posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-            mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-            rate_distribution = rate_distribution.squeeze().detach().cpu().numpy()
-            mod_speech = mod_speech.squeeze().cpu().numpy()
-    
-            #%% Plotting
-    
-            saliency_loss_array.append(saliency_reduced_loss)
-            rate_loss_array.append(rate_reduced_loss)
-            saliency_pred_array.append(y_pred)
-            rate_pred_array.append(s)
-            saliency_targ_array.append(y)
-            factor_dist_array.append(rate_distribution)
-            factor_array.append(rate.item())
-    
-            # plot_figures(feats, x, mod_speech, posterior, 
-            #               mask_sample, y, y_pred, 
-            #               rate_distribution,
-            #               iteration+1, hparams)
-    
-            if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
-                duration = time.perf_counter() - start
-                # print("Saliency | Test loss {} {:.6f} {:.2f}s/it".format(
-                #     iteration, saliency_reduced_loss, duration))
-                # print("Rate    | Test loss {} {:.6f} {:.2f}s/it".format(
-                #     iteration, rate_reduced_loss, duration))
-    
-            iteration += 1
+        intent_saliency = intended_saliency(batch_size=1, 
+                                            relative_prob=relative_prob)
+        start_time = time.perf_counter()
+        rate_distribution = model_rate(feats, mask_sample, intent_saliency)
+        end_time = time.perf_counter()
+        forward_elapsed = end_time - start_time
+        # print("Forward pass took {}sec".format(forward_elapsed))
         
-        # if iteration >= 100:
-        #     break
+        # index = torch.multinomial(rate_distribution, 1)
+        value, index = torch.topk(rate_distribution, 3)
+        rate1 = 0.5 + 0.1*index[0, 0] # 0.2*index
+        rate2 = 0.5 + 0.1*index[0, 1]
+        rate3 = 0.5 + 0.1*index[0, 2]
+
+        # modification 1
+        start_time = time.perf_counter()
+        mod_speech1, mod_e1, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                    rate=rate1, speech=x)
+    
+        mod_speech1 = mod_speech1.to("cuda")
+        mod_e1 = mod_e1.to("cuda")
+        _, _, m1, s1 = model_saliency(mod_speech1, mod_e1)
+        end_time = time.perf_counter()
+        modification_elapsed = end_time - start_time
+        greedy_modification_time.append(modification_elapsed*11)
+        # print("Modification took {}sec".format(modification_elapsed))
         
-        except Exception as ex:
-            print(ex)
+        smart_modification_time.append(modification_elapsed*3 + forward_elapsed)
+
+        # modification 2
+        mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                    rate=rate2, speech=x)
+    
+        mod_speech2 = mod_speech2.to("cuda")
+        mod_e2 = mod_e2.to("cuda")
+        _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
+        
+        # modification 3
+        mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                    rate=rate3, speech=x)
+    
+        mod_speech3 = mod_speech3.to("cuda")
+        mod_e3 = mod_e3.to("cuda")
+        _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
+        
+        argmax_index = np.argmax(relative_prob)
+
+        if s1[0,argmax_index] > s2[0,argmax_index] and s1[0,argmax_index] > s3[0,argmax_index]:
+            s = s1
+            mod_speech = mod_speech1
+            rate = rate1
+        elif s2[0,argmax_index] > s1[0,argmax_index] and s2[0,argmax_index] > s3[0,argmax_index]:
+            s = s2
+            mod_speech = mod_speech2
+            rate = rate2
+        else:
+            s = s3
+            mod_speech = mod_speech3
+            rate = rate3
+
+        loss = criterion(intent_saliency, s)
+        rate_reduced_loss = loss.item()
+
+        feats = feats.detach().squeeze().cpu().numpy()
+        x = x.squeeze().cpu().numpy()
+        y = y.squeeze().cpu().numpy()
+        y_pred = y_pred.squeeze().detach().cpu().numpy()
+        s = s.squeeze().detach().cpu().numpy()
+        posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
+        mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
+        rate_distribution = rate_distribution.squeeze().detach().cpu().numpy()
+        mod_speech = mod_speech.squeeze().cpu().numpy()
+
+        #%% Plotting
+
+        saliency_loss_array.append(saliency_reduced_loss)
+        rate_loss_array.append(rate_reduced_loss)
+        saliency_pred_array.append(y_pred)
+        rate_pred_array.append(s)
+        saliency_targ_array.append(y)
+        factor_dist_array.append(rate_distribution)
+        factor_array.append(rate.item())
+
+        plot_figures(feats, x, mod_speech, posterior, 
+                      mask_sample, y, y_pred, 
+                      rate_distribution,
+                      iteration+1, hparams)
+
+        if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
+            duration = time.perf_counter() - start
+            # print("Saliency | Test loss {} {:.6f} {:.2f}s/it".format(
+            #     iteration, saliency_reduced_loss, duration))
+            # print("Rate    | Test loss {} {:.6f} {:.2f}s/it".format(
+            #     iteration, rate_reduced_loss, duration))
+
+        iteration += 1
+    
+    # if iteration >= 100:
+    #     break
     
     print("Saliency | Avg. Loss: {:.3f}".format(np.mean(saliency_loss_array)))
     print("Rate     | Avg. Loss: {:.3f}".format(np.mean(rate_loss_array)))
+    
+    print("Smart: {:.4f}".format(np.mean(smart_modification_time)))
+    print("Greedy: {:.4f}".format(np.mean(greedy_modification_time)))
 
     return (cunk_array, saliency_targ_array, saliency_pred_array, 
             rate_pred_array, factor_array, factor_dist_array)
@@ -328,7 +375,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "fear" #sys.argv[1] #"angry"
+    emo_target = sys.argv[1] #"angry"
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -343,7 +390,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    # for m in range(750, 250000, 750):
+    # for m in range(76500, 77000, 750):
     for m in range(144750, 145000, 750):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)

@@ -7,8 +7,9 @@ Created on Wed Apr 19 17:43:21 2023
 """
 import numpy as np
 import pylab
+import os
 
-runfile('/home/ravi/Desktop/fac-ppg/inference_saliency_predictor_EG_preTrained.py', wdir='/home/ravi/Desktop/fac-ppg')
+os.system('/home/ravi/Desktop/fac-ppg/inference_rate_predictor_cremad.py angry')
 idx = np.where(saliency_diff>0)[0]
 sd_a = (rate_array[idx, index] - pred_array[idx, index]) / pred_array[idx, index]
 nui_h = (rate_array[idx, 2] - pred_array[idx, 2]) / pred_array[idx, 2]
@@ -19,7 +20,7 @@ pylab.boxplot([sd_a, nui_h, nui_s, nui_f], labels=["Angry", "Happy", "Sad", "Fea
 
 #%%
 
-runfile('/home/ravi/Desktop/fac-ppg/inference_saliency_predictor_EG_preTrained.py', wdir='/home/ravi/Desktop/fac-ppg')
+os.system('/home/ravi/Desktop/fac-ppg/inference_rate_predictor_cremad.py happy')
 idx = np.where(saliency_diff>0)[0]
 sd_h = (rate_array[idx, index] - pred_array[idx, index]) / pred_array[idx, index]
 nui_a = (rate_array[idx, 1] - pred_array[idx, 1]) / pred_array[idx, 1]
@@ -30,7 +31,7 @@ pylab.boxplot([nui_a, sd_h, nui_s, nui_f], labels=["Angry", "Happy", "Sad", "Fea
 
 #%%
 
-runfile('/home/ravi/Desktop/fac-ppg/inference_saliency_predictor_EG_preTrained.py', wdir='/home/ravi/Desktop/fac-ppg')
+os.system('/home/ravi/Desktop/fac-ppg/inference_rate_predictor_cremad.py sad')
 idx = np.where(saliency_diff>0)[0]
 sd_s = (rate_array[idx, index] - pred_array[idx, index]) / pred_array[idx, index]
 nui_a = (rate_array[idx, 1] - pred_array[idx, 1]) / pred_array[idx, 1]
@@ -41,7 +42,7 @@ pylab.boxplot([nui_a, nui_h, sd_s, nui_f], labels=["Angry", "Happy", "Sad", "Fea
 
 #%%
 
-runfile('/home/ravi/Desktop/fac-ppg/inference_saliency_predictor_EG_preTrained.py', wdir='/home/ravi/Desktop/fac-ppg')
+os.system('/home/ravi/Desktop/fac-ppg/inference_rate_predictor_cremad.py fear')
 idx = np.where(saliency_diff>0)[0]
 nui_a = (rate_array[idx, 1] - pred_array[idx, 1]) / pred_array[idx, 1]
 nui_h = (rate_array[idx, 2] - pred_array[idx, 2]) / pred_array[idx, 2]
