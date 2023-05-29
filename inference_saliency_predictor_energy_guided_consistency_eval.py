@@ -268,7 +268,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         #%% Sampling the mask 10 times
         
         pred_data = []
-        for _ in range(10):
+        for _ in range(50):
         
             feats, posterior, mask_sample, y_pred = model(x, e)
             loss = criterion(y_pred, y)
@@ -333,6 +333,7 @@ if __name__ == '__main__':
     
     pred_array = np.asarray(pred_array)
     targ_array = np.asarray(targ_array)
+    std_array = np.asarray(std_array)
     
     top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
     top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
