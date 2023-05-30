@@ -268,7 +268,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         #%% Sampling the mask 10 times
         
         pred_data = []
-        for _ in range(50):
+        for _ in range(10):
         
             feats, posterior, mask_sample, y_pred = model(x, e)
             loss = criterion(y_pred, y)
