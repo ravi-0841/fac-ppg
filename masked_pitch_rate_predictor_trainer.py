@@ -22,7 +22,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         RateLoss,
                                         PitchRateLoss,
                                     )
-from src.common.logger_SaliencyPred_timeDomain import SaliencyPredictorLogger
+from src.common.logger_PitchRatePred import SaliencyPredictorLogger
 from src.common.hparams_onflyenergy_pitch_rate import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation,
                                             BatchWSOLAInterpolation,
@@ -195,6 +195,7 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
                                 posterior[:,:,1:2],
                                 mask_sample[:,:,0:1],
                                 rate_distribution,
+                                pitch_distribution,
                                 rate_classes,
                                 iteration,
                             )
