@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Feb  7 14:28:20 2023
+Created on Mon May 29 14:19:09 2023
 
 @author: ravi
 """
@@ -20,7 +20,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from saliency_predictor_energy_guided_RL import MaskedRateModifier, RatePredictor
+from pitch_duration_RL import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -30,11 +30,13 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
                               )
-from src.common.hparams_onflyenergy_rate import create_hparams
+from src.common.hparams_onflyenergy_pitch_rate import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation, 
                                             WSOLAInterpolationEnergy,
                                             BatchWSOLAInterpolation,
                                             BatchWSOLAInterpolationEnergy)
+from src.common.pitch_modification_block import (PitchModification,
+                                                 BatchPitchModification)
 from pprint import pprint
 
 
@@ -108,7 +110,8 @@ def intended_saliency(batch_size, relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
 
 
 def plot_figures(feats, waveform, mod_waveform, posterior, 
-                 mask, y, y_pred, rate_dist, iteration, hparams):
+                 mask, y, y_pred, rate_dist, pitch_dist, 
+                 iteration, hparams):
     
     mask_thresh = np.zeros((len(mask), ))
     mask_thresh[np.where(mask>0)[0]] = 1
@@ -116,7 +119,7 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
-    fig, ax = pylab.subplots(5, 1, figsize=(30, 20))
+    fig, ax = pylab.subplots(6, 1, figsize=(30, 24))
     
     ax[0].plot(waveform, linewidth=1.5, label="original")
     ax[0].plot(mod_waveform, linewidth=1.5, label="modified")
@@ -151,6 +154,13 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     ax[4].legend(loc=1)
     ax[4].set_xlabel('Classes',fontsize=15) #xlabel
     ax[4].set_ylabel('Softmax Score', fontsize=15) #ylabel
+    # pylab.tight_layout()
+    
+    classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
+    ax[5].bar(classes, pitch_dist, alpha=0.5, color="r", label="pred")
+    ax[5].legend(loc=1)
+    ax[5].set_xlabel('Classes',fontsize=15) #xlabel
+    ax[5].set_ylabel('Softmax Score', fontsize=15) #ylabel
     # pylab.tight_layout()
 
     pylab.suptitle("Utterance- {}".format(iteration), fontsize=24)
@@ -232,6 +242,7 @@ def test(output_directory, checkpoint_path_rate,
     WSOLA = WSOLAInterpolationEnergy(win_size=hparams.win_length, 
                                    hop_size=hparams.hop_length,
                                    tolerance=hparams.hop_length)
+    OLA = PitchModification()
 
     model_saliency.eval()
     model_rate.eval()
@@ -244,77 +255,118 @@ def test(output_directory, checkpoint_path_rate,
     factor_array = []
     rate_pred_array = []
     saliency_targ_array = []
+    smart_modification_time = []
+    greedy_modification_time = []
     
     # ================ MAIN TESTING LOOP! ===================
     for i, batch in enumerate(test_loader):
         start = time.perf_counter()
 
-        try:
-            x, e, y = batch[0].to("cuda"), batch[1].to("cuda"), batch[2].to("cuda")
-            # input_shape should be [#batch_size, 1, #time]
-    
-            #%% Sampling the mask only once
-    
-            feats, posterior, mask_sample, y_pred = model_saliency(x, e)
-            loss = criterion(y_pred, y)
-            saliency_reduced_loss = loss.item()
-            
-            intent_saliency = intended_saliency(batch_size=1, 
-                                                relative_prob=relative_prob)
-    
-            rate_distribution = model_rate(feats, mask_sample, intent_saliency)
-            # index = torch.multinomial(rate_distribution, 1)
-            index = torch.argmax(rate_distribution, 1)
-            rate = 0.5 + 0.1*index # 0.2*index
-            mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                        rate=rate, speech=x)
+        x, e, y = batch[0].to("cuda"), batch[1].to("cuda"), batch[2].to("cuda")
+        # input_shape should be [#batch_size, 1, #time]
+
+        #%% Sampling the mask only once
+
+        feats, posterior, mask_sample, y_pred = model_saliency(x, e)
+        loss = criterion(y_pred, y)
+        saliency_reduced_loss = loss.item()
         
-            mod_speech = mod_speech.to("cuda")
-            mod_e = mod_e.to("cuda")
-            _, _, m, s = model_saliency(mod_speech, mod_e)
-            
-            loss = criterion(intent_saliency, s)
-            rate_reduced_loss = loss.item()
-    
-            feats = feats.detach().squeeze().cpu().numpy()
-            x = x.squeeze().cpu().numpy()
-            y = y.squeeze().cpu().numpy()
-            y_pred = y_pred.squeeze().detach().cpu().numpy()
-            s = s.squeeze().detach().cpu().numpy()
-            posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
-            mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-            rate_distribution = rate_distribution.squeeze().detach().cpu().numpy()
-            mod_speech = mod_speech.squeeze().cpu().numpy()
-    
-            #%% Plotting
-    
-            saliency_loss_array.append(saliency_reduced_loss)
-            rate_loss_array.append(rate_reduced_loss)
-            saliency_pred_array.append(y_pred)
-            rate_pred_array.append(s)
-            saliency_targ_array.append(y)
-            factor_dist_array.append(rate_distribution)
-            factor_array.append(rate.item())
-    
-            # plot_figures(feats, x, mod_speech, posterior, 
-            #               mask_sample, y, y_pred, 
-            #               rate_distribution,
-            #               iteration+1, hparams)
-    
-            if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
-                duration = time.perf_counter() - start
-                # print("Saliency | Test loss {} {:.6f} {:.2f}s/it".format(
-                #     iteration, saliency_reduced_loss, duration))
-                # print("Rate    | Test loss {} {:.6f} {:.2f}s/it".format(
-                #     iteration, rate_reduced_loss, duration))
-    
-            iteration += 1
+        intent_saliency = intended_saliency(batch_size=1, 
+                                            relative_prob=relative_prob)
+        (rate_distribution,
+         pitch_distribution) = model_rate(feats, mask_sample, intent_saliency)
+
+        index1 = torch.multinomial(rate_distribution, 1)
+        index2 = torch.multinomial(rate_distribution, 1)
+        index3 = torch.multinomial(rate_distribution, 1)
+        rate1 = 0.5 + 0.1*index1#[0, 0]
+        rate2 = 0.5 + 0.1*index2#[0, 1]
+        rate3 = 0.5 + 0.1*index3#[0, 2]
         
-        # if iteration >= 100:
-        #     break
+        index_pitch = torch.argmax(pitch_distribution)
+        pitch = 0.5 + 0.1*index_pitch
+        pitch_mod_speech = OLA(factor=pitch, speech=x)
+
+        # modification 1
+        mod_speech1, mod_e1, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                    rate=rate1, speech=pitch_mod_speech)
+    
+        mod_speech1 = mod_speech1.to("cuda")
+        mod_e1 = mod_e1.to("cuda")
+        _, _, m1, s1 = model_saliency(mod_speech1, mod_e1)
+
+        # modification 2
+        mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                    rate=rate2, speech=pitch_mod_speech)
+    
+        mod_speech2 = mod_speech2.to("cuda")
+        mod_e2 = mod_e2.to("cuda")
+        _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
         
-        except Exception as ex:
-            print(ex)
+        # modification 3
+        mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                    rate=rate3, speech=pitch_mod_speech)
+    
+        mod_speech3 = mod_speech3.to("cuda")
+        mod_e3 = mod_e3.to("cuda")
+        _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
+        
+        argmax_index = np.argmax(relative_prob)
+
+        if s1[0,argmax_index] > s2[0,argmax_index] and s1[0,argmax_index] > s3[0,argmax_index]:
+            mod_speech = mod_speech1
+            rate = rate1
+            s = s1
+        elif s2[0,argmax_index] > s1[0,argmax_index] and s2[0,argmax_index] > s3[0,argmax_index]:
+            mod_speech = mod_speech2
+            rate = rate2
+            s = s2
+        else:
+            mod_speech = mod_speech3
+            rate = rate3
+            s = s3
+
+        loss = criterion(intent_saliency, s)
+        rate_reduced_loss = loss.item()
+
+        feats = feats.detach().squeeze().cpu().numpy()
+        x = x.squeeze().cpu().numpy()
+        y = y.squeeze().cpu().numpy()
+        y_pred = y_pred.squeeze().detach().cpu().numpy()
+        s = s.squeeze().detach().cpu().numpy()
+        posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
+        mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
+        rate_distribution = rate_distribution.squeeze().detach().cpu().numpy()
+        pitch_distribution = pitch_distribution.squeeze().detach().cpu().numpy()
+        mod_speech = mod_speech.squeeze().cpu().numpy()
+
+        #%% Plotting
+
+        saliency_loss_array.append(saliency_reduced_loss)
+        rate_loss_array.append(rate_reduced_loss)
+        saliency_pred_array.append(y_pred)
+        rate_pred_array.append(s)
+        saliency_targ_array.append(y)
+        factor_dist_array.append(rate_distribution)
+        factor_array.append(rate.item())
+
+        plot_figures(feats, x, mod_speech, posterior, 
+                      mask_sample, y, y_pred, 
+                      rate_distribution,
+                      pitch_distribution,
+                      iteration+1, hparams)
+
+        if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
+            duration = time.perf_counter() - start
+            # print("Saliency | Test loss {} {:.6f} {:.2f}s/it".format(
+            #     iteration, saliency_reduced_loss, duration))
+            # print("Rate    | Test loss {} {:.6f} {:.2f}s/it".format(
+            #     iteration, rate_reduced_loss, duration))
+
+        iteration += 1
+    
+    # if iteration >= 100:
+    #     break
     
     print("Saliency | Avg. Loss: {:.3f}".format(np.mean(saliency_loss_array)))
     print("Rate     | Avg. Loss: {:.3f}".format(np.mean(rate_loss_array)))
@@ -342,7 +394,7 @@ if __name__ == '__main__':
                                     )
 
     # for m in range(76500, 77000, 750):
-    for m in range(750, 250000, 750):
+    for m in range(63000, 64000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -384,68 +436,20 @@ if __name__ == '__main__':
         print("1 sided T-test result (p-value): {} and count greater zero: {}".format(ttest[1], count))
         ttest_array.append(ttest[1])
         count_gr_zero_array.append(count)
-        joblib.dump({"ttest_scores": ttest_array, 
-                    "count_scores": count_gr_zero_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
-
-        # pylab.figure(), pylab.hist(saliency_diff, label="difference")
-        # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))
-        # pylab.close("all")
+        # joblib.dump({"ttest_scores": ttest_array, 
+        #             "count_scores": count_gr_zero_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
         
-        # pylab.figure(), pylab.plot([x for x in range(1000, 188000, 1000)], ttest_array)
-        # pylab.title(emo_target)
-        # pylab.savefig(os.path.join(hparams.output_directory, "ttest_scores.png"))
-        # pylab.close("all")
-
-        #%% Joint density plot and MI
-        # epsilon = 1e-3
-        # corn_mat = np.zeros((5,5))
-        # for (t,p) in zip(targ_array, pred_array):
-        #     for et in range(5):
-        #         for ep in range(5):
-        #             if t[et]>epsilon and p[ep]>epsilon:
-        #                 corn_mat[ep, et] += 1
-        # corn_mat = corn_mat / np.sum(corn_mat)
-        # x = np.arange(0, 6, 1)
-        # y = np.arange(0, 6, 1)
-        # x_center = 0.5 * (x[:-1] + x[1:])
-        # y_center = 0.5 * (y[:-1] + y[1:])
-        # X, Y = np.meshgrid(x_center, y_center)
-        # plot = pylab.pcolormesh(x, y, corn_mat, cmap='RdBu', shading='flat')
-        # cset = pylab.contour(X, Y, corn_mat, cmap='gray')
-        # pylab.clabel(cset, inline=True)
-        # pylab.colorbar(plot)
-        # pylab.title("Joint density estimate")
-        # pylab.savefig(os.path.join(hparams.output_directory, "joint_density_plot.png"))
-        # pylab.close("all")
-
-        # # Mutual Info
-        # mi_array = [compute_MI(p+1e-10,t+1e-10,corn_mat) for (p,t) in zip(pred_array, targ_array)]
-        # sns.histplot(mi_array, bins=30, kde=True)
-        # print("MI value: {}".format(np.mean(mi_array)))
-        # pylab.title("Mutual Information distribution")
-        # pylab.savefig(os.path.join(hparams.output_directory, "MI_density.png"))
-        # pylab.close("all")
-
-    #%%
-    # x = np.arange(750, 150750, 750)
-    # angry_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/images_valid_angry/ttest_scores.pkl")["ttest_scores"]
-    # happy_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/images_valid_happy/ttest_scores.pkl")["ttest_scores"]
-    # sad_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/images_valid_sad/ttest_scores.pkl")["ttest_scores"]
-    # fear_scores = joblib.load("/home/ravi/RockFish/fac-ppg/masked_predictor_output/OnlyRate_entropy_0.07_exploit_0.15_TD_RL_lr_1e-7_evm_bs_4/images_valid_fear/ttest_scores.pkl")["ttest_scores"]
-    
-    # pylab.figure()
-    # pylab.plot(x, angry_scores, "o", label="angry")
-    # pylab.plot(x, happy_scores, "o", label="happy")
-    # pylab.plot(x, sad_scores, "o", label="sad")
-    # pylab.plot(x, fear_scores, "o", label="fear")
-    # pylab.plot(x, [0.1]*len(angry_scores), label="baseline1")
-    # pylab.plot(x, [0.07]*len(angry_scores), label="baseline2")
-    # pylab.plot(x, [0.05]*len(angry_scores), label="baseline3")
-    # pylab.legend()
-
-
-
+        idx = np.where(saliency_diff>0)[0]
+        count_flips = 0
+        for i in idx:
+            if np.argmax(pred_array[i,:])!=index and np.argmax(rate_array[i,:])==index:
+                count_flips += 1
+        
+        print("Flip Counts: {} and Total: {}".format(count_flips, len(idx)))
+        
+        
+       
 
 
 

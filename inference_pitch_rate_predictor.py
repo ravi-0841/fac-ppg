@@ -20,7 +20,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from saliency_predictor_energy_guided_RL import MaskedRateModifier, RatePredictor
+from pitch_duration_RL import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -30,11 +30,13 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
                               )
-from src.common.hparams_onflyenergy_rate import create_hparams
+from src.common.hparams_onflyenergy_pitch_rate import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation, 
                                             WSOLAInterpolationEnergy,
                                             BatchWSOLAInterpolation,
                                             BatchWSOLAInterpolationEnergy)
+from src.common.pitch_modification_block import (PitchModification,
+                                                 BatchPitchModification)
 from pprint import pprint
 
 
@@ -108,7 +110,8 @@ def intended_saliency(batch_size, relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
 
 
 def plot_figures(feats, waveform, mod_waveform, posterior, 
-                 mask, y, y_pred, rate_dist, iteration, hparams):
+                 mask, y, y_pred, rate_dist, pitch_dist, 
+                 iteration, hparams):
     
     mask_thresh = np.zeros((len(mask), ))
     mask_thresh[np.where(mask>0)[0]] = 1
@@ -116,7 +119,7 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
-    fig, ax = pylab.subplots(5, 1, figsize=(30, 20))
+    fig, ax = pylab.subplots(5, 1, figsize=(30, 24))
     
     ax[0].plot(waveform, linewidth=1.5, label="original")
     ax[0].plot(mod_waveform, linewidth=1.5, label="modified")
@@ -151,6 +154,13 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     ax[4].legend(loc=1)
     ax[4].set_xlabel('Classes',fontsize=15) #xlabel
     ax[4].set_ylabel('Softmax Score', fontsize=15) #ylabel
+    # pylab.tight_layout()
+    
+    classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
+    ax[5].bar(classes, pitch_dist, alpha=0.5, color="r", label="pred")
+    ax[5].legend(loc=1)
+    ax[5].set_xlabel('Classes',fontsize=15) #xlabel
+    ax[5].set_ylabel('Softmax Score', fontsize=15) #ylabel
     # pylab.tight_layout()
 
     pylab.suptitle("Utterance- {}".format(iteration), fontsize=24)
@@ -232,6 +242,7 @@ def test(output_directory, checkpoint_path_rate,
     WSOLA = WSOLAInterpolationEnergy(win_size=hparams.win_length, 
                                    hop_size=hparams.hop_length,
                                    tolerance=hparams.hop_length)
+    OLA = PitchModification()
 
     model_saliency.eval()
     model_rate.eval()
@@ -262,12 +273,17 @@ def test(output_directory, checkpoint_path_rate,
             intent_saliency = intended_saliency(batch_size=1, 
                                                 relative_prob=relative_prob)
     
-            rate_distribution = model_rate(feats, mask_sample, intent_saliency)
+            (rate_distribution,
+             pitch_distribution) = model_rate(feats, mask_sample, intent_saliency)
             # index = torch.multinomial(rate_distribution, 1)
-            index = torch.argmax(rate_distribution, 1)
-            rate = 0.5 + 0.1*index # 0.2*index
+            index_rate = torch.argmax(rate_distribution, 1)
+            index_pitch = torch.argmax(pitch_distribution, 1)
+            rate = 0.5 + 0.1*index_rate # 0.2*index
+            pitch = 0.5 + 0.1*index_pitch # 0.2*index
+            
+            pitch_mod_speech = OLA(factor=pitch, speech=x)
             mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                        rate=rate, speech=x)
+                                        rate=rate, speech=pitch_mod_speech)
         
             mod_speech = mod_speech.to("cuda")
             mod_e = mod_e.to("cuda")
@@ -342,7 +358,7 @@ if __name__ == '__main__':
                                     )
 
     # for m in range(76500, 77000, 750):
-    for m in range(750, 250000, 750):
+    for m in range(1000, 150000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 

@@ -21,7 +21,7 @@ class PitchModification():
         factor = factor.cpu().numpy()
         speech = speech.detach().squeeze().cpu().numpy()
         
-        f0, sp, ap = pw.wav2world(np.asarray(speech, np.foat64), 16000, 
+        f0, sp, ap = pw.wav2world(np.asarray(speech, np.float64), 16000, 
                                   frame_period=self.frame_period)
         f0_modified = np.ascontiguousarray(factor * f0)
         speech_modified = pw.synthesize(f0_modified, sp, ap, 16000, 
