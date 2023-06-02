@@ -287,6 +287,13 @@ def test(output_directory, checkpoint_path_rate,
         pitch = 0.5 + 0.1*index_pitch
         pitch_mod_speech = OLA(factor=pitch, speech=x)
 
+        # Only pitch modification
+        # pms = pitch_mod_speech.to("cuda")
+        # _, _, mp, sp = model_saliency(pms, e)
+        # mod_speech = pms
+        # rate = torch.Tensor([0.1])
+        # s = sp
+
         # modification 1
         mod_speech1, mod_e1, _ = WSOLA(mask=mask_sample[:,:,0], 
                                     rate=rate1, speech=pitch_mod_speech)
@@ -350,11 +357,11 @@ def test(output_directory, checkpoint_path_rate,
         factor_dist_array.append(rate_distribution)
         factor_array.append(rate.item())
 
-        plot_figures(feats, x, mod_speech, posterior, 
-                      mask_sample, y, y_pred, 
-                      rate_distribution,
-                      pitch_distribution,
-                      iteration+1, hparams)
+        # plot_figures(feats, x, mod_speech, posterior, 
+        #               mask_sample, y, y_pred, 
+        #               rate_distribution,
+        #               pitch_distribution,
+        #               iteration+1, hparams)
 
         if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
             duration = time.perf_counter() - start
