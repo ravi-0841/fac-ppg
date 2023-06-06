@@ -12,6 +12,7 @@ import time
 import math
 import torch
 import pylab
+import joblib
 import numpy as np
 import seaborn as sns
 from scipy.signal import medfilt
@@ -283,8 +284,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pred_array.append(y_pred)
         targ_array.append(y)
 
-        plot_figures(x, feats, posterior, mask_sample, y, 
-                      y_pred, iteration+1, hparams)
+        # plot_figures(x, feats, posterior, mask_sample, y, 
+        #               y_pred, iteration+1, hparams)
 
         # if not math.isnan(reduced_loss):
         #     duration = time.perf_counter() - start
@@ -332,6 +333,9 @@ if __name__ == '__main__':
     
     print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),4)))
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
+
+    joblib.dump({"prediction":pred_array, "target":targ_array},
+            "./masked_predictor_output/valid_pred.pkl")
 
     #%% Energy Posterior correlation
     # pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)
