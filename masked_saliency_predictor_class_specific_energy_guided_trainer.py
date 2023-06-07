@@ -21,7 +21,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                     )
 from src.common.utils import intended_saliency
 from src.common.logger_SaliencyPred import SaliencyPredictorLogger
-from src.common.hparams_onflyenergy import create_hparams
+from src.common.hparams_onflyenergy_class_specific import create_hparams
 from pprint import pprint
 
 
@@ -128,8 +128,13 @@ def validate(model, criterion, valset, collate_fn, iteration,
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
             x, e, y = batch[0].to("cuda"), batch[1].to("cuda"), batch[2].to("cuda")
-            feats, posterior, mask_sample, y_pred = model(x, e) #(x, e)
-            loss = criterion(y_pred, y)
+            codes, cats = intended_saliency(hparams.batch_size, 
+                                            consistent=False, 
+                                            relative_prob=[0.2,0.2,0.2,0.2,0.2])
+            feats, posterior, mask_sample, y_pred = model(x, e, codes.unsqueeze(1)) #(x, e)
+            y_pred_masked = torch.mul(codes, y_pred)
+            y_masked = torch.mul(codes, y)
+            loss = criterion(y_pred_masked, y_masked)
             reduced_val_loss = loss.item()
             val_loss += reduced_val_loss
         val_loss = val_loss / (i + 1)
