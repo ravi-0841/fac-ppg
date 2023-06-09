@@ -226,10 +226,11 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
 
             y_pred_masked = torch.mul(codes, y_pred)
             y_masked = torch.mul(codes, y)
+            loss_pred = torch.mean(torch.sum(torch.abs(y_pred_masked - y_masked), dim=1))
             
             loss = (
                     hparams.lambda_prior_KL*criterion1(posterior.squeeze(), l)
-                    + hparams.lambda_predict*criterion2(y_pred_masked, y_masked)
+                    + hparams.lambda_predict*loss_pred #criterion2(y_pred_masked, y_masked)
                     + hparams.lambda_sparse_KL*criterion3(posterior)
                 )
             reduced_loss = loss.item()
