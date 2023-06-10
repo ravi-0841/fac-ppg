@@ -29,6 +29,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                     )
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
+                              sample_random_mask,
                               )
 from src.common.hparams_onflyenergy_rate import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation, 
@@ -261,6 +262,10 @@ def test(output_directory, checkpoint_path_rate,
             
             intent_saliency = intended_saliency(batch_size=1, 
                                                 relative_prob=relative_prob)
+            
+            #random mask generation
+            # mask_sample = 1 - mask_sample
+            # mask_sample2 = torch.from_numpy(sample_random_mask(mask_sample.size()[1])).float().to("cuda")
     
             rate_distribution = model_rate(feats, mask_sample, intent_saliency)
             # index = torch.multinomial(rate_distribution, 1)
@@ -341,8 +346,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    # for m in range(76500, 77000, 750):
-    for m in range(750, 250000, 750):
+    for m in range(113250, 113500, 750):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -384,9 +388,28 @@ if __name__ == '__main__':
         print("1 sided T-test result (p-value): {} and count greater zero: {}".format(ttest[1], count))
         ttest_array.append(ttest[1])
         count_gr_zero_array.append(count)
-        joblib.dump({"ttest_scores": ttest_array, 
-                    "count_scores": count_gr_zero_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
+        # joblib.dump({"ttest_scores": ttest_array, 
+        #             "count_scores": count_gr_zero_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
+        
+        idx = np.where(saliency_diff>0)[0]
+        score_a = (rate_array[idx, 1] - pred_array[idx, 1]) / pred_array[idx, 1]
+        score_h = (rate_array[idx, 2] - pred_array[idx, 2]) / pred_array[idx, 2]
+        score_s = (rate_array[idx, 3] - pred_array[idx, 3]) / pred_array[idx, 3]
+        score_f = (rate_array[idx, 4] - pred_array[idx, 4]) / pred_array[idx, 4]
+        pylab.figure()
+        pylab.boxplot([score_a, score_h, score_s, score_f], 
+                      labels=["Angry", "Happy", "Sad", "Fear"], sym="")
+        pylab.title("VESUS     Target: {}".format(emo_target.upper()))
+        pylab.savefig(os.path.join(hparams.output_directory, 
+                                   "{}_concentration_rand_mask.png".format(emo_target)))
+        pylab.close()
+        
+        pylab.figure(), pylab.hist(saliency_diff[idx], label="difference")
+        pylab.savefig(os.path.join(hparams.output_directory, 
+                                   "{}_histplot_rand_mask.png".format(emo_target)))
+        pylab.close()
+        
 
         # pylab.figure(), pylab.hist(saliency_diff, label="difference")
         # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))

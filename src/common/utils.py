@@ -242,7 +242,16 @@ def intended_saliency(batch_size, consistent=False,
     return emotion_codes, emotion_cats.to("cuda")
 
 
-
+def sample_random_mask(length, beta=0.9):
+    x = [0]
+    for l in range(length-1):
+        if x[-1] == 1:
+            x.append(np.random.binomial(1,beta))
+        else:
+            x.append(1 - np.random.binomial(1,beta))
+    
+    return np.repeat(np.reshape(np.asarray(x), (1,-1,1)), 512, axis=-1)
+    
 
 
 

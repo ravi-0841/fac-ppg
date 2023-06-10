@@ -279,7 +279,22 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         loss = criterion(y_pred, y)
         reduced_loss = loss.item()
         loss_array.append(reduced_loss)
+        
+        #%% Plotting mask_samples
+        m = mask_sample[:,:,0].cpu().detach().numpy()
+        emos = ["N", "A", "H", "S", "F"]
+        
+        pylab.figure(figsize=(15,10))
+        for i in range(5):
+            mt = m[i,:] > 0
+            pylab.plot(mt, label=emos[i])
+        pylab.legend()
+        pylab.suptitle("Utterance- {}".format(iteration+1), fontsize=24)
+        
+        pylab.savefig(os.path.join(output_directory, "{}_mask_samples.png".format(iteration+1)))
+        pylab.close("all")
 
+        #%% More plotting
         feats = feats.squeeze().detach().cpu().numpy()
         x = x.squeeze().cpu().numpy()
         y = y.squeeze().cpu().numpy()
@@ -331,7 +346,7 @@ if __name__ == '__main__':
                                                 hparams.output_directory,
                                                 hparams.checkpoint_path_inference,
                                                 hparams,
-                                                valid=True,
+                                                valid=False,
                                                 )
     
     pred_array = np.asarray(pred_array)

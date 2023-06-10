@@ -141,6 +141,7 @@ class MaskGenerator(nn.Module):
 
         mask = self.median_pool(sampled_val)
         mask = self.median_pool(self.median_pool(mask))
+        # mask = self.median_pool(mask)
         return posterior, mask
 
 
