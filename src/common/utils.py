@@ -228,14 +228,15 @@ def refining_mask_sample(mask, kernel_size=5, threshold=5, filtering=True):
         
 
 def intended_saliency(batch_size, consistent=False, 
-                      relative_prob=[0.0, 0.25, 0.25, 0.25, 0.25]):
+                      relative_prob=[0.0, 0.25, 0.25, 0.25, 0.25],
+                      replacement=True):
 
     if consistent:
         emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 1).repeat(batch_size)
     else:
         emotion_cats = torch.multinomial(torch.Tensor(relative_prob), 
                                           batch_size,
-                                          replacement=True)
+                                          replacement=replacement)
 
     emotion_codes = torch.nn.functional.one_hot(emotion_cats, 5).float().to("cuda")
     return emotion_codes, emotion_cats.to("cuda")

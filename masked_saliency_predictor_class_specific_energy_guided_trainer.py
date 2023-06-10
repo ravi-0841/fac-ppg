@@ -134,7 +134,7 @@ def validate(model, criterion, valset, collate_fn, iteration,
             feats, posterior, mask_sample, y_pred = model(x, e, codes.unsqueeze(1)) #(x, e)
             y_pred_masked = torch.mul(codes, y_pred)
             y_masked = torch.mul(codes, y)
-            loss = criterion(y_pred_masked, y_masked)
+            loss = torch.mean(torch.sum(torch.abs(y_pred_masked - y_masked), dim=1))
             reduced_val_loss = loss.item()
             val_loss += reduced_val_loss
         val_loss = val_loss / (i + 1)
@@ -146,7 +146,7 @@ def validate(model, criterion, valset, collate_fn, iteration,
                                 val_loss,
                                 model,
                                 torch.abs(feats),
-                                y,
+                                y_masked,
                                 y_pred,
                                 posterior[:,:,1].squeeze(),
                                 mask_sample[:,:,0:1].squeeze(),
@@ -273,7 +273,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "{}_{}_{}_{}_{}".format(
+                                        "vesus_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
