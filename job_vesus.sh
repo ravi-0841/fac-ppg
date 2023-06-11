@@ -4,7 +4,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=6
 #SBATCH --gres=gpu:1
-#SBATCH -t 30:00:00
+#SBATCH -t 40:00:00
 #SBATCH -A avenka14_gpu
 
 ###load modules
@@ -27,4 +27,5 @@ pip install --user matplotlib
 # python3 masked_saliency_predictor_energy_guided_trainer.py
 # python3 masked_rate_predictor_trainer_experiment.py
 # python3 masked_pitch_rate_predictor_trainer.py
-python3 masked_saliency_predictor_class_specific_energy_guided_trainer.py
+# python3 masked_saliency_predictor_class_specific_energy_guided_trainer.py
+python3 masked_pitch_rate_predictor_class_specific_trainer.py
