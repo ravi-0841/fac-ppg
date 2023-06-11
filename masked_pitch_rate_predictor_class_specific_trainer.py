@@ -21,6 +21,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         EntropyLoss, 
                                         RateLoss,
                                         PitchRateLoss,
+                                        PitchRateLossCS,
                                     )
 from src.common.logger_PitchRatePred import SaliencyPredictorLogger
 from src.common.hparams_onflyenergy_pitch_rate_class_specific import create_hparams
@@ -153,7 +154,9 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
             x, em = batch[0].to("cuda"), batch[1].to("cuda")
             intent, cats = intended_saliency(batch_size=batch_size, 
                                              consistent=consistency)
-            feats, posterior, mask_sample, orig_pred = model_saliency(x, em, intent.unsqueeze(1).to("cuda"))
+            (feats, posterior,
+            mask_sample, orig_pred) = model_saliency(x, em, 
+                                                    intent.unsqueeze(1).to("cuda"))
 
             (rate_distribution,
              pitch_distribution) = model_rate(feats, mask_sample, intent)
@@ -166,7 +169,8 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
                                          rate=rate, speech=dur_mod_speech)
             mod_speech = mod_speech.to("cuda")
             mod_e = mod_e.to("cuda")
-            _, _, _, y_pred = model_saliency(mod_speech, mod_e, intent.unsqueeze(1).to("cuda"))
+            _, _, _, y_pred = model_saliency(mod_speech, mod_e, 
+                                            intent.unsqueeze(1).to("cuda"))
             
             ## direct score maximization
             # intent_indices = torch.argmax(intent, dim=-1)
@@ -229,7 +233,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     
     criterion1 = torch.nn.L1Loss()
     criterion2 = EntropyLoss()
-    criterion3 = PitchRateLoss()
+    criterion3 = PitchRateLossCS()
 
     logger = prepare_directories_and_logger(output_directory, log_directory, rank)
 
@@ -300,8 +304,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                                                  consistent=hparams.minibatch_consistency)
 
                 # input_shape should be [#batch_size, 1, #time]
-                feats, posterior, mask_sample, y_pred = model_saliency(x, e, 
-                                                                        intent_saliency.unsqueeze(1).to("cuda"))
+                (feats, posterior, 
+                mask_sample, y_pred) = model_saliency(x, e, 
+                                                    intent_saliency.unsqueeze(1).to("cuda"))
                 
                 # Rate prediction
                 (rate_distribution, 
@@ -311,8 +316,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 
                 loss_rate = criterion3(x, hparams, WSOLA, OLA, model_saliency, 
                                        rate_distribution, pitch_distribution, 
-                                       mask_sample, intent_cats, criterion2, 
-                                       uniform=True)
+                                       mask_sample, intent_cats, intent_saliency, 
+                                       criterion2, uniform=True)
                 
                 
                 reduced_loss_rate = loss_rate.item()
