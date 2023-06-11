@@ -117,17 +117,19 @@ class MaskGenerator(nn.Module):
                                         num_layers=1, bidirectional=True, 
                                         dropout=0.2)
         self.bn = nn.BatchNorm1d(512)
-        self.linear_layer = nn.Linear(in_features=512, out_features=2)
+        self.linear_layer = nn.Linear(in_features=576, out_features=2)
         self.median_pool = MedianPool1d(kernel_size=5, same=True)
         self.softmax = nn.Softmax(dim=-1)
     
-    def forward(self, x, e): # (x, e)
-        # x -> [batch, 512, #Time]
-        # e - [batch, 1, #time//160]
+    def forward(self, x, e, c): # (x, e)
+        # x -> [batch, 576, #Time]
+        # e -> [batch, 1, #time//160]
+        # c -> [batch, 64, #Time] 
 
         x, _ = self.recurrent_layer(x.permute(2,0,1))
         x = self.bn(x.permute(1,2,0))
-        posterior = self.linear_layer(x.permute(0,2,1))        
+        x_cat = torch.cat((x, c), dim=1)
+        posterior = self.linear_layer(x_cat.permute(0,2,1))        
         posterior = self.softmax(posterior/self.temp_scale)
 
         # if not self.training:
@@ -179,7 +181,7 @@ class MaskedSaliencePredictor(nn.Module):
         class_projection = class_projection.repeat(1,1,conv_features.shape[2])
         conv_features_cat = torch.cat((conv_features, class_projection), dim=1)
 
-        posterior, mask = self.mask_generator(conv_features_cat, e) # (conv_features, e)
+        posterior, mask = self.mask_generator(conv_features_cat, e, class_projection) # (conv_features, e)
         # mask = torch.mul(mask, e[:,:,:mask.size(2)])
         mask = mask.repeat(1,512,1)
 

@@ -27,5 +27,5 @@ pip install --user matplotlib
 # python3 masked_saliency_predictor_energy_guided_trainer.py
 # python3 masked_rate_predictor_trainer_experiment.py
 # python3 masked_pitch_rate_predictor_trainer.py
-# python3 masked_saliency_predictor_class_specific_energy_guided_trainer.py
-python3 masked_pitch_rate_predictor_class_specific_trainer.py
+python3 masked_saliency_predictor_class_specific_energy_guided_trainer.py
+# python3 masked_pitch_rate_predictor_class_specific_trainer.py

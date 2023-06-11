@@ -287,7 +287,7 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pylab.figure(figsize=(15,10))
         for i in range(5):
             mt = m[i,:] > 0
-            pylab.plot(mt, label=emos[i])
+            pylab.plot(mt*(i+1)/10, label=emos[i])
         pylab.legend()
         pylab.suptitle("Utterance- {}".format(iteration+1), fontsize=24)
         
