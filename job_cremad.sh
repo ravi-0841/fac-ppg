@@ -24,5 +24,5 @@ pip install --user inflect
 pip install --user Unidecode
 pip install --user matplotlib
 
-# python3 masked_saliency_predictor_energy_guided_trainer_cremad.py
+# python3 masked_saliency_predictor_trainer_cremad.py
 python3 masked_rate_predictor_trainer_cremad.py
