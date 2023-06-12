@@ -290,7 +290,8 @@ def test(output_directory, checkpoint_path_rate,
         
             mod_speech = mod_speech.to("cuda")
             mod_e = mod_e.to("cuda")
-            _, _, m, s = model_saliency(mod_speech, mod_e)
+            _, _, m, s = model_saliency(mod_speech, mod_e, 
+                                        intent_saliency.unsqueeze(1).to("cuda"))
             
             loss = criterion(intent_saliency, s)
             rate_reduced_loss = loss.item()
