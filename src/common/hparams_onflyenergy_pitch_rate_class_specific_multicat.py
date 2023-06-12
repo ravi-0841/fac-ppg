@@ -53,7 +53,7 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 200,
+        "epochs": 500,
         "iters_per_checkpoint": 1000,
         "seed": 1107,
         "dynamic_loss_scaling": True,
@@ -66,11 +66,11 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "BiLSTM_maskGen_evm_wsola_aug_class_specific_multicat", # extra description for logging/identification
-        "checkpoint_path": "", #"./masked_predictor_output/noPost_1e-05_10.0_2e-07_5.0_mask_trans_rate_beta_0.75_mix_entropy_eval/checkpoint_193500",  # Path to a checkpoint file.
-        "checkpoint_path_saliency": "./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen/checkpoint_102000",
+        "extended_desc": "temp_0.2_class_specific_multicat", # extra description for logging/identification
+        "checkpoint_path": "",  # Path to a checkpoint file.
+        "checkpoint_path_saliency": "./masked_predictor_output/vesus_1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug_class_specific_multicat/checkpoint_219000",
         "checkpoint_path_rate": "",
-        "checkpoint_path_inference": "./masked_predictor_output/vesus_1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug_class_specific_multicat/checkpoint_219000", #"./masked_predictor_output/1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_energy_value_mask/checkpoint_154000",
+        "checkpoint_path_inference": "./masked_predictor_output/VESUS_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_class_specific_multicat/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
@@ -117,20 +117,18 @@ def create_hparams(**kwargs):
         ################################
         # Optimization Hyperparameters #
         ################################
-        "lambda_prior_KL": 1e-5, # 5e-4
-        "lambda_predict": 10.0, # 10
-        "lambda_sparse_KL": 2e-04, # 1e-07
-        "lambda_entropy": 1,
+        "exploitation_prob": 0.15,
+        "lambda_entropy": 0.035, # 0.1
         "temp_scale": 5.0, #15.0
+        "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,
-        "learning_rate_saliency": 1e-5, #1e-5
-        "learning_rate_rate": 1e-7, #1e-6
-        "learning_rate_decay": 1, #0.955
+        "learning_rate_rate": 1e-6, #1e-7
+        "learning_rate_decay": 1.0181, #0.912011, #0.955
         "learning_rate_lb": 1e-6, #1e-6
         "learning_rate_ub": 1e-5, #1e-4
-        "weight_decay": 1e-7, #1e-6
+        "weight_decay": 1e-6, #1e-6
         "grad_clip_thresh": 1.0,
-        "batch_size": 8, #8
+        "batch_size": 4, #8
         "minibatch_consistency": False,
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.01, # Bernoulli parameter for sampling 1st entry of the mask

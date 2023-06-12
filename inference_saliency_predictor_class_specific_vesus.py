@@ -17,7 +17,7 @@ import numpy as np
 import seaborn as sns
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from saliency_predictor_class_specific_energy_guided import MaskedSaliencePredictor
+from saliency_predictor_class_specific import MaskedSaliencePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -359,7 +359,7 @@ if __name__ == '__main__':
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
 
     joblib.dump({"prediction":pred_array, "target":targ_array},
-            "./masked_predictor_output/valid_pred_class_specific.pkl")
+            "./masked_predictor_output/test_pred_class_specific_multicat.pkl")
 
     #%% Energy Posterior correlation
     # pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)

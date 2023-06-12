@@ -273,7 +273,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "vesus_{}_{}_{}_{}_{}_multicat".format(
+                                        "vesus_{}_{}_{}_{}_{}".format(
                                             hparams.lambda_prior_KL,
                                             hparams.lambda_predict,
                                             hparams.lambda_sparse_KL,
