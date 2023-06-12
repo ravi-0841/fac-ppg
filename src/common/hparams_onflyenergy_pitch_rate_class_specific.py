@@ -70,7 +70,7 @@ def create_hparams(**kwargs):
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/vesus_1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug_class_specific/checkpoint_247000",
         "checkpoint_path_rate": "",
-        "checkpoint_path_inference": "./masked_predictor_output/VESUS_PitchRate_entropy_0.035_exploit_0.15_pitch_rate_temp_0.2/checkpoint",
+        "checkpoint_path_inference": "./masked_predictor_output/VESUS_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_class_specific/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
