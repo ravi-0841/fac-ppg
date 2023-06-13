@@ -12,7 +12,7 @@ import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from saliency_predictor_class_specific_energy_guided import MaskedSaliencePredictor
+from saliency_predictor_class_specific import MaskedSaliencePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon May 29 14:19:09 2023
+Created on Tue Jun 13 12:22:53 2023
 
 @author: ravi
 """
@@ -20,7 +20,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from pitch_duration_RL import MaskedRateModifier, RatePredictor
+from pitch_duration_RL_class_specific import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -30,7 +30,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
                               )
-from src.common.hparams_onflyenergy_pitch_rate import create_hparams
+from src.common.hparams_onflyenergy_pitch_rate_class_specific import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation, 
                                             WSOLAInterpolationEnergy,
                                             BatchWSOLAInterpolation,
@@ -267,12 +267,15 @@ def test(output_directory, checkpoint_path_rate,
 
         #%% Sampling the mask only once
 
-        feats, posterior, mask_sample, y_pred = model_saliency(x, e)
+        intent_saliency = intended_saliency(batch_size=1, 
+                                    relative_prob=relative_prob)
+
+        (feats, posterior,
+         mask_sample, y_pred) = model_saliency(x, e, 
+                                               intent_saliency.unsqueeze(1).to("cuda"))
         loss = criterion(y_pred, y)
         saliency_reduced_loss = loss.item()
-        
-        intent_saliency = intended_saliency(batch_size=1, 
-                                            relative_prob=relative_prob)
+
         (rate_distribution,
          pitch_distribution) = model_rate(feats, mask_sample, intent_saliency)
 
@@ -300,7 +303,8 @@ def test(output_directory, checkpoint_path_rate,
     
         mod_speech1 = mod_speech1.to("cuda")
         mod_e1 = mod_e1.to("cuda")
-        _, _, m1, s1 = model_saliency(mod_speech1, mod_e1)
+        _, _, m1, s1 = model_saliency(mod_speech1, mod_e1, 
+                                      intent_saliency.unsqueeze(1).to("cuda"))
 
         # modification 2
         mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
@@ -308,7 +312,8 @@ def test(output_directory, checkpoint_path_rate,
     
         mod_speech2 = mod_speech2.to("cuda")
         mod_e2 = mod_e2.to("cuda")
-        _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
+        _, _, m2, s2 = model_saliency(mod_speech2, mod_e2,
+                                      intent_saliency.unsqueeze(1).to("cuda"))
         
         # # modification 3
         # mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
@@ -316,15 +321,16 @@ def test(output_directory, checkpoint_path_rate,
     
         # mod_speech3 = mod_speech3.to("cuda")
         # mod_e3 = mod_e3.to("cuda")
-        # _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
+        # _, _, m3, s3 = model_saliency(mod_speech3, mod_e3,
+        #                               intent_saliency.unsqueeze(1).to("cuda"))
         
         argmax_index = np.argmax(relative_prob)
 
-        if s1[0,argmax_index] > s2[0,argmax_index]: #and s1[0,argmax_index] > s3[0,argmax_index]:
+        if s1[0,argmax_index] > s2[0,argmax_index]:# and s1[0,argmax_index] > s3[0,argmax_index]:
             mod_speech = mod_speech1
             rate = rate1
             s = s1
-        elif s2[0,argmax_index] >= s1[0,argmax_index]: #and s2[0,argmax_index] > s3[0,argmax_index]:
+        elif s2[0,argmax_index] >= s1[0,argmax_index]:# and s2[0,argmax_index] > s3[0,argmax_index]:
             mod_speech = mod_speech2
             rate = rate2
             s = s2
@@ -405,7 +411,7 @@ if __name__ == '__main__':
                                     )
 
     # for m in range(76500, 77000, 750):
-    for m in range(63000, 64000, 1000):
+    for m in range(81000, 82000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -426,7 +432,7 @@ if __name__ == '__main__':
                                                 hparams.checkpoint_path_saliency,
                                                 hparams,
                                                 emo_prob_dict[emo_target],
-                                                valid=False,
+                                                valid=True,
                                             )
         
         pred_array = np.asarray(pred_array)
