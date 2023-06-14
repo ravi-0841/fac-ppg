@@ -116,11 +116,11 @@ class MaskGenerator(nn.Module):
     def __init__(self, temp_scale=10.0):
         super(MaskGenerator, self).__init__()
         self.temp_scale = temp_scale
-        self.recurrent_layer = nn.LSTM(input_size=576, hidden_size=256, 
+        self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
                                        num_layers=1, bidirectional=True, 
                                        dropout=0.2)
         self.bn = nn.BatchNorm1d(512)
-        self.linear_layer = nn.Linear(in_features=576, out_features=2)
+        self.linear_layer = nn.Linear(in_features=512, out_features=2)
         self.median_pool = MedianPool1d(kernel_size=5, same=True)
         self.softmax = nn.Softmax(dim=-1)
     
@@ -131,7 +131,7 @@ class MaskGenerator(nn.Module):
 
         x, _ = self.recurrent_layer(x.permute(2,0,1))
         x = self.bn(x.permute(1,2,0))
-        x_cat = torch.cat((x, c), dim=1)
+        x_cat = x + c #torch.cat((x, c), dim=1)
         posterior = self.linear_layer(x_cat.permute(0,2,1))        
         posterior = self.softmax(posterior/self.temp_scale)
 
@@ -205,7 +205,7 @@ class MaskedRateModifier(nn.Module):
         
         self.temp_scale = temp_scale
 
-        self.class_projection = nn.Linear(5, 64)
+        self.class_projection = nn.Linear(5, 512)
 
         self.conv_encoder = ConvolutionalEncoder()
         
@@ -230,7 +230,7 @@ class MaskedRateModifier(nn.Module):
         # conv_features -> [batch, 512, #time]
         conv_features = self.conv_encoder(x)
         class_projection = class_projection.repeat(1,1,conv_features.shape[2])
-        conv_features_cat = torch.cat((conv_features, class_projection), dim=1)
+        conv_features_cat = conv_features + class_projection #torch.cat((conv_features, class_projection), dim=1)
 
         posterior, mask = self.mask_generator(conv_features_cat, e, class_projection) # (conv_features, e)
         # mask = torch.mul(mask, e[:,:,:mask.size(2)])

@@ -66,9 +66,9 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "temp_0.2_class_specific_multicat", # extra description for logging/identification
+        "extended_desc": "temp_0.2_class_specific_multicatSum", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
-        "checkpoint_path_saliency": "./masked_predictor_output/vesus_1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug_class_specific_multicat/checkpoint_219000",
+        "checkpoint_path_saliency": "./masked_predictor_output/vesus_1e-05_10.0_0.0004_5.0_BiLSTM_maskGen_evm_wsola_aug_class_specific_multicatSum/checkpoint_315000",
         "checkpoint_path_rate": "",
         "checkpoint_path_inference": "./masked_predictor_output/VESUS_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_class_specific_multicat/checkpoint",
         "warm_start": False,  # Load the model only (warm start)

@@ -330,7 +330,7 @@ if __name__ == '__main__':
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
                                         ckpt_path.split("/")[2],
-                                        "images_valid",
+                                        "images_test",
                                         )
 
     if not hparams.output_directory:
@@ -359,7 +359,7 @@ if __name__ == '__main__':
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
 
     joblib.dump({"prediction":pred_array, "target":targ_array},
-            "./masked_predictor_output/test_pred_class_specific_multicat.pkl")
+            "./masked_predictor_output/test_pred_class_specific_multicatSum.pkl")
 
     #%% Energy Posterior correlation
     # pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)
