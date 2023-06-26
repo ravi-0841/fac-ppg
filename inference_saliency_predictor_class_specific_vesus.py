@@ -281,20 +281,25 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         loss_array.append(reduced_loss)
         
         #%% Plotting mask_samples
-        m = mask_sample[:,:,0].cpu().detach().numpy()
-        emos = ["N", "A", "H", "S", "F"]
+        # m = mask_sample[:,:,0].cpu().detach().numpy()
+        # emos = ["N", "A", "H", "S", "F"]
         
-        pylab.figure(figsize=(15,10))
-        for i in range(5):
-            mt = m[i,:] > 0
-            pylab.plot(mt*(i+1)/10, label=emos[i])
-        pylab.legend()
-        pylab.suptitle("Utterance- {}".format(iteration+1), fontsize=24)
+        # pylab.figure(figsize=(15,10))
+        # for i in range(5):
+        #     mt = m[i,:] > 0
+        #     pylab.plot(mt*(i+1)/10, label=emos[i])
+        # pylab.legend()
+        # pylab.suptitle("Utterance- {}".format(iteration+1), fontsize=24)
         
-        pylab.savefig(os.path.join(output_directory, "{}_mask_samples.png".format(iteration+1)))
-        pylab.close("all")
+        # pylab.savefig(os.path.join(output_directory, "{}_mask_samples.png".format(iteration+1)))
+        # pylab.close("all")
 
         #%% More plotting
+        argmax_index = np.argmax(y_pred.squeeze().detach().cpu().numpy())
+        mask_sample = mask_sample[argmax_index]
+        posterior = posterior[argmax_index]
+        feats = feats[argmax_index]
+        
         feats = feats.squeeze().detach().cpu().numpy()
         x = x.squeeze().cpu().numpy()
         y = y.squeeze().cpu().numpy()
@@ -308,8 +313,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pred_array.append(y_pred)
         targ_array.append(y)
 
-        # plot_figures(x, feats, posterior, mask_sample, y, 
-        #               y_pred, iteration+1, hparams)
+        plot_figures(x, feats, posterior, mask_sample, y, 
+                      y_pred, iteration+1, hparams)
 
         # if not math.isnan(reduced_loss):
         #     duration = time.perf_counter() - start
@@ -330,7 +335,7 @@ if __name__ == '__main__':
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
                                         ckpt_path.split("/")[2],
-                                        "images_test",
+                                        "images_valid",
                                         )
 
     if not hparams.output_directory:
@@ -346,7 +351,7 @@ if __name__ == '__main__':
                                                 hparams.output_directory,
                                                 hparams.checkpoint_path_inference,
                                                 hparams,
-                                                valid=False,
+                                                valid=True,
                                                 )
     
     pred_array = np.asarray(pred_array)
@@ -358,8 +363,8 @@ if __name__ == '__main__':
     print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),4)))
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
 
-    joblib.dump({"prediction":pred_array, "target":targ_array},
-            "./masked_predictor_output/test_pred_class_specific_multicatSum.pkl")
+    # joblib.dump({"prediction":pred_array, "target":targ_array},
+    #         "./masked_predictor_output/test_pred_class_specific_multicatSum.pkl")
 
     #%% Energy Posterior correlation
     # pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)
