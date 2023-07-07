@@ -178,7 +178,7 @@ class RatePredictor(nn.Module):
         # m -> [batch, #time, 512] -> [batch, 512, #time]
         
         m = m.permute(0,2,1)
-        x = x + x*m
+        x = x*m #x + x*m
         e_proj = self.emo_projection(e).unsqueeze(dim=-1).repeat(1,1,x.shape[2])
         joint_x = torch.cat((x, e_proj), dim=1)
         
