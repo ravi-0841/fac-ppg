@@ -132,7 +132,7 @@ class MaskGenerator(nn.Module):
         x, _ = self.recurrent_layer(x.permute(2,0,1))
         x = self.bn(x.permute(1,2,0))
         x_cat = x + c #torch.cat((x, c), dim=1)
-        posterior = self.linear_layer(x_cat.permute(0,2,1))        
+        posterior = self.linear_layer(x_cat.permute(0,2,1))
         posterior = self.softmax(posterior/self.temp_scale)
 
         # if not self.training:
