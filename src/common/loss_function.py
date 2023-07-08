@@ -424,25 +424,28 @@ class PitchRateLossCS(nn.Module):
                                                 intent_saliency.unsqueeze(1).to("cuda"))
         
         ## directly maximize score of intended index
-        # intent_saliency_indices = torch.argmax(intent_saliency, dim=-1)
-        # loss_rate_l1 = -1 * mod_saliency.gather(1,intent_saliency_indices.view(-1,1)).view(-1)
         loss_rate_l1 = 1 - mod_saliency.gather(1,intent_cats.view(-1,1)).view(-1)
         
         ## Minimizing loss on intended saliency
-        # loss_rate_l1 = torch.sum(torch.abs(mod_saliency - intent_saliency), dim=-1)
 
         corresp_probs_rate = rate_distribution.gather(1,index_rate.view(-1,1)).view(-1)
-        corresp_probs_pitch = rate_distribution.gather(1,index_pitch.view(-1,1)).view(-1)
+        corresp_probs_pitch = pitch_distribution.gather(1,index_pitch.view(-1,1)).view(-1)
+
         log_corresp_prob_rate = torch.log(corresp_probs_rate)
         log_corresp_prob_pitch = torch.log(corresp_probs_pitch)
+        
         unbiased_multiplier_rate = torch.mul(corresp_probs_rate.detach(), log_corresp_prob_rate)
         unbiased_multiplier_pitch = torch.mul(corresp_probs_pitch.detach(), log_corresp_prob_pitch)
+        
         loss_rate_saliency = torch.mean(torch.mul(loss_rate_l1.detach(), 
                                             unbiased_multiplier_rate))
         loss_rate_saliency += torch.mean(torch.mul(loss_rate_l1.detach(), 
                                             unbiased_multiplier_pitch))
+        
         loss_rate_ent = -1*additional_criterion(rate_distribution) + -1*additional_criterion(pitch_distribution)
+        
         loss_rate = loss_rate_saliency + hparams.lambda_entropy * loss_rate_ent
+        
         return loss_rate
 
 
