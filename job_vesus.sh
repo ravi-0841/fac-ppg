@@ -2,7 +2,7 @@
 
 #SBATCH --partition=a100
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=6
+#SBATCH --cpus-per-task=3
 #SBATCH --gres=gpu:1
 #SBATCH -t 40:00:00
 #SBATCH -A avenka14_gpu
