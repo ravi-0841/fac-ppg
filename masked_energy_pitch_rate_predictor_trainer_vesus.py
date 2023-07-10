@@ -24,12 +24,10 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         EnergyPitchRateLoss,
                                     )
 from src.common.logger_EnergyPitchRatePred import SaliencyPredictorLogger
-from src.common.hparams_onflyenergy_pitch_rate import create_hparams
+from src.common.hparams_onfly_energy_pitch_rate import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation,
                                             BatchWSOLAInterpolation,
                                             BatchWSOLAInterpolationEnergy)
-from src.common.pitch_modification_block import (PitchModification,
-                                                 BatchPitchModification)
 from src.common.energy_pitch_modification_block import (EnergyPitchModification,
                                                  BatchEnergyPitchModification)
 
@@ -136,7 +134,7 @@ def save_checkpoint(model_rate, optimizer_rate, learning_rate_rate,
                 'learning_rate_rate': learning_rate_rate}, filepath)
 
 
-def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset, 
+def validate(model_saliency, model_rate, WSOLA, MOLA, criterion, valset, 
              collate_fn, iteration, batch_size, rate_classes, 
              consistency, n_gpus, logger, distributed_run, rank):
     """Handles all the validation scoring and printing"""
@@ -160,12 +158,16 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
             feats, posterior, mask_sample, orig_pred = model_saliency(x, em)
 
             (rate_distribution,
-             pitch_distribution) = model_rate(feats, mask_sample, intent)
+             pitch_distribution,
+             energy_distribution) = model_rate(feats, mask_sample, intent)
             index_rate = torch.argmax(rate_distribution, dim=-1)
             index_pitch = torch.argmax(pitch_distribution, dim=-1)
+            index_energy = torch.argmax(energy_distribution, dim=-1)
             rate = 0.5 + 0.1*index_rate # 0.2*index
             pitch = 0.5 + 0.1*index_pitch # 0.2*index
-            dur_mod_speech = OLA(factor=pitch, speech=x)
+            energy = 0.5 + 0.1*index_energy # 0.2*index
+            dur_mod_speech = MOLA(factor_pitch=pitch, factor_energy=energy, 
+                                  speech=x)
             mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
                                          rate=rate, speech=dur_mod_speech)
             mod_speech = mod_speech.to("cuda")
@@ -200,6 +202,7 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
                                 mask_sample[:,:,0:1],
                                 rate_distribution,
                                 pitch_distribution,
+                                energy_distribution,
                                 rate_classes,
                                 iteration,
                             )
@@ -233,7 +236,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     
     criterion1 = torch.nn.L1Loss()
     criterion2 = EntropyLoss()
-    criterion3 = PitchRateLoss()
+    criterion3 = EnergyPitchRateLoss()
 
     logger = prepare_directories_and_logger(output_directory, log_directory, rank)
 
@@ -279,7 +282,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                    hop_size=hparams.hop_length,
                                    tolerance=hparams.hop_length,
                                    thresh=1e-3)
-    OLA = BatchPitchModification(frame_period=10)
+    MOLA = BatchEnergyPitchModification(frame_period=10)
 
     model_saliency.eval()
     model_rate.train()
@@ -308,14 +311,15 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 
                 # Rate prediction
                 (rate_distribution, 
-                 pitch_distribution) = model_rate(feats.detach(), # .detach()
+                 pitch_distribution,
+                 energy_distribution) = model_rate(feats.detach(), # .detach()
                                                mask_sample.detach(), 
                                                intent_saliency)
                 
-                loss_rate = criterion3(x, hparams, WSOLA, OLA, model_saliency, 
-                                       rate_distribution, pitch_distribution, 
-                                       mask_sample, intent_cats, criterion2, 
-                                       uniform=True)
+                loss_rate = criterion3(x, hparams, WSOLA, MOLA, model_saliency, 
+                                       rate_distribution, pitch_distribution,
+                                       energy_distribution, mask_sample, 
+                                       intent_cats, criterion2, uniform=True)
                 
                 
                 reduced_loss_rate = loss_rate.item()
@@ -339,7 +343,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                              duration, iteration)
 
                 if (iteration % hparams.iters_per_checkpoint == 0):
-                    validate(model_saliency, model_rate, WSOLA, OLA, criterion1, 
+                    validate(model_saliency, model_rate, WSOLA, MOLA, criterion1, 
                              valset, collate_fn, iteration, hparams.batch_size, 
                              rate_classes, hparams.minibatch_consistency, n_gpus, 
                              logger, hparams.distributed_run, rank)
@@ -370,7 +374,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_PitchRate_entropy_{}_exploit_{}_{}".format(
+                                        "VESUS_EnergyPitchRate_entropy_{}_exploit_{}_{}".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,
