@@ -350,8 +350,7 @@ class PitchRateLoss(nn.Module):
         pitch_mod_speech = OLA(factor=pitch, speech=x)
         mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
                                      rate=rate, speech=pitch_mod_speech)
-        
-    
+
         mod_speech = mod_speech.to("cuda")
         mod_e = mod_e.to("cuda")
         _, _, mod_mask, mod_saliency = model_saliency(mod_speech, mod_e)
@@ -359,24 +358,111 @@ class PitchRateLoss(nn.Module):
         ## directly maximize score of intended index
         # intent_saliency_indices = torch.argmax(intent_saliency, dim=-1)
         # loss_rate_l1 = -1 * mod_saliency.gather(1,intent_saliency_indices.view(-1,1)).view(-1)
-        loss_rate_l1 = 1 - mod_saliency.gather(1,intent_cats.view(-1,1)).view(-1)
+        loss_l1 = 1 - mod_saliency.gather(1,intent_cats.view(-1,1)).view(-1)
         
         ## Minimizing loss on intended saliency
         # loss_rate_l1 = torch.sum(torch.abs(mod_saliency - intent_saliency), dim=-1)
 
         corresp_probs_rate = rate_distribution.gather(1,index_rate.view(-1,1)).view(-1)
-        corresp_probs_pitch = rate_distribution.gather(1,index_pitch.view(-1,1)).view(-1)
+        corresp_probs_pitch = pitch_distribution.gather(1,index_pitch.view(-1,1)).view(-1)
+        
         log_corresp_prob_rate = torch.log(corresp_probs_rate)
         log_corresp_prob_pitch = torch.log(corresp_probs_pitch)
+        
         unbiased_multiplier_rate = torch.mul(corresp_probs_rate.detach(), log_corresp_prob_rate)
         unbiased_multiplier_pitch = torch.mul(corresp_probs_pitch.detach(), log_corresp_prob_pitch)
-        loss_rate_saliency = torch.mean(torch.mul(loss_rate_l1.detach(), 
+        
+        loss_saliency = torch.mean(torch.mul(loss_l1.detach(), 
                                             unbiased_multiplier_rate))
-        loss_rate_saliency += torch.mean(torch.mul(loss_rate_l1.detach(), 
+        loss_saliency += torch.mean(torch.mul(loss_l1.detach(), 
                                             unbiased_multiplier_pitch))
-        loss_rate_ent = -1*additional_criterion(rate_distribution) + -1*additional_criterion(pitch_distribution)
-        loss_rate = loss_rate_saliency + hparams.lambda_entropy * loss_rate_ent
-        return loss_rate
+        
+        loss_ent = -1*additional_criterion(rate_distribution) + -1*additional_criterion(pitch_distribution)
+        loss = loss_saliency + hparams.lambda_entropy * loss_ent
+        return loss
+
+
+class EnergyPitchRateLoss(nn.Module):
+    def __init__(self):
+        super(EnergyPitchRateLoss, self).__init__()
+        
+    def forward(self, x, hparams, WSOLA, MOLA, 
+                model_saliency, rate_distribution, 
+                pitch_distribution, energy_distribution, 
+                mask_sample, intent_cats, additional_criterion, 
+                uniform=False):
+        if np.random.rand() <= hparams.exploitation_prob:
+            index_rate = torch.argmax(rate_distribution, dim=-1) #exploit
+            index_pitch = torch.argmax(pitch_distribution, dim=-1) #exploit
+            index_energy = torch.argmax(energy_distribution, dim=-1) #exploit
+        else:
+            # index = torch.multinomial(rate_distribution, 1) #explore using predictive distribution
+            if uniform:
+                index_rate = torch.multinomial(torch.ones((rate_distribution.shape[1])), 
+                                        x.shape[0], 
+                                        replacement=True)
+                index_rate = index_rate.to("cuda")
+                
+                index_pitch = torch.multinomial(torch.ones((pitch_distribution.shape[1])), 
+                                        x.shape[0], 
+                                        replacement=True)
+                index_pitch = index_pitch.to("cuda")
+                
+                index_energy = torch.multinomial(torch.ones((energy_distribution.shape[1])), 
+                                        x.shape[0], 
+                                        replacement=True)
+                index_energy = index_energy.to("cuda")
+            else:
+                index_rate = torch.multinomial(rate_distribution, 1, 
+                                          replacement=True) #explore
+                index_pitch = torch.multinomial(pitch_distribution, 1, 
+                                          replacement=True) #explore
+                index_energy = torch.multinomial(energy_distribution, 1, 
+                                          replacement=True) #explore
+            
+
+        rate = 0.5 + 0.1*index_rate
+        pitch = 0.5 + 0.1*index_pitch
+        energy = 0.5 + 0.1*index_energy
+        
+        energy_pitch_mod_speech = MOLA(factor_pitch=pitch, 
+                                       factor_energy=energy, 
+                                       speech=x)
+        mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], rate=rate, 
+                                     speech=energy_pitch_mod_speech)
+    
+        mod_speech = mod_speech.to("cuda")
+        mod_e = mod_e.to("cuda")
+        _, _, mod_mask, mod_saliency = model_saliency(mod_speech, mod_e)
+        
+        ## directly maximize score of intended index
+        loss_l1 = 1 - mod_saliency.gather(1,intent_cats.view(-1,1)).view(-1)
+        
+        ## Minimizing loss on intended saliency
+        corresp_probs_rate = rate_distribution.gather(1,index_rate.view(-1,1)).view(-1)
+        corresp_probs_pitch = pitch_distribution.gather(1,index_pitch.view(-1,1)).view(-1)
+        corresp_probs_energy = energy_distribution.gather(1,index_energy.view(-1,1)).view(-1)
+        
+        log_corresp_prob_rate = torch.log(corresp_probs_rate)
+        log_corresp_prob_pitch = torch.log(corresp_probs_pitch)
+        log_corresp_prob_energy = torch.log(corresp_probs_energy)
+        
+        unbiased_multiplier_rate = torch.mul(corresp_probs_rate.detach(), log_corresp_prob_rate)
+        unbiased_multiplier_pitch = torch.mul(corresp_probs_pitch.detach(), log_corresp_prob_pitch)
+        unbiased_multiplier_energy = torch.mul(corresp_probs_energy.detach(), log_corresp_prob_energy)
+        
+        loss_saliency = torch.mean(torch.mul(loss_l1.detach(), 
+                                            unbiased_multiplier_rate))
+        loss_saliency += torch.mean(torch.mul(loss_l1.detach(), 
+                                            unbiased_multiplier_pitch))
+        loss_saliency += torch.mean(torch.mul(loss_l1.detach(), 
+                                            unbiased_multiplier_energy))
+        
+        loss_ent = (-1*additional_criterion(rate_distribution) 
+                    + -1*additional_criterion(pitch_distribution) 
+                    + -1*additional_criterion(energy_distribution))
+        loss = loss_saliency + hparams.lambda_entropy * loss_ent
+        return loss
 
 
 class PitchRateLossCS(nn.Module):
