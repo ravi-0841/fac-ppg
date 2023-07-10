@@ -66,11 +66,11 @@ def create_hparams(**kwargs):
         "output_directory": "./masked_predictor_output",  # Directory to save checkpoints.
         # Directory to save tensorboard logs. Just keep it like this.
         "log_directory": './logs',
-        "extended_desc": "temp_0.2_class_specific_multicatSum_RE", # extra description for logging/identification
+        "extended_desc": "temp_0.2_class_specific_multicatSum_RE_annealed_lr_2", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/vesus_1e-05_10.0_0.0004_5.0_BiLSTM_maskGen_evm_wsola_aug_class_specific_multicatSum/checkpoint_315000",
         "checkpoint_path_rate": "",
-        "checkpoint_path_inference": "./masked_predictor_output/VESUS_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_class_specific_multicatSum/checkpoint",
+        "checkpoint_path_inference": "./masked_predictor_output/VESUS_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_class_specific_multicatSum_RE_annealed_lr/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
@@ -122,9 +122,9 @@ def create_hparams(**kwargs):
         "temp_scale": 5.0, #15.0
         "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,
-        "learning_rate_rate": 1e-7, #1e-7
-        "learning_rate_decay": 0.794328235, #0.912011, #0.955
-        "learning_rate_lb": 1e-7, #1e-6
+        "learning_rate_rate": 1e-5, #1e-7
+        "learning_rate_decay": 0.9060305823, #0.794328235
+        "learning_rate_lb": 1e-8, #1e-6
         "learning_rate_ub": 1e-5, #1e-4
         "weight_decay": 1e-6, #1e-6
         "grad_clip_thresh": 1.0,
