@@ -20,7 +20,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from pitch_duration_RL_class_specific import MaskedRateModifier, RatePredictor
+from pitch_duration_RL_class_specific_multicat import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -30,7 +30,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
                               )
-from src.common.hparams_onflyenergy_pitch_rate_class_specific import create_hparams
+from src.common.hparams_onflyenergy_pitch_rate_class_specific_multicat import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation, 
                                             WSOLAInterpolationEnergy,
                                             BatchWSOLAInterpolation,
@@ -411,7 +411,7 @@ if __name__ == '__main__':
                                     )
 
     # for m in range(76500, 77000, 750):
-    for m in range(81000, 82000, 1000):
+    for m in range(150000, 151000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
