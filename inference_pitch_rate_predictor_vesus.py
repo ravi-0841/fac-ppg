@@ -350,6 +350,7 @@ if __name__ == '__main__':
 
     ttest_array = []
     count_gr_zero_array = []
+    count_flip_array = []
     ckpt_path = hparams.checkpoint_path_inference
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
@@ -358,7 +359,7 @@ if __name__ == '__main__':
                                     )
 
     # for m in range(76500, 77000, 750):
-    for m in range(1000, 150000, 1000):
+    for m in range(234000, 450000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -400,9 +401,31 @@ if __name__ == '__main__':
         print("1 sided T-test result (p-value): {} and count greater zero: {}".format(ttest[1], count))
         ttest_array.append(ttest[1])
         count_gr_zero_array.append(count)
+
+
+        idx = np.where(saliency_diff>0)[0]
+        count_flips = 0
+        indices_flips = []
+        for i in idx:
+            if (np.argmax(pred_array[i,:])!=index) and (np.argmax(rate_array[i,:])==index):
+                count_flips += 1
+                indices_flips.append(i+1)
+            elif (index not in np.argsort(pred_array[i,:])[-2:]) and (index in np.argsort(rate_array[i,:])[-2:]):
+                count_flips += 1
+                indices_flips.append(i+1)
+        
+        count_flip_array.append(count_flips)
+        print("Flip Counts: {} and Total: {}".format(count_flips, len(idx)))
         joblib.dump({"ttest_scores": ttest_array, 
-                    "count_scores": count_gr_zero_array}, os.path.join(hparams.output_directory,
+                    "count_scores": count_gr_zero_array,
+                    "count_flips": count_flip_array}, os.path.join(hparams.output_directory,
                                                                 "ttest_scores.pkl"))
+        # joblib.dump({"indices": indices_flips}, 
+        #             "./output_wavs/{}/indices.pkl".format(emo_target))
+
+
+
+
 
         # pylab.figure(), pylab.hist(saliency_diff, label="difference")
         # pylab.savefig(os.path.join(hparams.output_directory, "histplot_{}.png".format(emo_target)))

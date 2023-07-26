@@ -16,6 +16,7 @@ import pylab
 import numpy as np
 import seaborn as sns
 import scipy.stats as scistat
+import soundfile as sf
 import joblib
 
 from scipy.signal import medfilt
@@ -213,7 +214,7 @@ def compute_MI(marg1, marg2, joint):
 #%%
 def test(output_directory, checkpoint_path_rate, 
         checkpoint_path_saliency, hparams, 
-        relative_prob, valid=True):
+        relative_prob, emo_target="angry", valid=True):
     """Training and validation logging results to tensorboard and stdout
 
     Params
@@ -351,6 +352,10 @@ def test(output_directory, checkpoint_path_rate,
         pitch_distribution = pitch_distribution.squeeze().detach().cpu().numpy()
         mod_speech = mod_speech.squeeze().cpu().numpy()
 
+        # Writing the wav file
+        sf.write("./output_wavs/{}/{}.wav".format(emo_target, i+1), 
+                    mod_speech.reshape(-1,), 16000)
+
         #%% Plotting
 
         saliency_loss_array.append(saliency_reduced_loss)
@@ -405,7 +410,9 @@ if __name__ == '__main__':
                                     )
 
     # for m in range(76500, 77000, 750):
-    for m in range(63000, 64000, 1000):
+    # for m in range(63000, 64000, 1000):
+    # for m in range(185000, 186000, 1000):
+    for m in range(267000, 268000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -426,7 +433,8 @@ if __name__ == '__main__':
                                                 hparams.checkpoint_path_saliency,
                                                 hparams,
                                                 emo_prob_dict[emo_target],
-                                                valid=False,
+                                                emo_target=emo_target,
+                                                valid=True,
                                             )
         
         pred_array = np.asarray(pred_array)
@@ -453,11 +461,26 @@ if __name__ == '__main__':
         
         idx = np.where(saliency_diff>0)[0]
         count_flips = 0
-        for i in idx:
+        count_neutral = 0
+        count_neutral_flips = 0
+        indices_flips = []
+        for i in range(targ_array.shape[0]):
             if np.argmax(pred_array[i,:])!=index and np.argmax(rate_array[i,:])==index:
                 count_flips += 1
+                indices_flips.append(i+1)
+            if (index not in np.argsort(pred_array[i,:])[-2:]) and (index in np.argsort(rate_array[i,:])[-2:]):
+                # count_flips += 1
+                indices_flips.append(i+1)
+            if np.argmax(pred_array[i,:])==0 and np.argmax(rate_array[i,:])==index:
+                count_neutral_flips += 1
+
+            if np.argmax(targ_array[i,:])==0:
+                count_neutral += 1
         
-        print("Flip Counts: {} and Total: {}".format(count_flips, len(idx)))
+        print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
+        print("Total neutral: {}".format(count_neutral))
+        joblib.dump({"indices": indices_flips}, 
+                    "./output_wavs/{}/indices.pkl".format(emo_target))
         
         
        
