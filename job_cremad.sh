@@ -2,7 +2,7 @@
 
 #SBATCH --partition=a100
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=6
+#SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
 #SBATCH -t 30:00:00
 #SBATCH -A avenka14_gpu
@@ -25,4 +25,4 @@ pip install --user Unidecode
 pip install --user matplotlib
 
 # python3 masked_saliency_predictor_trainer_cremad.py
-python3 masked_rate_predictor_trainer_cremad.py
+python3 masked_pitch_rate_predictor_trainer_cremad.py

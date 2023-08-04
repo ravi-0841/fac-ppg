@@ -411,8 +411,8 @@ if __name__ == '__main__':
 
     # for m in range(76500, 77000, 750):
     # for m in range(63000, 64000, 1000):
-    # for m in range(185000, 186000, 1000):
-    for m in range(267000, 268000, 1000):
+    for m in range(107000, 108000, 1000):
+    # for m in range(267000, 268000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -468,9 +468,9 @@ if __name__ == '__main__':
             if np.argmax(pred_array[i,:])!=index and np.argmax(rate_array[i,:])==index:
                 count_flips += 1
                 indices_flips.append(i+1)
-            if (index not in np.argsort(pred_array[i,:])[-2:]) and (index in np.argsort(rate_array[i,:])[-2:]):
-                # count_flips += 1
-                indices_flips.append(i+1)
+            # if (index not in np.argsort(pred_array[i,:])[-2:]) and (index in np.argsort(rate_array[i,:])[-2:]):
+            #     count_flips += 1
+            #     indices_flips.append(i+1)
             if np.argmax(pred_array[i,:])==0 and np.argmax(rate_array[i,:])==index:
                 count_neutral_flips += 1
 
@@ -479,8 +479,8 @@ if __name__ == '__main__':
         
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
         print("Total neutral: {}".format(count_neutral))
-        joblib.dump({"indices": indices_flips}, 
-                    "./output_wavs/{}/indices.pkl".format(emo_target))
+        # joblib.dump({"indices": indices_flips}, 
+        #             "./output_wavs/{}/indices.pkl".format(emo_target))
         
         
        

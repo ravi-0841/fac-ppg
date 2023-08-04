@@ -251,7 +251,7 @@ def acoustics_collate_raw(batch):
 
         path_list.append(curr_path)
 
-    return speech_padded, voice_mask_padded, tar_ratings, path_list, input_lengths
+    return speech_padded, voice_mask_padded, tar_ratings, input_lengths
 
 
 if __name__ == "__main__":

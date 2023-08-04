@@ -359,7 +359,7 @@ if __name__ == '__main__':
                                     )
 
     # for m in range(76500, 77000, 750):
-    for m in range(234000, 450000, 1000):
+    for m in range(1000, 234000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 

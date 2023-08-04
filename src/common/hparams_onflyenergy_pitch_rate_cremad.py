@@ -68,9 +68,9 @@ def create_hparams(**kwargs):
         "log_directory": './logs',
         "extended_desc": "temp_0.2_RE_L1_loss", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
-        "checkpoint_path_saliency": "./masked_predictor_output/vesus_1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_78000",
-        "checkpoint_path_rate": "./masked_predictor_output/VESUS_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_RE_L1_loss/checkpoint_233000",
-        "checkpoint_path_inference": "./masked_predictor_output/VESUS_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_RE_L1_loss/checkpoint",
+        "checkpoint_path_saliency": "./masked_predictor_output/cremad_1e-05_10.0_5e-05_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_227000",
+        "checkpoint_path_rate": "",
+        "checkpoint_path_inference": "./masked_predictor_output/CREMAD_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_RE_L1_loss/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
@@ -82,9 +82,10 @@ def create_hparams(**kwargs):
         # Passed as a txt file, see data/filelists/training-set.txt for an
         # example.
         "complete_files": "./speechbrain_data/VESUS_saliency_complete.txt",
-        "training_files": './speechbrain_data/VESUS_saliency_training_small.txt',
-        "validation_files": './speechbrain_data/VESUS_saliency_validation_big.txt',
-        "testing_files": "./speechbrain_data/VESUS_saliency_testing_big.txt",
+        "training_files": './speechbrain_data/cremad_train.txt',
+        "validation_files": './speechbrain_data/cremad_valid.txt',
+        "testing_files": "./speechbrain_data/cremad_test.txt",
+        "tabular_path": "./speechbrain_data/tabulatedVotes_CREMAD.csv",
         "is_full_ppg": True,  # Whether to use the full PPG or not.
         "is_append_f0": False,  # Currently only effective at sentence level
         "ppg_subsampling_factor": 1,  # Sub-sample the ppg & acoustic sequence.
