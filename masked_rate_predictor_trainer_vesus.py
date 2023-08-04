@@ -22,7 +22,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         RateLoss,
                                     )
 from src.common.logger_SaliencyPred_timeDomain import SaliencyPredictorLogger
-from src.common.hparams_onflyenergy_rate import create_hparams
+from src.common.hparams_onflyenergy_rate_vesus import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation,
                                             BatchWSOLAInterpolation,
                                             BatchWSOLAInterpolationEnergy)

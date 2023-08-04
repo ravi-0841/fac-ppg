@@ -253,6 +253,45 @@ def sample_random_mask(length, beta=0.9):
     return np.repeat(np.reshape(np.asarray(x), (1,-1,1)), 512, axis=-1)
     
 
+def get_blocks(mask):
+    # mask --> [T, ]
+    chunks = []
+    start_pointer = None
+    end_pointer = None
+    
+    for i, m in enumerate(mask):
+        if m > 0 and start_pointer is None:
+            start_pointer = i
+            end_pointer = None
+        
+        elif m == 0 and start_pointer is not None:
+            end_pointer = i-1
+            chunks.append((start_pointer, end_pointer, end_pointer - start_pointer + 1))
+            start_pointer = None
+    
+    if m > 0 and start_pointer is not None:
+        end_pointer = len(mask)-1
+        chunks.append((start_pointer, end_pointer, end_pointer - start_pointer + 1))
+    
+    return chunks
+
+
+def get_random_mask_chunk(mask):
+    # mask --> [batch, T, 512]
+
+    mask = mask.detach().cpu().numpy()
+    new_chunked_mask = np.zeros_like(mask)
+    
+    for i, m in enumerate(mask):
+        blocks = get_blocks(m[:,0])
+        random_position = np.random.choice(np.arange(len(blocks)))
+        random_chunk = blocks[random_position]
+        new_chunked_mask[i,random_chunk[0]:random_chunk[1]+1,:] = mask[i,random_chunk[0]:random_chunk[1]+1,:]
+    
+    return torch.from_numpy(new_chunked_mask).float().to("cuda")
+        
+        
+        
 
 
 

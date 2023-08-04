@@ -20,7 +20,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         SparsityKLDivergence,
                                     )
 from src.common.logger_SaliencyPred import SaliencyPredictorLogger
-from src.common.hparams_onflyenergy import create_hparams
+from src.common.hparams_onflyenergy_vesus import create_hparams
 from pprint import pprint
 
 
