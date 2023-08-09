@@ -105,6 +105,60 @@ class WSOLAInterpolationEnergy():
         return speech_modified, energy_modified, samp_points
 
 
+class WSOLAInterpolationBlockEnergy():
+    def __init__(self, win_size=320, hop_size=160, tolerance=160, thresh=1e-3):
+        self.win_size = win_size
+        self.hop_size = hop_size
+        self.tolerance = tolerance
+        self.wsola_func = wsola
+        self.thresh = thresh
+    
+    def __create_tsf__(self, mask, rates, chunks):
+        x = librosa.frames_to_samples(np.arange(0, len(mask)), 
+                                      hop_length=self.hop_size)
+        y = np.ones((len(mask),))
+        # y[0] = 0
+        for r, c in zip(rates, chunks):
+            y[c[0]:c[1]+1] = r
+
+        y = librosa.frames_to_samples(np.cumsum(y), 
+                                      hop_length=self.hop_size)
+        
+        samp_points = np.vstack((x.reshape(1,-1), y.reshape(1,-1)))
+        return samp_points
+    
+    def __call__(self, mask, rates, speech, chunks):
+        # mask -> [1, #Time]
+        # rate -> [scalar] 0.7 -> 1.3 in increments of 0.1
+        # x -> [1, 1, audio_wav]
+        mask = mask.detach().squeeze().cpu().numpy()
+        rates = list(rates.cpu().numpy())
+        # print("Rates in interpolation: ", rates)
+        speech = speech.detach().squeeze().cpu().numpy()
+        
+        samp_points = self.__create_tsf__(mask, rates, chunks)
+        speech_mod = self.wsola_func(x=speech, 
+                                     s=samp_points,
+                                     win_size=self.win_size,
+                                     syn_hop_size=self.hop_size,
+                                     tolerance=self.tolerance,
+                                     )
+        energy_mod = librosa.feature.rms(y=speech_mod, 
+                                      frame_length=self.win_size,
+                                      hop_length=self.hop_size,
+                                      center=True)
+        energy_mod = energy_mod.reshape(-1,)
+        energy_mask = np.zeros((len(energy_mod),))
+        energy_mask[np.where(energy_mod>self.thresh)[0]] = 1
+        idx = np.where(energy_mask==1)[0]
+        energy_mask[idx[0]:idx[-1]] = 1
+        energy_mask = np.multiply(energy_mask, energy_mod)
+        
+        speech_modified = torch.from_numpy(speech_mod.reshape(1,1,-1)).float()
+        energy_modified = torch.from_numpy(energy_mask.reshape(1,1,-1)).float() #energy_mask
+        return speech_modified, energy_modified, samp_points
+
+
 class BatchWSOLAInterpolation():
     def __init__(self, win_size=320, hop_size=160, tolerance=160):
         self.win_size = win_size

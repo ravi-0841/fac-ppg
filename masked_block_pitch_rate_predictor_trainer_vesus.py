@@ -12,7 +12,7 @@ import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from block_pitch_duration_RL import MaskedRateModifier, RatePredictor
+from pitch_duration_RL import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -368,7 +368,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_PitchRate_entropy_{}_exploit_{}_{}".format(
+                                        "VESUS_Block_PitchRate_entropy_{}_exploit_{}_{}_noThresh".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,

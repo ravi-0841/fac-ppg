@@ -21,7 +21,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from pitch_duration_RL import MaskedRateModifier, RatePredictor
+from block_pitch_duration_RL import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -30,14 +30,11 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                     )
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
+                              get_mask_blocks_inference,
                               )
 from src.common.hparams_onflyenergy_pitch_rate_vesus import create_hparams
-from src.common.interpolation_block import (WSOLAInterpolation, 
-                                            WSOLAInterpolationEnergy,
-                                            BatchWSOLAInterpolation,
-                                            BatchWSOLAInterpolationEnergy)
-from src.common.pitch_modification_block import (PitchModification,
-                                                 BatchPitchModification)
+from src.common.interpolation_block import WSOLAInterpolationBlockEnergy
+from src.common.pitch_modification_block import PitchModification
 from pprint import pprint
 
 
@@ -178,39 +175,6 @@ def _count_below_alpha(a, h, s, f, alpha=0.05):
     return counts
 
 
-def intersection(lst1, lst2):
-    lst3 = [value for value in lst1 if value in lst2]
-    return lst3
-
-
-def best_k_class_metric(y_true, y_pred, k=0):
-    # k is either 0 or 1
-    max_val = np.max(y_true)
-    targ_idxs = [index for index, value in enumerate(y_true) if value == max_val]
-    
-    if k == 0:
-        chek_idx = np.flip(np.argsort(y_pred))[0]
-        if chek_idx in targ_idxs:
-            return 1
-        else:
-            return 0
-    else:
-        sorted_idx = np.flip(np.argsort(y_pred))
-        ignore_idx = sorted_idx[0]
-        chek_idx = sorted_idx[k]
-        if (chek_idx in targ_idxs) and (ignore_idx not in targ_idxs):
-            return 1
-        else:
-            return 0
-
-
-def compute_MI(marg1, marg2, joint):
-    mi = 0
-    for r in range(joint.shape[0]):
-        for c in range(joint.shape[1]):
-            mi += (joint[r,c]*np.log(joint[r,c]/(marg1[r]*marg2[c])))         
-    return mi
-
 #%%
 def test(output_directory, checkpoint_path_rate, 
         checkpoint_path_saliency, hparams, 
@@ -240,7 +204,7 @@ def test(output_directory, checkpoint_path_rate,
     model_rate, _ = load_checkpoint_rate(checkpoint_path_rate, 
                                         model_rate)
     
-    WSOLA = WSOLAInterpolationEnergy(win_size=hparams.win_length, 
+    WSOLA = WSOLAInterpolationBlockEnergy(win_size=hparams.win_length, 
                                    hop_size=hparams.hop_length,
                                    tolerance=hparams.hop_length)
     OLA = PitchModification()
@@ -269,22 +233,39 @@ def test(output_directory, checkpoint_path_rate,
         #%% Sampling the mask only once
 
         feats, posterior, mask_sample, y_pred = model_saliency(x, e)
+        chunked_masks, chunks = get_mask_blocks_inference(mask_sample)
+        feats = feats.repeat(chunked_masks.shape[0],1,1)
+        # print("chunked_masks.shape: ", chunked_masks.shape)
+        # print("feats.shape: ", feats.shape)
+        # print("chunks: ", chunks)
+
         loss = criterion(y_pred, y)
         saliency_reduced_loss = loss.item()
         
         intent_saliency = intended_saliency(batch_size=1, 
                                             relative_prob=relative_prob)
-        (rate_distribution,
-         pitch_distribution) = model_rate(feats, mask_sample, intent_saliency)
 
-        index1 = torch.multinomial(rate_distribution, 1)
-        index2 = torch.multinomial(rate_distribution, 1)
-        index3 = torch.multinomial(rate_distribution, 1)
-        rate1 = 0.5 + 0.1*index1#[0, 0]
-        rate2 = 0.5 + 0.1*index2#[0, 1]
-        rate3 = 0.5 + 0.1*index3#[0, 2]
+        # print("intent_saliency.shape: ", intent_saliency.shape)
+        (rate_distribution,
+         pitch_distribution) = model_rate(feats, 
+                                        mask_sample, 
+                                        intent_saliency.repeat(chunked_masks.shape[0],1))
+
+        # print("rate_distribution.shape: ", rate_distribution.shape)
+
+        indices_rate = torch.multinomial(rate_distribution, 1)
+        # print("indices_rate: ", indices_rate)
+        rates = 0.5 + 0.1*indices_rate.reshape(-1,)
+        # print("rates: ", rates)
+
+        # index1 = torch.multinomial(rate_distribution, 1)
+        # index2 = torch.multinomial(rate_distribution, 1)
+        # index3 = torch.multinomial(rate_distribution, 1)
+        # rate1 = 0.5 + 0.1*index1#[0, 0]
+        # rate2 = 0.5 + 0.1*index2#[0, 1]
+        # rate3 = 0.5 + 0.1*index3#[0, 2]
         
-        index_pitch = torch.argmax(pitch_distribution)
+        index_pitch = torch.multinomial(pitch_distribution[0], 1)
         pitch = 0.5 + 0.1*index_pitch
         pitch_mod_speech = OLA(factor=pitch, speech=x)
 
@@ -297,19 +278,21 @@ def test(output_directory, checkpoint_path_rate,
 
         # modification 1
         mod_speech1, mod_e1, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                    rate=rate1, speech=pitch_mod_speech)
+                                        rates=rates, 
+                                        speech=pitch_mod_speech,
+                                        chunks=chunks)
     
         mod_speech1 = mod_speech1.to("cuda")
         mod_e1 = mod_e1.to("cuda")
         _, _, m1, s1 = model_saliency(mod_speech1, mod_e1)
 
         # modification 2
-        mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                    rate=rate2, speech=pitch_mod_speech)
+        # mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
+        #                             rate=rate2, speech=pitch_mod_speech)
     
-        mod_speech2 = mod_speech2.to("cuda")
-        mod_e2 = mod_e2.to("cuda")
-        _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
+        # mod_speech2 = mod_speech2.to("cuda")
+        # mod_e2 = mod_e2.to("cuda")
+        # _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
         
         # # modification 3
         # mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
@@ -321,22 +304,22 @@ def test(output_directory, checkpoint_path_rate,
         
         argmax_index = np.argmax(relative_prob)
 
-        if s1[0,argmax_index] > s2[0,argmax_index]: #and s1[0,argmax_index] > s3[0,argmax_index]:
-            mod_speech = mod_speech1
-            rate = rate1
-            s = s1
-        elif s2[0,argmax_index] >= s1[0,argmax_index]: #and s2[0,argmax_index] > s3[0,argmax_index]:
-            mod_speech = mod_speech2
-            rate = rate2
-            s = s2
+        # if s1[0,argmax_index] > s2[0,argmax_index]: #and s1[0,argmax_index] > s3[0,argmax_index]:
+        #     mod_speech = mod_speech1
+        #     rate = rate1
+        #     s = s1
+        # elif s2[0,argmax_index] >= s1[0,argmax_index]: #and s2[0,argmax_index] > s3[0,argmax_index]:
+        #     mod_speech = mod_speech2
+        #     rate = rate2
+        #     s = s2
         # else:
         #     mod_speech = mod_speech3
         #     rate = rate3
         #     s = s3
         
-        # mod_speech = mod_speech1
-        # rate = rate1
-        # s = s1
+        mod_speech = mod_speech1
+        rate = torch.mean(rates)
+        s = s1
 
         loss = criterion(intent_saliency, s)
         rate_reduced_loss = loss.item()
@@ -402,6 +385,7 @@ if __name__ == '__main__':
 
     ttest_array = []
     count_gr_zero_array = []
+    count_flips_array = []
     ckpt_path = hparams.checkpoint_path_inference
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
@@ -411,7 +395,7 @@ if __name__ == '__main__':
 
     # for m in range(76500, 77000, 750):
     # for m in range(63000, 64000, 1000):
-    for m in range(107000, 108000, 1000):
+    for m in range(144000, 145000, 1000):
     # for m in range(267000, 268000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
@@ -434,18 +418,12 @@ if __name__ == '__main__':
                                                 hparams,
                                                 emo_prob_dict[emo_target],
                                                 emo_target=emo_target,
-                                                valid=False,
+                                                valid=True,
                                             )
         
         pred_array = np.asarray(pred_array)
         targ_array = np.asarray(targ_array)
         rate_array = np.asarray(rate_array)
-        
-        top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
-        top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
-        
-        print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),4)))
-        print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
 
         #%% Checking difference in predictions
         index = np.argmax(emo_prob_dict[emo_target])
@@ -455,9 +433,6 @@ if __name__ == '__main__':
         print("1 sided T-test result (p-value): {} and count greater zero: {}".format(ttest[1], count))
         ttest_array.append(ttest[1])
         count_gr_zero_array.append(count)
-        # joblib.dump({"ttest_scores": ttest_array, 
-        #             "count_scores": count_gr_zero_array}, os.path.join(hparams.output_directory,
-        #                                                         "ttest_scores.pkl"))
         
         idx = np.where(saliency_diff>0)[0]
         count_flips = 0
@@ -477,8 +452,15 @@ if __name__ == '__main__':
             if np.argmax(targ_array[i,:])==0:
                 count_neutral += 1
         
+        count_flips_array.append(count_flips)
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
-        print("Total neutral: {}".format(count_neutral))
+        # print("Total neutral: {}".format(count_neutral))
+        # joblib.dump({"ttest_scores": ttest_array, 
+        #             "count_scores": count_gr_zero_array,
+        #             "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
+
+
         # joblib.dump({"indices": indices_flips}, 
         #             "./output_wavs/{}/indices.pkl".format(emo_target))
         

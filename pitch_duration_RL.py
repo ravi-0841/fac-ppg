@@ -18,7 +18,7 @@ from src.common.interpolation_block import (WSOLAInterpolation,
                                             BatchWSOLAInterpolationEnergy)
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import EntropyLoss
-from src.common.hparams_onflyenergy import create_hparams
+from src.common.hparams_onflyenergy_vesus import create_hparams
 from src.common.utils import load_filepaths
 from torch.utils.data import DataLoader
 

@@ -290,7 +290,24 @@ def get_random_mask_chunk(mask):
     
     return torch.from_numpy(new_chunked_mask).float().to("cuda")
         
-        
+
+def get_mask_blocks_inference(mask):
+    # mask --> [1, T, 512]
+    
+    mask = mask.detach().cpu().numpy().squeeze()
+    chunks = get_blocks(mask[:,0])
+    new_chunked_mask = []
+
+    for i, c in enumerate(chunks):
+        chunk = chunks[i]
+        chunk_mask = np.zeros((mask.shape[0], 512))
+        chunk_mask[chunk[0]:chunk[1]+1,:] = mask[chunk[0]:chunk[1]+1,:]
+        new_chunked_mask.append(chunk_mask)
+
+    new_chunked_mask = np.asarray(new_chunked_mask)
+    return torch.from_numpy(new_chunked_mask).float().to("cuda"), chunks
+
+
         
 
 
