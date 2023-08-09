@@ -32,9 +32,9 @@ from src.common.utils import (median_mask_filtering,
                               refining_mask_sample,
                               get_mask_blocks_inference,
                               )
-from src.common.hparams_onflyenergy_pitch_rate_vesus import create_hparams
+from src.common.hparams_onflyenergy_block_pitch_rate_vesus import create_hparams
 from src.common.interpolation_block import WSOLAInterpolationBlockEnergy
-from src.common.pitch_modification_block import PitchModification
+from src.common.pitch_modification_block import LocalPitchModification
 from pprint import pprint
 
 
@@ -207,7 +207,7 @@ def test(output_directory, checkpoint_path_rate,
     WSOLA = WSOLAInterpolationBlockEnergy(win_size=hparams.win_length, 
                                    hop_size=hparams.hop_length,
                                    tolerance=hparams.hop_length)
-    OLA = PitchModification()
+    OLA = LocalPitchModification(frame_period=10)
 
     model_saliency.eval()
     model_rate.eval()
@@ -265,9 +265,16 @@ def test(output_directory, checkpoint_path_rate,
         # rate2 = 0.5 + 0.1*index2#[0, 1]
         # rate3 = 0.5 + 0.1*index3#[0, 2]
         
-        index_pitch = torch.multinomial(pitch_distribution[0], 1)
-        pitch = 0.5 + 0.1*index_pitch
-        pitch_mod_speech = OLA(factor=pitch, speech=x)
+        indices_pitch = torch.multinomial(pitch_distribution, 1)
+        # print("indices_rate: ", indices_rate)
+        pitches = 0.5 + 0.1*indices_pitch.reshape(-1,)
+        # print("pitches: ", pitches)
+        
+        # index_pitch = torch.multinomial(pitch_distribution[0], 1)
+        # pitch = 0.5 + 0.1*index_pitch
+        pitch_mod_speech = OLA(factors=pitches, 
+                               speech=x, 
+                               chunks=chunks)
 
         # Only pitch modification
         # pms = pitch_mod_speech.to("cuda")

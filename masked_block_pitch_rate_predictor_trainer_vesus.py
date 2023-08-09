@@ -12,7 +12,7 @@ import math
 import torch
 import numpy as np
 from torch.utils.data import DataLoader
-from pitch_duration_RL import MaskedRateModifier, RatePredictor
+from block_pitch_duration_RL import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -21,14 +21,17 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         EntropyLoss, 
                                         RateLoss,
                                         PitchRateLoss,
+                                        BlockPitchRateLoss,
                                     )
 from src.common.logger_PitchRatePred import SaliencyPredictorLogger
-from src.common.hparams_onflyenergy_pitch_rate_vesus import create_hparams
+from src.common.hparams_onflyenergy_block_pitch_rate_vesus import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation,
                                             BatchWSOLAInterpolation,
                                             BatchWSOLAInterpolationEnergy)
 from src.common.pitch_modification_block import (PitchModification,
-                                                 BatchPitchModification)
+                                                 BatchPitchModification,
+                                                 LocalPitchModification,
+                                                 BatchLocalPitchModification)
 from src.common.utils import intended_saliency, get_random_mask_chunk
 from pprint import pprint
 
@@ -162,7 +165,8 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
             index_pitch = torch.argmax(pitch_distribution, dim=-1)
             rate = 0.5 + 0.1*index_rate # 0.2*index
             pitch = 0.5 + 0.1*index_pitch # 0.2*index
-            dur_mod_speech = OLA(factor=pitch, speech=x)
+            dur_mod_speech = OLA(mask=mask_sample[:,:,0], 
+                                 factor=pitch, speech=x)
             mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
                                          rate=rate, speech=dur_mod_speech)
             mod_speech = mod_speech.to("cuda")
@@ -230,7 +234,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     
     criterion1 = torch.nn.L1Loss()
     criterion2 = EntropyLoss()
-    criterion3 = PitchRateLoss()
+    criterion3 = BlockPitchRateLoss()
 
     logger = prepare_directories_and_logger(output_directory, log_directory, rank)
 
@@ -276,7 +280,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                    hop_size=hparams.hop_length,
                                    tolerance=hparams.hop_length,
                                    thresh=1e-3)
-    OLA = BatchPitchModification(frame_period=10)
+    OLA = BatchLocalPitchModification(frame_period=10)
 
     model_saliency.eval()
     model_rate.train()
@@ -368,7 +372,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_PitchRate_entropy_{}_exploit_{}_{}_noThresh".format(
+                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,
