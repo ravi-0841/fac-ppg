@@ -349,7 +349,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                     if learning_rate_rate > hparams.learning_rate_lb:
                         learning_rate_rate *= hparams.learning_rate_decay
                     
-                    if hparams.exploitation_prob < 0.9: #0.8
+                    if hparams.exploitation_prob < 0.75: #0.8
                         hparams.exploitation_prob *= hparams.exploration_decay
                     
                     # Saving the model

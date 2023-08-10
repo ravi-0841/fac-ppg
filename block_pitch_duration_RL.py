@@ -183,7 +183,7 @@ class RatePredictor(nn.Module):
         
         m = -1*self.thresh(-1*m.permute(0,2,1))
         # m = m.permute(0,2,1)
-        x = x*m
+        x = x + 10*x*m
         
         x = self.elu(self.bn1_conv(self.conv1(x)))
         x = self.elu(self.bn2_conv(self.conv2(x)))
