@@ -156,12 +156,17 @@ class RatePredictor(nn.Module):
                                     kernel_size=3, stride=2, padding=1)
         self.conv2 = nn.Conv1d(in_channels=256, out_channels=256, 
                                     kernel_size=3, stride=2, padding=1)
-        self.bn1_conv = nn.BatchNorm1d(256)
-        self.bn2_conv = nn.BatchNorm1d(256)
+        
+        self.bn1_conv = nn.InstanceNorm1d(256)
+        self.bn2_conv = nn.InstanceNorm1d(256)
+        
+        # self.bn1_conv = nn.BatchNorm1d(256)
+        # self.bn2_conv = nn.BatchNorm1d(256)
         
         self.emo_projection = nn.Linear(in_features=5, out_features=256)
         self.joint_projection = nn.Linear(in_features=256, out_features=256)
-        self.bn_proj = nn.BatchNorm1d(256)
+        self.bn_proj = nn.InstanceNorm1d(256)
+        # self.bn_proj = nn.BatchNorm1d(256)
 
         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=256, 
                                                                nhead=4, 
@@ -169,7 +174,8 @@ class RatePredictor(nn.Module):
                                                                dropout=0.1)
         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
                                                          num_layers=1)
-        self.bn_trans = nn.BatchNorm1d(256)
+        self.bn_trans = nn.InstanceNorm1d(256)
+        # self.bn_trans = nn.BatchNorm1d(256)
 
         self.linear_layer_rate = nn.Linear(in_features=128, out_features=11) #6
         self.linear_layer_pitch = nn.Linear(in_features=128, out_features=11) #6
@@ -189,16 +195,17 @@ class RatePredictor(nn.Module):
         x = self.elu(self.bn2_conv(self.conv2(x)))
         
         e_proj = self.emo_projection(e).unsqueeze(dim=-1)
-        joint_x = x + e_proj #torch.cat((x, e_proj), dim=1)
+        joint_x = x + (e_proj/256) #torch.cat((x, e_proj), dim=1)
         
-        # joint_x -> [batch, 640, #time] -> [batch, #time, 512] -> [batch, 512, #time]
+        # joint_x -> [batch, 256, #time] -> [batch, #time, 256] -> [batch, 256, #time]
         x_proj = self.joint_projection(joint_x.permute(0,2,1)).permute(0,2,1)
-        x_proj = self.elu(self.bn_proj(x_proj))
+        x_proj = x + self.elu(self.bn_proj(x_proj))
         
-        # x_proj -> [batch, 512, #time] -> [#time, batch, 512]
-        x_proj = x_proj.permute(2,0,1)
-        trans_out = self.transformer_encoder(x_proj)
+        
+        # x_proj -> [batch, 256, #time] -> [#time, batch, 256]
+        trans_out = self.transformer_encoder(x_proj.permute(2,0,1))
         trans_out = self.bn_trans(trans_out.permute(1,2,0))
+        trans_out += x_proj
 
         trans_out = torch.mean(trans_out, dim=-1, keepdim=False)
         output_rate = self.softmax(self.linear_layer_rate(trans_out[:,:128])/self.temp_scale)
