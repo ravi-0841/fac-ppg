@@ -248,7 +248,7 @@ def test(output_directory, checkpoint_path_rate,
         # print("intent_saliency.shape: ", intent_saliency.shape)
         (rate_distribution,
          pitch_distribution) = model_rate(feats, 
-                                        mask_sample, 
+                                        chunked_masks, 
                                         intent_saliency.repeat(chunked_masks.shape[0],1))
 
         # print("rate_distribution.shape: ", rate_distribution.shape)
@@ -401,7 +401,7 @@ if __name__ == '__main__':
                                     )
 
     # for m in range(144000, 145000, 1000):
-    for m in range(1000, 95000, 1000):
+    for m in range(100000, 101000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -460,10 +460,10 @@ if __name__ == '__main__':
         count_flips_array.append(count_flips)
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
         # print("Total neutral: {}".format(count_neutral))
-        joblib.dump({"ttest_scores": ttest_array, 
-                    "count_scores": count_gr_zero_array,
-                    "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
+        # joblib.dump({"ttest_scores": ttest_array, 
+        #             "count_scores": count_gr_zero_array,
+        #             "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
 
 
         # joblib.dump({"indices": indices_flips}, 
