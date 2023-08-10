@@ -400,10 +400,8 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    # for m in range(76500, 77000, 750):
-    # for m in range(63000, 64000, 1000):
-    for m in range(144000, 145000, 1000):
-    # for m in range(267000, 268000, 1000):
+    # for m in range(144000, 145000, 1000):
+    for m in range(1000, 95000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -462,10 +460,10 @@ if __name__ == '__main__':
         count_flips_array.append(count_flips)
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
         # print("Total neutral: {}".format(count_neutral))
-        # joblib.dump({"ttest_scores": ttest_array, 
-        #             "count_scores": count_gr_zero_array,
-        #             "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
-        #                                                         "ttest_scores.pkl"))
+        joblib.dump({"ttest_scores": ttest_array, 
+                    "count_scores": count_gr_zero_array,
+                    "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
+                                                                "ttest_scores.pkl"))
 
 
         # joblib.dump({"indices": indices_flips}, 
