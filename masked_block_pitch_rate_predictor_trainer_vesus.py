@@ -163,8 +163,13 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
              pitch_distribution) = model_rate(feats, mask_sample, intent)
             index_rate = torch.argmax(rate_distribution, dim=-1)
             index_pitch = torch.argmax(pitch_distribution, dim=-1)
-            rate = 0.5 + 0.1*index_rate # 0.2*index
-            pitch = 0.5 + 0.1*index_pitch # 0.2*index
+            
+            # rate = 0.5 + 0.1*index_rate # 0.2*index
+            # pitch = 0.5 + 0.1*index_pitch # 0.2*index
+            
+            rate = 0.25 + 0.15*index_rate # 0.2*index
+            pitch = 0.25 + 0.15*index_pitch # 0.2*index
+            
             dur_mod_speech = OLA(mask=mask_sample[:,:,0], 
                                  factor=pitch, speech=x)
             mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
@@ -239,9 +244,10 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     logger = prepare_directories_and_logger(output_directory, log_directory, rank)
 
     train_loader, valset, collate_fn = prepare_dataloaders(hparams)
+
+    # rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.1)]
+    rate_classes = [str(np.round(x,2)) for x in np.arange(0.25, 1.9, 0.15)]
     
-    # rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.2)]
-    rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.1)]
 
     # Load checkpoint if one exists
     iteration = 0
@@ -349,7 +355,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                     if learning_rate_rate > hparams.learning_rate_lb:
                         learning_rate_rate *= hparams.learning_rate_decay
                     
-                    if hparams.exploitation_prob < 0.75: #0.8
+                    if hparams.exploitation_prob < 0.85: #0.8
                         hparams.exploitation_prob *= hparams.exploration_decay
                     
                     # Saving the model
@@ -372,7 +378,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_wt".format(
+                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,

@@ -113,7 +113,7 @@ class LocalPitchModification():
         self.frame_period = frame_period
     
     def __call__(self, factors, speech, chunks):
-        # rate -> [scalar] 0.7 -> 1.3 in increments of 0.1
+        # rate -> [scalar] 0.5 -> 1.5 in increments of 0.1
         # x -> [1, 1, audio_wav]
         factors = list(factors.cpu().numpy().reshape(-1,))
         speech = speech.detach().squeeze().cpu().numpy()

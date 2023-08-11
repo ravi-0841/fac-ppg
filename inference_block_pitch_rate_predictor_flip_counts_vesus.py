@@ -384,7 +384,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = sys.argv[1]
+    emo_target = "angry"#sys.argv[1]
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -401,7 +401,7 @@ if __name__ == '__main__':
                                     )
 
     # for m in range(144000, 145000, 1000):
-    for m in range(5000, 6000, 1000):
+    for m in range(40000, 41000, 1000):
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 

@@ -178,7 +178,7 @@ class RatePredictor(nn.Module):
         # self.bn_trans = nn.InstanceNorm1d(256)
         # self.bn_trans = nn.BatchNorm1d(256)
         
-        self.weighting_layer = nn.Linear(in_features=256, out_features=1)
+        # self.weighting_layer = nn.Linear(in_features=256, out_features=1)
         
         self.linear_layer_rate = nn.Linear(in_features=256, out_features=11) #6
         self.linear_layer_pitch = nn.Linear(in_features=256, out_features=11) #6
@@ -213,23 +213,25 @@ class RatePredictor(nn.Module):
         # trans_out += x_proj
         
         # print("trans_out shape: ", trans_out.shape)
-        weights = self.softmax(self.weighting_layer(trans_out.permute(0,2,1)).squeeze(dim=-1)).unsqueeze(dim=-1)
+        # weights = self.softmax(self.weighting_layer(trans_out.permute(0,2,1)).squeeze(dim=-1)).unsqueeze(dim=-1)
         # print("weights_shape: ", weights.shape)
-        trans_out = torch.einsum('bij,bjk->bik', trans_out, weights).squeeze(dim=-1)
+        # trans_out = torch.einsum('bij,bjk->bik', trans_out, weights).squeeze(dim=-1)
         # print("trans_out_shape: ", trans_out.shape)
 
-        # trans_out = torch.max(trans_out, dim=-1, keepdim=False)[0]
+        trans_out = torch.max(trans_out, dim=-1, keepdim=False)[0]
         output_rate = self.softmax(self.linear_layer_rate(trans_out)/self.temp_scale)
         output_pitch = self.softmax(self.linear_layer_pitch(trans_out)/self.temp_scale)
-        xm = trans_out.detach().cpu().numpy()
-        try:
-            corr = np.corrcoef(xm[0], xm[1])
-            print("correlation: ", corr[0,1])
-            print("Pitch: ", torch.argmax(output_pitch, 1))
-            print("Duration: ", torch.argmax(output_rate, 1))
-            print("\n")
-        except Exception as ex:
-            pass
+        
+        # xm = trans_out.detach().cpu().numpy()
+        # try:
+        #     corr = np.corrcoef(xm[0], xm[1])
+        #     print("correlation: ", corr[0,1])
+        #     print("Pitch: ", torch.argmax(output_pitch, 1))
+        #     print("Duration: ", torch.argmax(output_rate, 1))
+        #     print("\n")
+        # except Exception as ex:
+        #     pass
+        
         return output_rate, output_pitch
 
 
