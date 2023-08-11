@@ -35,7 +35,7 @@ def create_hparams(**kwargs):
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/vesus_1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_78000",
         "checkpoint_path_rate": "",#"./masked_predictor_output/VESUS_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_RE_L1_loss/checkpoint_233000",
-        "checkpoint_path_inference": "./masked_predictor_output/VESUS_Block_Local_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_RE_L1_loss/checkpoint",
+        "checkpoint_path_inference": "./masked_predictor_output/VESUS_Block_Local_PitchRate_entropy_0.05_exploit_0.15_temp_0.2_RE_L1_loss_wt/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs
         "rank": 0,  # Rank of current gpu
@@ -83,7 +83,7 @@ def create_hparams(**kwargs):
         # Optimization Hyperparameters #
         ################################
         "exploitation_prob": 0.15, #0.15,
-        "lambda_entropy": 0.035, # 0.1
+        "lambda_entropy": 0.05, #0.035,
         "temp_scale": 5.0, #15.0
         "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,
