@@ -21,7 +21,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from block_pitch_duration_RL_max_2 import MaskedRateModifier, RatePredictor
+from block_pitch_duration_RL_max import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -332,15 +332,15 @@ def test(output_directory, checkpoint_path_rate,
         loss = criterion(intent_saliency, s)
         rate_reduced_loss = loss.item()
 
-        feats = feats.detach().squeeze().cpu().numpy()
+        feats = feats[0].detach().squeeze().cpu().numpy()
         x = x.squeeze().cpu().numpy()
         y = y.squeeze().cpu().numpy()
         y_pred = y_pred.squeeze().detach().cpu().numpy()
         s = s.squeeze().detach().cpu().numpy()
         posterior = posterior.squeeze().detach().cpu().numpy()[:,1]
         mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
-        rate_distribution = rate_distribution.squeeze().detach().cpu().numpy()
-        pitch_distribution = pitch_distribution.squeeze().detach().cpu().numpy()
+        rate_distribution = rate_distribution[0].squeeze().detach().cpu().numpy()
+        pitch_distribution = pitch_distribution[0].squeeze().detach().cpu().numpy()
         mod_speech = mod_speech.squeeze().cpu().numpy()
 
         # Writing the wav file
@@ -402,9 +402,9 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    # for m in range(121000, 122000, 1000):
-    # for m in range(90000, 91000, 1000):
-    for m in range(7000, 8000, 1000):
+    for m in range(121000, 122000, 1000): # max
+    # for m in range(90000, 91000, 1000): # wt
+    # for m in range(7000, 8000, 1000): #max2
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
