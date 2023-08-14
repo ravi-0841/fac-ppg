@@ -162,15 +162,15 @@ class RatePredictor(nn.Module):
         self.conv4 = nn.Conv1d(in_channels=256, out_channels=256,
                                     kernel_size=1, stride=1)
         
-        self.bn1_conv = nn.BatchNorm1d(512)
-        self.bn2_conv = nn.BatchNorm1d(512)
-        self.bn3_conv = nn.BatchNorm1d(256)
-        self.bn4_conv = nn.BatchNorm1d(256)
+        self.bn1_conv = nn.InstanceNorm1d(512)
+        self.bn2_conv = nn.InstanceNorm1d(512)
+        self.bn3_conv = nn.InstanceNorm1d(256)
+        self.bn4_conv = nn.InstanceNorm1d(256)
 
         self.emo_projection = nn.Linear(in_features=5, out_features=256)
         self.joint_projection = nn.Linear(in_features=256, out_features=256)
-        # self.bn_proj = nn.InstanceNorm1d(256)
-        self.bn_proj = nn.BatchNorm1d(256)
+        self.bn_proj = nn.InstanceNorm1d(256)
+        # self.bn_proj = nn.BatchNorm1d(256)
 
         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=256, 
                                                                nhead=4, 
@@ -223,15 +223,15 @@ class RatePredictor(nn.Module):
         output_rate = self.softmax(self.linear_layer_rate(trans_out)/self.temp_scale)
         output_pitch = self.softmax(self.linear_layer_pitch(trans_out)/self.temp_scale)
         
-        # xm = trans_out.detach().cpu().numpy()
-        # try:
-        #     corr = np.corrcoef(xm[0], xm[1])
-        #     print("correlation: ", corr[0,1])
-        #     print("Pitch: ", torch.argmax(output_pitch, 1))
-        #     print("Duration: ", torch.argmax(output_rate, 1))
-        #     print("\n")
-        # except Exception as ex:
-        #     pass
+        xm = trans_out.detach().cpu().numpy()
+        try:
+            corr = np.corrcoef(xm[0], xm[1])
+            print("correlation: ", corr[0,1])
+            print("Pitch: ", torch.argmax(output_pitch, 1))
+            print("Duration: ", torch.argmax(output_rate, 1))
+            print("\n")
+        except Exception as ex:
+            pass
         
         return output_rate, output_pitch
 
