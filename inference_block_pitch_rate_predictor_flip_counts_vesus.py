@@ -21,7 +21,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from block_pitch_duration_RL import MaskedRateModifier, RatePredictor
+from block_pitch_duration_RL_wt import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -255,19 +255,12 @@ def test(output_directory, checkpoint_path_rate,
 
         indices_rate = torch.multinomial(rate_distribution, 1)
         # print("indices_rate: ", indices_rate)
-        rates = 0.5 + 0.1*indices_rate.reshape(-1,)
+        rates = 0.25 + 0.15*indices_rate.reshape(-1,)
         # print("rates: ", rates)
-
-        # index1 = torch.multinomial(rate_distribution, 1)
-        # index2 = torch.multinomial(rate_distribution, 1)
-        # index3 = torch.multinomial(rate_distribution, 1)
-        # rate1 = 0.5 + 0.1*index1#[0, 0]
-        # rate2 = 0.5 + 0.1*index2#[0, 1]
-        # rate3 = 0.5 + 0.1*index3#[0, 2]
         
         indices_pitch = torch.multinomial(pitch_distribution, 1)
-        # print("indices_rate: ", indices_rate)
-        pitches = 0.5 + 0.1*indices_pitch.reshape(-1,)
+        # print("indices_pitch: ", indices_pitch)
+        pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
         # print("pitches: ", pitches)
         
         # index_pitch = torch.multinomial(pitch_distribution[0], 1)
@@ -293,40 +286,48 @@ def test(output_directory, checkpoint_path_rate,
         mod_e1 = mod_e1.to("cuda")
         _, _, m1, s1 = model_saliency(mod_speech1, mod_e1)
 
+
         # modification 2
-        # mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
-        #                             rate=rate2, speech=pitch_mod_speech)
+        indices_rate = torch.multinomial(rate_distribution, 1)
+        rates2 = 0.25 + 0.15*indices_rate.reshape(-1,)
+        mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                        rates=rates2, 
+                                        speech=pitch_mod_speech,
+                                        chunks=chunks)
     
-        # mod_speech2 = mod_speech2.to("cuda")
-        # mod_e2 = mod_e2.to("cuda")
-        # _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
+        mod_speech2 = mod_speech2.to("cuda")
+        mod_e2 = mod_e2.to("cuda")
+        _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
         
-        # # modification 3
-        # mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
-        #                             rate=rate3, speech=pitch_mod_speech)
-    
-        # mod_speech3 = mod_speech3.to("cuda")
-        # mod_e3 = mod_e3.to("cuda")
-        # _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
+        # modification 3
+        indices_rate = torch.multinomial(rate_distribution, 1)
+        rates3 = 0.25 + 0.15*indices_rate.reshape(-1,)
+        mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                        rates=rates3, 
+                                        speech=pitch_mod_speech,
+                                        chunks=chunks)    
+        mod_speech3 = mod_speech3.to("cuda")
+        mod_e3 = mod_e3.to("cuda")
+        _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
         
         argmax_index = np.argmax(relative_prob)
 
-        # if s1[0,argmax_index] > s2[0,argmax_index]: #and s1[0,argmax_index] > s3[0,argmax_index]:
-        #     mod_speech = mod_speech1
-        #     rate = rate1
-        #     s = s1
-        # elif s2[0,argmax_index] >= s1[0,argmax_index]: #and s2[0,argmax_index] > s3[0,argmax_index]:
-        #     mod_speech = mod_speech2
-        #     rate = rate2
-        #     s = s2
-        # else:
-        #     mod_speech = mod_speech3
-        #     rate = rate3
-        #     s = s3
+        if s1[0,argmax_index] > s2[0,argmax_index]: #and s1[0,argmax_index] > s3[0,argmax_index]:
+            mod_speech = mod_speech1
+            rate = torch.mean(rates)
+            s = s1
+        elif s2[0,argmax_index] >= s1[0,argmax_index]: #and s2[0,argmax_index] > s3[0,argmax_index]:
+            mod_speech = mod_speech2
+            rate = torch.mean(rates2)
+            s = s2
+        else:
+            mod_speech = mod_speech3
+            rate = torch.mean(rates3)
+            s = s3
         
-        mod_speech = mod_speech1
-        rate = torch.mean(rates)
-        s = s1
+        # mod_speech = mod_speech1
+        # rate = torch.mean(rates)
+        # s = s1
 
         loss = criterion(intent_saliency, s)
         rate_reduced_loss = loss.item()
@@ -343,11 +344,12 @@ def test(output_directory, checkpoint_path_rate,
         mod_speech = mod_speech.squeeze().cpu().numpy()
 
         # Writing the wav file
+        # mod_speech = (mod_speech - np.min(mod_speech)) / (np.max(mod_speech) - np.min(mod_speech))
+        # mod_speech = mod_speech - np.mean(mod_speech)
         # sf.write("./output_wavs/{}/{}.wav".format(emo_target, i+1), 
         #             mod_speech.reshape(-1,), 16000)
 
         #%% Plotting
-
         saliency_loss_array.append(saliency_reduced_loss)
         rate_loss_array.append(rate_reduced_loss)
         saliency_pred_array.append(y_pred)
@@ -384,7 +386,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "angry"#sys.argv[1]
+    emo_target = sys.argv[1]
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -400,8 +402,9 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    # for m in range(144000, 145000, 1000):
-    for m in range(40000, 41000, 1000):
+    # for m in range(121000, 122000, 1000):
+    for m in range(90000, 91000, 1000):
+    
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
 
@@ -460,6 +463,7 @@ if __name__ == '__main__':
         count_flips_array.append(count_flips)
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
         # print("Total neutral: {}".format(count_neutral))
+        
         # joblib.dump({"ttest_scores": ttest_array, 
         #             "count_scores": count_gr_zero_array,
         #             "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
@@ -469,7 +473,7 @@ if __name__ == '__main__':
         # joblib.dump({"indices": indices_flips}, 
         #             "./output_wavs/{}/indices.pkl".format(emo_target))
         
-        
+        # print("average difference: ", np.mean(rate_array - pred_array, axis=0))
        
 
 

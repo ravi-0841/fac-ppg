@@ -88,6 +88,7 @@ def local_modification(f0, mask, factor):
     y = smooth(generate_interpolation(f0), window_len=13)
     y[modif_idx] *= factor
     y_smooth = smooth(y, window_len=13)
+    y_smooth[np.where(y_smooth<50)[0]] = 50
     y_smooth[zeros_idx] = 0.
     return y_smooth
 
@@ -104,6 +105,7 @@ def local_chunk_modification(f0, chunks, factors):
             pass
     
     y_smooth = smooth(y, window_len=13)
+    y_smooth[np.where(y_smooth<50)[0]] = 50
     y_smooth[zeros_idx] = 0.
     return y_smooth
     

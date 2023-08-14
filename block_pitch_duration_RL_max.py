@@ -235,60 +235,6 @@ class RatePredictor(nn.Module):
         return output_rate, output_pitch
 
 
-# Original Rate Predictor
-# class RatePredictor(nn.Module):
-#     def __init__(self, temp_scale=1.0): #50
-#         super(RatePredictor, self).__init__()
-#         self.thresh = nn.Threshold(-1e-6, -1)
-#         self.temp_scale = temp_scale
-#         self.emo_projection = nn.Linear(in_features=5, out_features=64)
-#         # self.bn1 = nn.BatchNorm1d(576)
-#         self.joint_projection = nn.Linear(in_features=576, out_features=512)
-#         self.bn1 = nn.BatchNorm1d(512)
-#         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=512, 
-#                                                                nhead=8, 
-#                                                                dim_feedforward=512,
-#                                                                dropout=0.2)
-#         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
-#                                                          num_layers=2)
-#         self.bn2 = nn.BatchNorm1d(512)
-#         self.recurrent_layer = nn.LSTM(input_size=512, hidden_size=256, 
-#                                        num_layers=2, bidirectional=False, 
-#                                        dropout=0.2)
-#         self.bn3 = nn.BatchNorm1d(256)
-#         self.linear_layer_rate = nn.Linear(in_features=256, out_features=11) #6
-#         self.linear_layer_pitch = nn.Linear(in_features=256, out_features=11) #6
-#         self.softmax = nn.Softmax(dim=-1)
-#         self.elu = nn.ELU(inplace=True)
-    
-#     def forward(self, x, m, e): #(x, p, e)
-#         # x -> [batch, 512, #time]
-#         # e -> [batch, 5] one-hot encoding for [Neutral, Angry, Happy, Sad, Fearful]
-#         # m -> [batch, #time, 512] -> [batch, 512, #time]
-        
-#         m = -1*self.thresh(-1*m.permute(0,2,1))
-#         # m = m.permute(0,2,1)
-#         x = x*m
-#         e_proj = self.emo_projection(e).unsqueeze(dim=-1).repeat(1,1,x.shape[2])
-#         joint_x = torch.cat((x, e_proj), dim=1)
-        
-#         # joint_x -> [batch, 640, #time] -> [batch, #time, 512] -> [batch, 512, #time]
-#         x_proj = self.joint_projection(joint_x.permute(0,2,1)).permute(0,2,1)
-#         x_proj = self.elu(self.bn1(x_proj))
-        
-#         # x_proj -> [batch, 512, #time] -> [#time, batch, 512]
-#         x_proj = x_proj.permute(2,0,1)
-#         trans_out = self.transformer_encoder(x_proj)
-#         trans_out = self.bn2(trans_out.permute(1,2,0))
-
-#         lstm_out, _ = self.recurrent_layer(trans_out.permute(2,0,1))
-#         lstm_out = lstm_out[-1, :, :]
-#         lstm_out = self.bn3(lstm_out)
-#         output_rate = self.softmax(self.linear_layer_rate(lstm_out)/self.temp_scale)
-#         output_pitch = self.softmax(self.linear_layer_pitch(lstm_out)/self.temp_scale)
-#         return output_rate, output_pitch
-
-
 class MaskedRateModifier(nn.Module):
     def __init__(self, temp_scale=10.0):
         super(MaskedRateModifier, self).__init__()
