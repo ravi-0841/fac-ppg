@@ -269,13 +269,6 @@ def test(output_directory, checkpoint_path_rate,
                                speech=x, 
                                chunks=chunks)
 
-        # Only pitch modification
-        # pms = pitch_mod_speech.to("cuda")
-        # _, _, mp, sp = model_saliency(pms, e)
-        # mod_speech = pms
-        # rate = torch.Tensor([0.1])
-        # s = sp
-
         # modification 1
         mod_speech1, mod_e1, _ = WSOLA(mask=mask_sample[:,:,0], 
                                         rates=rates, 
@@ -287,7 +280,7 @@ def test(output_directory, checkpoint_path_rate,
         _, _, m1, s1 = model_saliency(mod_speech1, mod_e1)
 
 
-        # modification 2
+        # # modification 2
         indices_rate = torch.multinomial(rate_distribution, 1)
         rates2 = 0.25 + 0.15*indices_rate.reshape(-1,)
         mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
@@ -404,7 +397,7 @@ if __name__ == '__main__':
 
     # for m in range(121000, 122000, 1000): # max
     # for m in range(90000, 91000, 1000): # wt
-    for m in range(43000, 44000, 1000): #max2
+    for m in range(58000, 59000, 1000): #max2
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
