@@ -21,7 +21,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from block_pitch_duration_RL_max import MaskedRateModifier, RatePredictor
+from block_pitch_duration_RL_max_2 import MaskedRateModifier, RatePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -402,9 +402,9 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(121000, 122000, 1000): # max
+    # for m in range(121000, 122000, 1000): # max
     # for m in range(90000, 91000, 1000): # wt
-    # for m in range(7000, 8000, 1000): #max2
+    for m in range(43000, 44000, 1000): #max2
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)

@@ -445,7 +445,7 @@ class BlockPitchRateLoss(nn.Module):
                                             unbiased_multiplier_pitch))
         
         loss_ent = -1*additional_criterion(rate_distribution) + -1*additional_criterion(pitch_distribution)
-        loss = loss_saliency + hparams.lambda_entropy * loss_ent
+        loss = loss_saliency + hparams.lambda_entropy*loss_ent
         return loss
 
 

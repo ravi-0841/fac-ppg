@@ -223,15 +223,15 @@ class RatePredictor(nn.Module):
         output_rate = self.softmax(self.linear_layer_rate(trans_out)/self.temp_scale)
         output_pitch = self.softmax(self.linear_layer_pitch(trans_out)/self.temp_scale)
         
-        # xm = trans_out.detach().cpu().numpy()
-        # try:
-        #     corr = np.corrcoef(xm[0], xm[1])
-        #     print("correlation: ", corr[0,1])
-        #     print("Pitch: ", torch.argmax(output_pitch, 1))
-        #     print("Duration: ", torch.argmax(output_rate, 1))
-        #     print("\n")
-        # except Exception as ex:
-        #     pass
+        xm = trans_out.detach().cpu().numpy()
+        try:
+            corr = np.corrcoef(xm[0], xm[1])
+            print("correlation: ", corr[0,1])
+            print("Pitch: ", torch.argmax(output_pitch, 1))
+            print("Duration: ", torch.argmax(output_rate, 1))
+            print("\n")
+        except Exception as ex:
+            pass
         
         return output_rate, output_pitch
 
