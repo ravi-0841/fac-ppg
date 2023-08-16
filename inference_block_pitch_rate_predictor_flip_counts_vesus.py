@@ -363,11 +363,12 @@ def test(output_directory, checkpoint_path_rate,
             #     iteration, saliency_reduced_loss, duration))
             # print("Rate    | Test loss {} {:.6f} {:.2f}s/it".format(
             #     iteration, rate_reduced_loss, duration))
-
+        
+        if iteration >= 99:
+            break
+        
         iteration += 1
-    
-    # if iteration >= 100:
-    #     break
+
     
     print("Saliency | Avg. Loss: {:.3f}".format(np.mean(saliency_loss_array)))
     print("Rate     | Avg. Loss: {:.3f}".format(np.mean(rate_loss_array)))
@@ -384,6 +385,11 @@ if __name__ == '__main__':
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
+    
+    model_ckpt_dict = {"angry": 17000,
+                       "happy": 108000,
+                       "sad": 81000,
+                       "fear": 40000}
 
     ttest_array = []
     count_gr_zero_array = []
@@ -397,7 +403,11 @@ if __name__ == '__main__':
 
     # for m in range(121000, 122000, 1000): # max
     # for m in range(90000, 91000, 1000): # wt
-    for m in range(108000, 109000, 1000): #max2
+    # for m in range(108000, 109000, 1000): #max2
+    
+    if emo_target in ["angry", "happy", "sad", "fear"]:
+        
+        m = model_ckpt_dict[emo_target]
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
