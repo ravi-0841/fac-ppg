@@ -211,7 +211,7 @@ class RatePredictor(nn.Module):
         # x_proj -> [batch, 256, #time] -> [#time, batch, 256]
         trans_out = self.transformer_encoder(x_proj.permute(2,0,1))
         trans_out = trans_out.permute(1,2,0)
-        trans_out += e_proj
+        trans_out += e_proj/256.
         
         # print("trans_out shape: ", trans_out.shape)
         # weights = self.softmax(self.weighting_layer(trans_out.permute(0,2,1)).squeeze(dim=-1)).unsqueeze(dim=-1)
