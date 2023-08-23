@@ -287,40 +287,39 @@ def test(output_directory, checkpoint_path_rate,
                                         rates=rates2, 
                                         speech=pitch_mod_speech,
                                         chunks=chunks)
-    
-        mod_speech2 = mod_speech2.to("cuda")
-        mod_e2 = mod_e2.to("cuda")
-        _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
+        # mod_speech2 = mod_speech2.to("cuda")
+        # mod_e2 = mod_e2.to("cuda")
+        # _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
         
-        # modification 3
-        indices_rate = torch.multinomial(rate_distribution, 1)
-        rates3 = 0.25 + 0.15*indices_rate.reshape(-1,)
-        mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                        rates=rates3, 
-                                        speech=pitch_mod_speech,
-                                        chunks=chunks)    
-        mod_speech3 = mod_speech3.to("cuda")
-        mod_e3 = mod_e3.to("cuda")
-        _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
+        # # modification 3
+        # indices_rate = torch.multinomial(rate_distribution, 1)
+        # rates3 = 0.25 + 0.15*indices_rate.reshape(-1,)
+        # mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
+        #                                 rates=rates3, 
+        #                                 speech=pitch_mod_speech,
+        #                                 chunks=chunks)    
+        # mod_speech3 = mod_speech3.to("cuda")
+        # mod_e3 = mod_e3.to("cuda")
+        # _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
         
         argmax_index = np.argmax(relative_prob)
 
-        if s1[0,argmax_index] > s2[0,argmax_index]: #and s1[0,argmax_index] > s3[0,argmax_index]:
-            mod_speech = mod_speech1
-            rate = torch.mean(rates)
-            s = s1
-        elif s2[0,argmax_index] >= s1[0,argmax_index]: #and s2[0,argmax_index] > s3[0,argmax_index]:
-            mod_speech = mod_speech2
-            rate = torch.mean(rates2)
-            s = s2
-        else:
-            mod_speech = mod_speech3
-            rate = torch.mean(rates3)
-            s = s3
+        # if s1[0,argmax_index] > s2[0,argmax_index]: #and s1[0,argmax_index] > s3[0,argmax_index]:
+        #     mod_speech = mod_speech1
+        #     rate = torch.mean(rates)
+        #     s = s1
+        # elif s2[0,argmax_index] >= s1[0,argmax_index]: #and s2[0,argmax_index] > s3[0,argmax_index]:
+        #     mod_speech = mod_speech2
+        #     rate = torch.mean(rates2)
+        #     s = s2
+        # else:
+        #     mod_speech = mod_speech3
+        #     rate = torch.mean(rates3)
+        #     s = s3
         
-        # mod_speech = mod_speech1
-        # rate = torch.mean(rates)
-        # s = s1
+        mod_speech = mod_speech1
+        rate = torch.mean(rates)
+        s = s1
 
         loss = criterion(intent_saliency, s)
         rate_reduced_loss = loss.item()
@@ -380,7 +379,7 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = sys.argv[1]
+    emo_target = "angry"#sys.argv[1]
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
