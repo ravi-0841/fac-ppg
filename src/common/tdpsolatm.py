@@ -1,6 +1,6 @@
 import numpy as np
-# from src.common.tsm_validate import _validate_audio, _validate_f0
-from tsm_validate import _validate_audio, _validate_f0
+from src.common.tsm_validate import _validate_audio, _validate_f0
+# from tsm_validate import _validate_audio, _validate_f0
 
 
 def win_func(win_type='hann', win_size=4096, zero_pad=0):

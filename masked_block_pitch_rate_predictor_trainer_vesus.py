@@ -31,7 +31,9 @@ from src.common.interpolation_block import (WSOLAInterpolation,
 from src.common.pitch_modification_block import (PitchModification,
                                                  BatchPitchModification,
                                                  LocalPitchModification,
-                                                 BatchLocalPitchModification)
+                                                 BatchLocalPitchModification,
+                                                 LocalPitchModification_TDPSOLA,
+                                                 BatchLocalPitchModification_TDPSOLA)
 from src.common.utils import intended_saliency, get_random_mask_chunk
 from pprint import pprint
 
@@ -286,7 +288,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                    hop_size=hparams.hop_length,
                                    tolerance=hparams.hop_length,
                                    thresh=1e-3)
-    OLA = BatchLocalPitchModification(frame_period=10)
+    OLA = BatchLocalPitchModification_TDPSOLA(frame_period=10)
 
     model_saliency.eval()
     model_rate.train()
@@ -378,7 +380,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max_2".format(
+                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max_2_TDPSOLA".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,
