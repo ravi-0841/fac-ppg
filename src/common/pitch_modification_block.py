@@ -196,7 +196,7 @@ def local_modificationTDPSOLA(f0, mask, factor, speech,
     aux = ndimage.gaussian_filter1d(aux, sigma=3)
     f0_target = f0 * aux
     f0_target = np.minimum(f0_target, 600)
-    f0_target = np.maximum(f0_target, 80)
+    f0_target = np.maximum(f0_target, 70)
     mod_speech = tdpsola(x=speech.reshape(1,-1), sr=sr, 
                          src_f0=f0, tgt_f0=f0_target, 
                          p_hop_size=hop_size, p_win_size=win_size)
@@ -207,7 +207,6 @@ def local_modificationTDPSOLA(f0, mask, factor, speech,
 def local_chunk_modificationTDPSOLA(f0, chunks, factors, speech, sr, 
                                     hop_size=160, win_size=160):
     aux = np.ones((len(f0),))
-    
     for i in range(min(len(factors), len(chunks))):
         f = factors[i]
         c = chunks[i]
@@ -219,7 +218,7 @@ def local_chunk_modificationTDPSOLA(f0, chunks, factors, speech, sr,
     aux = ndimage.gaussian_filter1d(aux, sigma=3)
     f0_target = f0 * aux
     f0_target = np.minimum(f0_target, 600)
-    f0_target = np.maximum(f0_target, 80)
+    f0_target = np.maximum(f0_target, 70)
     mod_speech = tdpsola(x=speech.reshape(1,-1), sr=sr, 
                          src_f0=f0, tgt_f0=f0_target, 
                          p_hop_size=hop_size, p_win_size=win_size)
