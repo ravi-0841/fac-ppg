@@ -195,7 +195,7 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
                 val_loss += reduced_val_loss
                 local_iter += 1
             except Exception as ex:
-                pass
+                continue
             
         val_loss = val_loss / local_iter
 
