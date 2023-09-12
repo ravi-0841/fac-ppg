@@ -21,7 +21,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                     )
 from src.common.utils import intended_saliency
 from src.common.logger_SaliencyPred import SaliencyPredictorLogger
-from src.common.hparams_onflyenergy_class_specific import create_hparams
+from src.common.hparams_onflyenergy_class_specific_vesus import create_hparams
 from pprint import pprint
 
 

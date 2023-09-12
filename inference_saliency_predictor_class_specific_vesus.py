@@ -28,7 +28,7 @@ from src.common.utils import (median_mask_filtering,
                               refining_mask_sample,
                               intended_saliency,
                               )
-from src.common.hparams_onflyenergy_class_specific import create_hparams
+from src.common.hparams_onflyenergy_class_specific_vesus import create_hparams
 from pprint import pprint
 
 
