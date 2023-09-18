@@ -138,11 +138,25 @@ def tdpsola(x, sr, src_f0, tgt_f0=None, alpha=1, beta=None,
 
             st = pm_chan[i] - pit
             en = pm_chan[i] + pit
-
-            # print("x_chan shape:", x[st+pad_len:en+pad_len+1].shape)
+            
+            temp_var = x_chan[st+pad_len: en+pad_len+1]
+            # print("temp_var type:", temp_var.dtype)
+            # print("temp_var shape:", temp_var.shape)
             # print("window shape:", win.shape)
             # sys.stdout.flush()
-            gr = x_chan[st + pad_len: en + pad_len + 1] * win
+            
+            if len(win) > len(temp_var):
+                # print("temp_var shape: ", temp_var.shape)
+                # print("win shape: ", win.shape)
+                diff = len(win) - len(temp_var)
+                temp_var = np.pad(temp_var, (0, diff))
+                # if diff%2 == 0:
+                #     win = win[diff//2 : -diff//2]
+                # else:
+                #     win = win[diff//2 : -(diff//2 + 1)]
+
+            # gr = x_chan[st + pad_len: en + pad_len + 1] * win
+            gr = temp_var * win
 
             ini_gr = int(round(tk)) - pit + pad_len
             end_gr = int(round(tk)) + pit + pad_len

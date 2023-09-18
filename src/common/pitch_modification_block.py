@@ -278,7 +278,7 @@ class BatchLocalPitchModification_TDPSOLA():
 
         return speech_padded
     
-    def __call__(self, mask, factor, speech):
+    def __call__(self, mask, factor, speech, lengths):
         # rate -> [batch, 1] 0.7 -> 1.3 in increments of 0.1
         # x -> [batch, 1, audio_wav]
         # mask -> [batch, Time]
@@ -294,8 +294,13 @@ class BatchLocalPitchModification_TDPSOLA():
             factor = batch_factor[n]
             speech = batch_speech[n]
             speech = speech.reshape((-1,))
+            speech = speech[:lengths[n]]
             m = mask.detach().cpu().numpy()
             m = m[n,:].reshape(-1,)
+            m = m[:(lengths[n]//self.frame_period)]
+            
+            # print("speech length: ", speech.shape)
+            # print("mask length: ", m.shape)
             
             speech = np.asarray(speech, np.float64)
             f0 = pw.dio(speech, self.sr, frame_period=self.frame_period)[0]

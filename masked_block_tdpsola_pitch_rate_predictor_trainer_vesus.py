@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Aug  4 15:29:46 2023
+Created on Mon Sep 18 13:43:32 2023
 
 @author: ravi
 """
+
 
 import os
 import sys
@@ -23,6 +24,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         RateLoss,
                                         PitchRateLoss,
                                         BlockPitchRateLoss,
+                                        BlockPitchRateLossTDPSOLA,
                                     )
 from src.common.logger_PitchRatePred import SaliencyPredictorLogger
 from src.common.hparams_onflyenergy_block_pitch_rate_vesus import create_hparams
@@ -34,7 +36,8 @@ from src.common.pitch_modification_block import (PitchModification,
                                                  BatchPitchModification,
                                                  LocalPitchModification,
                                                  BatchLocalPitchModification,
-                                                 )
+                                                 LocalPitchModification_TDPSOLA,
+                                                 BatchLocalPitchModification_TDPSOLA)
 from src.common.utils import intended_saliency, get_random_mask_chunk
 from pprint import pprint
 
@@ -158,7 +161,7 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
         local_iter = 0
         for i, batch in enumerate(val_loader):
             # try:
-            x, em = batch[0].to("cuda"), batch[1].to("cuda")
+            x, em, lengths = batch[0].to("cuda"), batch[1].to("cuda"), batch[3]
             intent, cats = intended_saliency(batch_size=batch_size, 
                                              consistent=consistency)
             feats, posterior, mask_sample, orig_pred = model_saliency(x, em)
@@ -177,7 +180,8 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
             pitch = 0.5 + 0.1*index_pitch
             
             dur_mod_speech = OLA(mask=mask_sample[:,:,0], 
-                                 factor=pitch, speech=x)
+                                 factor=pitch, speech=x, 
+                                 lengths=lengths)
             mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
                                          rate=rate, speech=dur_mod_speech)
             mod_speech = mod_speech.to("cuda")
@@ -248,7 +252,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     
     criterion1 = torch.nn.L1Loss()
     criterion2 = EntropyLoss()
-    criterion3 = BlockPitchRateLoss()
+    criterion3 = BlockPitchRateLossTDPSOLA()
 
     logger = prepare_directories_and_logger(output_directory, log_directory, rank)
 
@@ -295,7 +299,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                    hop_size=hparams.hop_length,
                                    tolerance=hparams.hop_length,
                                    thresh=1e-3)
-    OLA = BatchLocalPitchModification(frame_period=10)
+    OLA = BatchLocalPitchModification_TDPSOLA(frame_period=10)
 
     model_saliency.eval()
     model_rate.train()
@@ -312,7 +316,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
 
             (x, e, l) = (batch[0].to("cuda"), batch[1].to("cuda"),
                           batch[3])
-            l = torch.div(l, hparams.downsampling_factor, 
+            l_adjusted = torch.div(l, hparams.downsampling_factor, 
                           rounding_mode="floor")
 
             # input_shape should be [#batch_size, 1, #time]
@@ -329,7 +333,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                            mask_sample.detach(), 
                                            intent_saliency)
             
-            loss_rate = criterion3(x, hparams, WSOLA, OLA, model_saliency, 
+            loss_rate = criterion3(x, l, hparams, WSOLA, OLA, model_saliency, 
                                    rate_distribution, pitch_distribution, 
                                    mask_sample, intent_cats, criterion2, 
                                    uniform=True)
@@ -389,7 +393,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max".format(
+                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max_TDPSOLA".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,
