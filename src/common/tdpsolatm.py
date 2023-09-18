@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from src.common.tsm_validate import _validate_audio, _validate_f0
 # from tsm_validate import _validate_audio, _validate_f0
@@ -97,6 +98,9 @@ def tdpsola(x, sr, src_f0, tgt_f0=None, alpha=1, beta=None,
         pm_chan = _find_pitch_marks(x_chan, sr, src_f0_chan, p_hop_size,
                                     p_win_size)
         pitch_period = np.diff(pm_chan)  # compute pitch periods
+        
+        # print("pm_chan: ", pm_chan)
+        # sys.stdout.flush()
 
         if tgt_f0 is not None:
             tgt_f0_chan = tgt_f0[c]
@@ -135,6 +139,9 @@ def tdpsola(x, sr, src_f0, tgt_f0=None, alpha=1, beta=None,
             st = pm_chan[i] - pit
             en = pm_chan[i] + pit
 
+            # print("x_chan shape:", x[st+pad_len:en+pad_len+1].shape)
+            # print("window shape:", win.shape)
+            # sys.stdout.flush()
             gr = x_chan[st + pad_len: en + pad_len + 1] * win
 
             ini_gr = int(round(tk)) - pit + pad_len
@@ -179,11 +186,14 @@ def _target_f0_to_beta(x, pitch_mark, source_f0, target_f0):
     """
     beta = np.zeros(pitch_mark.size)
     for i in range(beta.size):
-        idx = round(pitch_mark[i] * source_f0.size / x.size)
+        idx = int(round(pitch_mark[i] * source_f0.size / x.size))
         if idx < 0:
             idx = 0
         elif idx >= source_f0.size:
             idx = source_f0.size - 1
+
+        # print("idx: ", idx)
+        # sys.stdout.flush()
 
         if (not target_f0[idx] == 0) and (not source_f0[idx] == 0):
             beta[i] = target_f0[idx] / source_f0[idx]

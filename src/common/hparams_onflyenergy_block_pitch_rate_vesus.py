@@ -93,7 +93,7 @@ def create_hparams(**kwargs):
         "learning_rate_ub": 1e-5, #1e-5
         "weight_decay": 1e-6, #1e-6
         "grad_clip_thresh": 1.0,
-        "batch_size": 4, #8
+        "batch_size": 1, #4
         "minibatch_consistency": False,
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.01, # Bernoulli parameter for sampling 1st entry of the mask

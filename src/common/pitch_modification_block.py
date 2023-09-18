@@ -9,6 +9,7 @@ Created on Tue May 30 14:51:48 2023
 import numpy as np
 import torch
 import pyworld as pw
+import sys
 
 from src.common.feat_utils import smooth, generate_interpolation
 from src.common.tdpsolatm import tdpsola
@@ -195,6 +196,10 @@ def local_modificationTDPSOLA(f0, mask, factor, speech,
     aux[modif_idx] = factor
     aux = ndimage.gaussian_filter1d(aux, sigma=3)
     f0_target = f0 * aux
+    # print("f0 shape: ", f0.shape)
+    # print("aux shape: ", aux.shape)
+    # print("f0_target shape: ", f0_target.shape)
+    # sys.stdout.flush()
     f0_target = np.minimum(f0_target, 600)
     f0_target = np.maximum(f0_target, 70)
     mod_speech = tdpsola(x=speech.reshape(1,-1), sr=sr, 
