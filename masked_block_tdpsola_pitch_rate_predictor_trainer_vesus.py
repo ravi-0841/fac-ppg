@@ -307,83 +307,83 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     for epoch in range(epoch_offset, hparams.epochs):
         print("Epoch: {}".format(epoch))
         for i, batch in enumerate(train_loader):
-            # try:
-            start = time.perf_counter()
-            for param_group in optimizer_rate.param_groups:
-                param_group['lr'] = learning_rate_rate
-
-            model_rate.zero_grad()
-
-            (x, e, l) = (batch[0].to("cuda"), batch[1].to("cuda"),
-                          batch[3])
-            l_adjusted = torch.div(l, hparams.downsampling_factor, 
-                          rounding_mode="floor")
-
-            # input_shape should be [#batch_size, 1, #time]
-            feats, posterior, mask_sample, y_pred = model_saliency(x, e)
-            mask_sample = get_random_mask_chunk(mask_sample)
-            
-            # Intended Saliency
-            intent_saliency, intent_cats = intended_saliency(batch_size=hparams.batch_size, 
-                                                             consistent=hparams.minibatch_consistency)
-            
-            # Rate prediction
-            (rate_distribution, 
-             pitch_distribution) = model_rate(feats.detach(), # .detach()
-                                           mask_sample.detach(), 
-                                           intent_saliency)
-            
-            loss_rate = criterion3(x, l, hparams, WSOLA, OLA, model_saliency, 
-                                   rate_distribution, pitch_distribution, 
-                                   mask_sample, intent_cats, criterion2, 
-                                   uniform=True)
-            
-            
-            reduced_loss_rate = loss_rate.item()
-            loss_rate.backward()
-
-            grad_norm_rate = torch.nn.utils.clip_grad_norm_(
-                                                            model_rate.parameters(),
-                                                            hparams.grad_clip_thresh,
-                                                            )
-
-            optimizer_rate.step()
-
-            # Validation
-            if (not math.isnan(reduced_loss_rate) and rank == 0):
-                duration = time.perf_counter() - start
-                print("Train loss {} {:.6f} Grad Norm Rate {:.6f} {:.2f}s/it".format(
-                    iteration, reduced_loss_rate, grad_norm_rate, duration))
-                logger.log_training_rate(reduced_loss_rate, grad_norm_rate, 
-                                         learning_rate_rate, 
-                                         hparams.exploitation_prob, 
-                                         duration, iteration)
-
-            if (iteration % hparams.iters_per_checkpoint == 0):
-                validate(model_saliency, model_rate, WSOLA, OLA, criterion1, 
-                         valset, collate_fn, iteration, hparams.batch_size, 
-                         rate_classes, hparams.minibatch_consistency, n_gpus, 
-                         logger, hparams.distributed_run, rank)
+            try:
+                start = time.perf_counter()
+                for param_group in optimizer_rate.param_groups:
+                    param_group['lr'] = learning_rate_rate
+    
+                model_rate.zero_grad()
+    
+                (x, e, l) = (batch[0].to("cuda"), batch[1].to("cuda"),
+                              batch[3])
+                l_adjusted = torch.div(l, hparams.downsampling_factor, 
+                              rounding_mode="floor")
+    
+                # input_shape should be [#batch_size, 1, #time]
+                feats, posterior, mask_sample, y_pred = model_saliency(x, e)
+                mask_sample = get_random_mask_chunk(mask_sample)
                 
-                if learning_rate_rate > hparams.learning_rate_lb:
-                    learning_rate_rate *= hparams.learning_rate_decay
+                # Intended Saliency
+                intent_saliency, intent_cats = intended_saliency(batch_size=hparams.batch_size, 
+                                                                 consistent=hparams.minibatch_consistency)
                 
-                if hparams.exploitation_prob < 0.85: #0.8
-                    hparams.exploitation_prob *= hparams.exploration_decay
+                # Rate prediction
+                (rate_distribution, 
+                 pitch_distribution) = model_rate(feats.detach(), # .detach()
+                                               mask_sample.detach(), 
+                                               intent_saliency)
                 
-                # Saving the model
-                if rank == 0:
-                    checkpoint_path = os.path.join(output_directory, 
-                                                   "checkpoint_{}".format(iteration))
-                    save_checkpoint(model_rate, 
-                                    optimizer_rate,
-                                    learning_rate_rate,
-                                    iteration, 
-                                    checkpoint_path)
-
-            iteration += 1
-            # except Exception as ex:
-            #     print(ex)
+                loss_rate = criterion3(x, l, hparams, WSOLA, OLA, model_saliency, 
+                                       rate_distribution, pitch_distribution, 
+                                       mask_sample, intent_cats, criterion2, 
+                                       uniform=True)
+                
+                
+                reduced_loss_rate = loss_rate.item()
+                loss_rate.backward()
+    
+                grad_norm_rate = torch.nn.utils.clip_grad_norm_(
+                                                                model_rate.parameters(),
+                                                                hparams.grad_clip_thresh,
+                                                                )
+    
+                optimizer_rate.step()
+    
+                # Validation
+                if (not math.isnan(reduced_loss_rate) and rank == 0):
+                    duration = time.perf_counter() - start
+                    print("Train loss {} {:.6f} Grad Norm Rate {:.6f} {:.2f}s/it".format(
+                        iteration, reduced_loss_rate, grad_norm_rate, duration))
+                    logger.log_training_rate(reduced_loss_rate, grad_norm_rate, 
+                                             learning_rate_rate, 
+                                             hparams.exploitation_prob, 
+                                             duration, iteration)
+    
+                if (iteration % hparams.iters_per_checkpoint == 0):
+                    validate(model_saliency, model_rate, WSOLA, OLA, criterion1, 
+                             valset, collate_fn, iteration, hparams.batch_size, 
+                             rate_classes, hparams.minibatch_consistency, n_gpus, 
+                             logger, hparams.distributed_run, rank)
+                    
+                    if learning_rate_rate > hparams.learning_rate_lb:
+                        learning_rate_rate *= hparams.learning_rate_decay
+                    
+                    if hparams.exploitation_prob < 0.85: #0.8
+                        hparams.exploitation_prob *= hparams.exploration_decay
+                    
+                    # Saving the model
+                    if rank == 0:
+                        checkpoint_path = os.path.join(output_directory, 
+                                                       "checkpoint_{}".format(iteration))
+                        save_checkpoint(model_rate, 
+                                        optimizer_rate,
+                                        learning_rate_rate,
+                                        iteration, 
+                                        checkpoint_path)
+    
+                iteration += 1
+            except Exception as ex:
+                print(ex)
 
         sys.stdout.flush()
 
