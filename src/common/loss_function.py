@@ -517,7 +517,7 @@ class BlockPitchRateLossTDPSOLA(nn.Module):
         loss_saliency += torch.mean(torch.mul(loss_l1.detach(), 
                                             unbiased_multiplier_pitch))
         
-        loss_ent = -1*additional_criterion(rate_distribution) + -1*additional_criterion(pitch_distribution)
+        loss_ent = additional_criterion(rate_distribution) + additional_criterion(pitch_distribution)
         loss = loss_saliency + hparams.lambda_entropy*loss_ent
         return loss
 
