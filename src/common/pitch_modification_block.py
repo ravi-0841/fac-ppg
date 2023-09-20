@@ -10,6 +10,7 @@ import numpy as np
 import torch
 import pyworld as pw
 import sys
+import scipy.signal as scisig
 
 from src.common.feat_utils import smooth, generate_interpolation
 from src.common.tdpsolatm import tdpsola
@@ -191,6 +192,7 @@ class BatchLocalPitchModification():
 
 def local_modificationTDPSOLA(f0, mask, factor, speech, 
                               sr, hop_size=160, win_size=160):
+    f0 = scisig.medfilt(f0, kernel_size=3)
     aux = np.ones((len(f0),))
     modif_idx = np.where(mask>0)[0]
     aux[modif_idx] = factor
@@ -201,7 +203,7 @@ def local_modificationTDPSOLA(f0, mask, factor, speech,
     # print("f0_target shape: ", f0_target.shape)
     # sys.stdout.flush()
     f0_target = np.minimum(f0_target, 600)
-    f0_target = np.maximum(f0_target, 70)
+    # f0_target = np.maximum(f0_target, 70)
     mod_speech = tdpsola(x=speech.reshape(1,-1), sr=sr, 
                          src_f0=f0, tgt_f0=f0_target, 
                          p_hop_size=hop_size, p_win_size=win_size)
@@ -211,6 +213,7 @@ def local_modificationTDPSOLA(f0, mask, factor, speech,
 
 def local_chunk_modificationTDPSOLA(f0, chunks, factors, speech, sr, 
                                     hop_size=160, win_size=160):
+    f0 = scisig.medfilt(f0, kernel_size=3)
     aux = np.ones((len(f0),))
     for i in range(min(len(factors), len(chunks))):
         f = factors[i]
@@ -223,7 +226,7 @@ def local_chunk_modificationTDPSOLA(f0, chunks, factors, speech, sr,
     aux = ndimage.gaussian_filter1d(aux, sigma=3)
     f0_target = f0 * aux
     f0_target = np.minimum(f0_target, 600)
-    f0_target = np.maximum(f0_target, 70)
+    # f0_target = np.maximum(f0_target, 70)
     mod_speech = tdpsola(x=speech.reshape(1,-1), sr=sr, 
                          src_f0=f0, tgt_f0=f0_target, 
                          p_hop_size=hop_size, p_win_size=win_size)
