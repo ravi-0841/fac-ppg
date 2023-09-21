@@ -316,8 +316,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     
                 (x, e, l) = (batch[0].to("cuda"), batch[1].to("cuda"),
                               batch[3])
-                l_adjusted = torch.div(l, hparams.downsampling_factor, 
-                              rounding_mode="floor")
+                # l_adjusted = torch.div(l, hparams.downsampling_factor, 
+                #               rounding_mode="floor")
     
                 # input_shape should be [#batch_size, 1, #time]
                 feats, posterior, mask_sample, y_pred = model_saliency(x, e)

@@ -83,7 +83,7 @@ def create_hparams(**kwargs):
         # Optimization Hyperparameters #
         ################################
         "exploitation_prob": 0.15, #0.15,
-        "lambda_entropy": 0.002, #0.05,
+        "lambda_entropy": 0.001, #0.05,
         "temp_scale": 5.0, #15.0
         "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,
@@ -93,7 +93,7 @@ def create_hparams(**kwargs):
         "learning_rate_ub": 1e-5, #1e-5
         "weight_decay": 1e-6, #1e-6
         "grad_clip_thresh": 1.0,
-        "batch_size": 4, #4
+        "batch_size": 2, #4
         "minibatch_consistency": False,
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.01, # Bernoulli parameter for sampling 1st entry of the mask
