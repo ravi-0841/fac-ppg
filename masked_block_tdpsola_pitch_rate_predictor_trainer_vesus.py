@@ -27,7 +27,7 @@ from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         BlockPitchRateLossTDPSOLA,
                                     )
 from src.common.logger_PitchRatePred import SaliencyPredictorLogger
-from src.common.hparams_onflyenergy_block_pitch_rate_vesus import create_hparams
+from src.common.hparams_onflyenergy_block_tdpsola_pitch_rate_vesus import create_hparams
 from src.common.interpolation_block import (WSOLAInterpolation,
                                             WSOLAInterpolationEnergy,
                                             BatchWSOLAInterpolation,

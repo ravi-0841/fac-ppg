@@ -173,8 +173,8 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
             # pitch = 0.5 + 0.1*index_pitch # 0.2*index
             
             rate = 0.25 + 0.15*index_rate # 0.2*index
-            # pitch = 0.25 + 0.15*index_pitch # 0.2*index
-            pitch = 0.5 + 0.1*index_pitch
+            pitch = 0.25 + 0.15*index_pitch # 0.2*index
+            # pitch = 0.5 + 0.1*index_pitch
             
             dur_mod_speech = OLA(mask=mask_sample[:,:,0], 
                                  factor=pitch, speech=x)
