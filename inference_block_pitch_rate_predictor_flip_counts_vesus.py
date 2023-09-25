@@ -74,7 +74,7 @@ def prepare_dataloaders(hparams, valid=True):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictor(temp_scale=0.5).cuda()
+    model_rate = RatePredictor(temp_scale=0.2).cuda()
     return model_saliency, model_rate
 
 
@@ -404,11 +404,11 @@ if __name__ == '__main__':
     # for m in range(90000, 91000, 1000): # wt
     # for m in range(108000, 109000, 1000): #max2
     
-    # if emo_target in ["angry", "happy", "sad", "fear"]:
+    if emo_target in ["angry", "happy", "sad", "fear"]:
         
-    #     m = model_ckpt_dict[emo_target]
+        m = model_ckpt_dict[emo_target]
     
-    for m in range(1000, 200000, 1000):
+    # for m in range(1000, 200000, 1000):
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
@@ -469,10 +469,10 @@ if __name__ == '__main__':
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
         # print("Total neutral: {}".format(count_neutral))
         
-        joblib.dump({"ttest_scores": ttest_array, 
-                    "count_scores": count_gr_zero_array,
-                    "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
+        # joblib.dump({"ttest_scores": ttest_array, 
+        #             "count_scores": count_gr_zero_array,
+        #             "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
 
 
         # joblib.dump({"indices": indices_flips}, 
