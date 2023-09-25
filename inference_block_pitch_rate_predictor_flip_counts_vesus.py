@@ -259,7 +259,7 @@ def test(output_directory, checkpoint_path_rate,
         # print("rates: ", rates)
         
         indices_pitch = torch.multinomial(pitch_distribution, 1)
-        pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
+        pitches = 0.5 + 0.1*indices_pitch.reshape(-1,)
         # print("indices_pitch: ", indices_pitch)
         # print("pitches: ", pitches)
         

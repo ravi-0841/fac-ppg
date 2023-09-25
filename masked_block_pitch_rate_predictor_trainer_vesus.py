@@ -92,7 +92,7 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictor(temp_scale=0.5).cuda()
+    model_rate = RatePredictor(temp_scale=0.2).cuda()
     return model_saliency, model_rate
 
 
@@ -389,7 +389,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max".format(
+                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max_3".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,
