@@ -254,13 +254,13 @@ def test(output_directory, checkpoint_path_rate,
         # print("rate_distribution.shape: ", rate_distribution.shape)
 
         indices_rate = torch.multinomial(rate_distribution, 1)
-        # print("indices_rate: ", indices_rate)
         rates = 0.25 + 0.15*indices_rate.reshape(-1,)
+        # print("indices_rate: ", indices_rate)
         # print("rates: ", rates)
         
         indices_pitch = torch.multinomial(pitch_distribution, 1)
-        # print("indices_pitch: ", indices_pitch)
         pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
+        # print("indices_pitch: ", indices_pitch)
         # print("pitches: ", pitches)
         
         # index_pitch = torch.multinomial(pitch_distribution[0], 1)
@@ -292,15 +292,15 @@ def test(output_directory, checkpoint_path_rate,
         _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
         
         # # modification 3
-        indices_rate = torch.multinomial(rate_distribution, 1)
-        rates3 = 0.25 + 0.15*indices_rate.reshape(-1,)
-        mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                        rates=rates3, 
-                                        speech=pitch_mod_speech,
-                                        chunks=chunks)    
-        mod_speech3 = mod_speech3.to("cuda")
-        mod_e3 = mod_e3.to("cuda")
-        _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
+        # indices_rate = torch.multinomial(rate_distribution, 1)
+        # rates3 = 0.25 + 0.15*indices_rate.reshape(-1,)
+        # mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
+        #                                 rates=rates3, 
+        #                                 speech=pitch_mod_speech,
+        #                                 chunks=chunks)    
+        # mod_speech3 = mod_speech3.to("cuda")
+        # mod_e3 = mod_e3.to("cuda")
+        # _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
         
         argmax_index = np.argmax(relative_prob)
 
@@ -312,10 +312,10 @@ def test(output_directory, checkpoint_path_rate,
             mod_speech = mod_speech2
             rate = torch.mean(rates2)
             s = s2
-        else:
-            mod_speech = mod_speech3
-            rate = torch.mean(rates3)
-            s = s3
+        # else:
+        #     mod_speech = mod_speech3
+        #     rate = torch.mean(rates3)
+        #     s = s3
         
         # mod_speech = mod_speech1
         # rate = torch.mean(rates)
