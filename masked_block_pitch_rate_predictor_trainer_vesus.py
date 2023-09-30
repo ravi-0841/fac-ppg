@@ -378,7 +378,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max_2".format(
+                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max_pretdp".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,
