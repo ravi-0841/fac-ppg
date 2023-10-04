@@ -392,6 +392,8 @@ if __name__ == '__main__':
                      "sad":[0.0,0.0,0.0,1.0,0.0],
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
 
+    emo_model_dict = {"angry":98000, "happy":140000, "sad":124000, "fear":20000}
+
     ttest_array = []
     count_gr_zero_array = []
     count_flips_array = []
@@ -402,9 +404,8 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(1000, 238000, 1000): # max
-    # for m in range(90000, 91000, 1000): # wt
-    # for m in range(7000, 8000, 1000): #max2
+    if emo_target in emo_model_dict.keys():
+        m = emo_model_dict[emo_target]
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
@@ -427,7 +428,7 @@ if __name__ == '__main__':
                                                 hparams,
                                                 emo_prob_dict[emo_target],
                                                 emo_target=emo_target,
-                                                valid=True,
+                                                valid=False,
                                             )
         
         pred_array = np.asarray(pred_array)
@@ -465,10 +466,10 @@ if __name__ == '__main__':
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
         # print("Total neutral: {}".format(count_neutral))
         
-        joblib.dump({"ttest_scores": ttest_array, 
-                    "count_scores": count_gr_zero_array,
-                    "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
+        # joblib.dump({"ttest_scores": ttest_array, 
+        #             "count_scores": count_gr_zero_array,
+        #             "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
 
 
         # joblib.dump({"indices": indices_flips}, 
