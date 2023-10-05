@@ -254,13 +254,13 @@ def test(output_directory, checkpoint_path_rate,
         # print("rate_distribution.shape: ", rate_distribution.shape)
 
         indices_rate = torch.multinomial(rate_distribution, 1)
-        rates = 0.25 + 0.15*indices_rate.reshape(-1,)
         # print("indices_rate: ", indices_rate)
+        rates = 0.25 + 0.15*indices_rate.reshape(-1,)
         # print("rates: ", rates)
         
         indices_pitch = torch.multinomial(pitch_distribution, 1)
-        pitches = 0.5 + 0.1*indices_pitch.reshape(-1,)
         # print("indices_pitch: ", indices_pitch)
+        pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
         # print("pitches: ", pitches)
         
         # index_pitch = torch.multinomial(pitch_distribution[0], 1)
@@ -268,6 +268,13 @@ def test(output_directory, checkpoint_path_rate,
         pitch_mod_speech = OLA(factors=pitches, 
                                speech=x, 
                                chunks=chunks)
+
+        # Only pitch modification
+        # pms = pitch_mod_speech.to("cuda")
+        # _, _, mp, sp = model_saliency(pms, e)
+        # mod_speech = pms
+        # rate = torch.Tensor([0.1])
+        # s = sp
 
         # modification 1
         mod_speech1, mod_e1, _ = WSOLA(mask=mask_sample[:,:,0], 
@@ -280,27 +287,28 @@ def test(output_directory, checkpoint_path_rate,
         _, _, m1, s1 = model_saliency(mod_speech1, mod_e1)
 
 
-        # # modification 2
+        # modification 2
         indices_rate = torch.multinomial(rate_distribution, 1)
         rates2 = 0.25 + 0.15*indices_rate.reshape(-1,)
         mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
                                         rates=rates2, 
                                         speech=pitch_mod_speech,
                                         chunks=chunks)
+    
         mod_speech2 = mod_speech2.to("cuda")
         mod_e2 = mod_e2.to("cuda")
         _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
         
-        # # modification 3
-        # indices_rate = torch.multinomial(rate_distribution, 1)
-        # rates3 = 0.25 + 0.15*indices_rate.reshape(-1,)
-        # mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
-        #                                 rates=rates3, 
-        #                                 speech=pitch_mod_speech,
-        #                                 chunks=chunks)    
-        # mod_speech3 = mod_speech3.to("cuda")
-        # mod_e3 = mod_e3.to("cuda")
-        # _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
+        # modification 3
+        indices_rate = torch.multinomial(rate_distribution, 1)
+        rates3 = 0.25 + 0.15*indices_rate.reshape(-1,)
+        mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                        rates=rates3, 
+                                        speech=pitch_mod_speech,
+                                        chunks=chunks)    
+        mod_speech3 = mod_speech3.to("cuda")
+        mod_e3 = mod_e3.to("cuda")
+        _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
         
         argmax_index = np.argmax(relative_prob)
 
@@ -312,10 +320,10 @@ def test(output_directory, checkpoint_path_rate,
             mod_speech = mod_speech2
             rate = torch.mean(rates2)
             s = s2
-        # else:
-        #     mod_speech = mod_speech3
-        #     rate = torch.mean(rates3)
-        #     s = s3
+        else:
+            mod_speech = mod_speech3
+            rate = torch.mean(rates3)
+            s = s3
         
         # mod_speech = mod_speech1
         # rate = torch.mean(rates)
@@ -362,12 +370,11 @@ def test(output_directory, checkpoint_path_rate,
             #     iteration, saliency_reduced_loss, duration))
             # print("Rate    | Test loss {} {:.6f} {:.2f}s/it".format(
             #     iteration, rate_reduced_loss, duration))
-        
-        if iteration >= 99:
-            break
-        
-        iteration += 1
 
+        iteration += 1
+    
+    # if iteration >= 100:
+    #     break
     
     print("Saliency | Avg. Loss: {:.3f}".format(np.mean(saliency_loss_array)))
     print("Rate     | Avg. Loss: {:.3f}".format(np.mean(rate_loss_array)))
@@ -384,11 +391,8 @@ if __name__ == '__main__':
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
-    
-    model_ckpt_dict = {"angry": 17000,
-                       "happy": 108000,
-                       "sad": 81000,
-                       "fear": 40000}
+
+    emo_model_dict = {"angry":98000, "happy":140000, "sad":124000, "fear":20000}
 
     ttest_array = []
     count_gr_zero_array = []
@@ -400,15 +404,8 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(1000, 238000, 1000): # max
-    # for m in range(90000, 91000, 1000): # wt
-    # for m in range(108000, 109000, 1000): #max2
-    
-    if emo_target in ["angry", "happy", "sad", "fear"]:
-        
-        m = model_ckpt_dict[emo_target]
-    
-    # for m in range(1000, 200000, 1000):
+    if emo_target in emo_model_dict.keys():
+        m = emo_model_dict[emo_target]
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
@@ -431,7 +428,7 @@ if __name__ == '__main__':
                                                 hparams,
                                                 emo_prob_dict[emo_target],
                                                 emo_target=emo_target,
-                                                valid=True,
+                                                valid=False,
                                             )
         
         pred_array = np.asarray(pred_array)
@@ -469,10 +466,10 @@ if __name__ == '__main__':
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
         # print("Total neutral: {}".format(count_neutral))
         
-        joblib.dump({"ttest_scores": ttest_array, 
-                    "count_scores": count_gr_zero_array,
-                    "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
+        # joblib.dump({"ttest_scores": ttest_array, 
+        #             "count_scores": count_gr_zero_array,
+        #             "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores.pkl"))
 
 
         # joblib.dump({"indices": indices_flips}, 
