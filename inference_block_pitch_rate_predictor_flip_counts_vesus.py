@@ -259,7 +259,7 @@ def test(output_directory, checkpoint_path_rate,
         # print("rates: ", rates)
         
         indices_pitch = torch.multinomial(pitch_distribution, 1)
-        pitches = 0.5 + 0.1*indices_pitch.reshape(-1,)
+        pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
         # print("indices_pitch: ", indices_pitch)
         # print("pitches: ", pitches)
         
@@ -404,11 +404,11 @@ if __name__ == '__main__':
     # for m in range(90000, 91000, 1000): # wt
     # for m in range(108000, 109000, 1000): #max2
     
-    if emo_target in ["angry", "happy", "sad", "fear"]:
+    # if emo_target in ["angry", "happy", "sad", "fear"]:
         
-        m = model_ckpt_dict[emo_target]
+    #     m = model_ckpt_dict[emo_target]
     
-    # for m in range(1000, 200000, 1000):
+    for m in range(1000, 200000, 1000):
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
