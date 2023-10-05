@@ -476,6 +476,23 @@ if __name__ == '__main__':
         #             "./output_wavs/{}/indices.pkl".format(emo_target))
         
         # print("average difference: ", np.mean(rate_array - pred_array, axis=0))
+        
+        #%%
+        count_not_targ = 0
+        for t in pred_array:
+            if index not in list(np.argsort(t)[-2:]):
+                count_not_targ += 1
+        
+        print("Target not in top 2 predictions: ", count_not_targ)
+        print("Flipping ratio: ", count_flips/count_not_targ)
+        #%%
+        idx = np.where(saliency_diff>0)[0]
+        diff_a = rate_array[idx, 1] - pred_array[idx, 1]
+        diff_h = rate_array[idx, 2] - pred_array[idx, 2]
+        diff_s = rate_array[idx, 3] - pred_array[idx, 3]
+        diff_f = rate_array[idx, 4] - pred_array[idx, 4]
+        pylab.boxplot([diff_a, diff_h, diff_s, diff_f], labels=["Angry", "Happy", "Sad", "Fear"], sym="")
+        pylab.savefig("./output_wavs/{}_difference_plot.png".format(emo_target))
        
 
 
