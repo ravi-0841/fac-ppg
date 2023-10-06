@@ -227,32 +227,33 @@ if __name__ == "__main__":
                             drop_last=True,
                             collate_fn=acoustics_collate_raw,
                             )
-    for i, batch in enumerate(dataloader):
-        signal = batch[0][2].cpu().numpy().reshape(-1,)
-        voice_mask = batch[1][2].cpu().numpy().reshape(-1,)        
-        
-        pylab.xticks(fontsize=18)
-        pylab.yticks(fontsize=18)
-        fig, ax = pylab.subplots(2, 1, figsize=(30, 10))
-        
-        ax[0].plot(signal, linewidth=1.5, color='k')
-        ax[0].set_xlabel('Time',fontsize=15) #xlabel
-        ax[0].set_ylabel('Magnitude', fontsize=15) #ylabel
 
-        ax[1].plot(voice_mask, linewidth=2.5)
-        ax[1].set_xlabel('Time',fontsize=15) #xlabel
-        ax[1].set_ylabel('Threshold', fontsize=15) #ylabel
+    # for i, batch in enumerate(dataloader):
+    #     signal = batch[0][2].cpu().numpy().reshape(-1,)
+    #     voice_mask = batch[1][2].cpu().numpy().reshape(-1,)        
         
-        pylab.suptitle("Utterance {}".format(i+1))
+    #     pylab.xticks(fontsize=18)
+    #     pylab.yticks(fontsize=18)
+    #     fig, ax = pylab.subplots(2, 1, figsize=(30, 10))
         
-        pylab.savefig("/home/ravi/Desktop/test_images_2/{}.png".format(i+1))
-        pylab.close()
+    #     ax[0].plot(signal, linewidth=1.5, color='k')
+    #     ax[0].set_xlabel('Time',fontsize=15) #xlabel
+    #     ax[0].set_ylabel('Magnitude', fontsize=15) #ylabel
+
+    #     ax[1].plot(voice_mask, linewidth=2.5)
+    #     ax[1].set_xlabel('Time',fontsize=15) #xlabel
+    #     ax[1].set_ylabel('Threshold', fontsize=15) #ylabel
+        
+    #     pylab.suptitle("Utterance {}".format(i+1))
+        
+    #     pylab.savefig("/home/ravi/Desktop/test_images_2/{}.png".format(i+1))
+    #     pylab.close()
         
         # print(torch.div(batch[2], 160, rounding_mode="floor") - len(energy))
         # print(batch[2].dtype, torch.div(batch[2], 160, rounding_mode="floor").dtype)
         
-        if i >= 100:
-            break
+        # if i >= 100:
+        #     break
 
     # src_stft, l, src = dataloader[19]
 
@@ -264,6 +265,19 @@ if __name__ == "__main__":
     # pylab.imshow(np.log10(src_stft[:,:,0]**2 + src_stft[:,:,1]**2), origin="lower")
     # pylab.figure()
     # pylab.plot(src)
+
+    #%% Ratings
+    # from collections import Counter
+    # ratings = []
+    # for ind in range(len(dataclass)):
+    #     p, r = dataclass.utterance_rating_paths[ind].split(" ,")
+    #     r = ast.literal_eval(r)
+    #     c = Counter()
+    #     [dict.update(c, [(i, 0)]) for i in range(5)]
+    #     for i in r:
+    #         c[i] += 1
+        
+    #     ratings.append(np.asarray(list(c.values()))/10.)
 
 
 
