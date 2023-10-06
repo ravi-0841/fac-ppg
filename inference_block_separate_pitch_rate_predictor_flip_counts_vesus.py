@@ -487,11 +487,21 @@ if __name__ == '__main__':
         print("Flipping ratio: ", count_flips/count_not_targ)
         #%%
         idx = np.where(saliency_diff>0)[0]
+        # idx = np.arange(0, len(rate_array))
         diff_a = rate_array[idx, 1] - pred_array[idx, 1]
         diff_h = rate_array[idx, 2] - pred_array[idx, 2]
         diff_s = rate_array[idx, 3] - pred_array[idx, 3]
         diff_f = rate_array[idx, 4] - pred_array[idx, 4]
-        pylab.boxplot([diff_a, diff_h, diff_s, diff_f], labels=["Angry", "Happy", "Sad", "Fear"], sym="")
+        pylab.figure()
+        ax = pylab.subplot(111)
+        pylab.violinplot([diff_a, diff_h, diff_s], positions=[0,1,2], 
+                         vert=True, showmedians=True)
+        ax.set_xticks([0,1,2])
+        ax.set_xticklabels(["Angry", "Happy", "Sad"])
+        # pylab.violinplot([diff_a, diff_h, diff_s, diff_f], positions=[0,1,2,3], vert=True, 
+        #                  showmedians=True, labels=["Angry", "Happy", "Sad", "Fear"])
+        # pylab.boxplot([diff_a, diff_h, diff_s, diff_f], labels=["Angry", "Happy", "Sad", "Fear"], sym="")
+        pylab.title("Target- {}".format(emo_target))
         pylab.savefig("./output_wavs/{}_difference_plot.png".format(emo_target))
        
 
