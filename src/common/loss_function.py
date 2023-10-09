@@ -412,7 +412,7 @@ class BlockPitchRateLoss(nn.Module):
             
 
         rate = 0.25 + 0.15*index_rate
-        pitch = 0.25 + 0.15*index_pitch
+        pitch = 0.5 + 0.1*index_pitch
         
         pitch_mod_speech = OLA(mask=mask_sample[:,:,0], 
                                factor=pitch, speech=x)
@@ -424,11 +424,11 @@ class BlockPitchRateLoss(nn.Module):
         _, _, mod_mask, mod_saliency = model_saliency(mod_speech, mod_e)
         
         ## directly maximize score of intended index
-        # loss_l1 = 1 - mod_saliency.gather(1,intent_cats.view(-1,1)).view(-1)
+        loss_l1 = 1 - mod_saliency.gather(1,intent_cats.view(-1,1)).view(-1)
         
         ## Minimizing loss on intended saliency
-        intent_saliency = nn.functional.one_hot(intent_cats, num_classes=5).to("cuda")
-        loss_l1 = torch.sum(torch.abs(mod_saliency - intent_saliency), dim=-1)
+        # intent_saliency = nn.functional.one_hot(intent_cats, num_classes=5).to("cuda")
+        # loss_l1 = torch.sum(torch.abs(mod_saliency - intent_saliency), dim=-1)
 
         corresp_probs_rate = rate_distribution.gather(1,index_rate.view(-1,1)).view(-1)
         corresp_probs_pitch = pitch_distribution.gather(1,index_pitch.view(-1,1)).view(-1)

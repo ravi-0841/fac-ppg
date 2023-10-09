@@ -260,7 +260,7 @@ def test(output_directory, checkpoint_path_rate,
         
         indices_pitch = torch.multinomial(pitch_distribution, 1)
         # print("indices_pitch: ", indices_pitch)
-        pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
+        pitches = 0.5 + 0.1*indices_pitch.reshape(-1,)
         # print("pitches: ", pitches)
         
         # index_pitch = torch.multinomial(pitch_distribution[0], 1)
@@ -402,7 +402,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(1000, 238000, 1000): # max
+    for m in range(1000, 226000, 1000): # max
     # for m in range(90000, 91000, 1000): # wt
     # for m in range(7000, 8000, 1000): #max2
     

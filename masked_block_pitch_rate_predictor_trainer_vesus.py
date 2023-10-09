@@ -168,7 +168,7 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
             # pitch = 0.5 + 0.1*index_pitch # 0.2*index
             
             rate = 0.25 + 0.15*index_rate # 0.2*index
-            pitch = 0.25 + 0.15*index_pitch # 0.2*index
+            pitch = 0.5 + 0.1*index_pitch # 0.2*index
             
             dur_mod_speech = OLA(mask=mask_sample[:,:,0], 
                                  factor=pitch, speech=x)
@@ -378,7 +378,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max_pretdp".format(
+                                        "VESUS_Block_Local_PitchRate_entropy_{}_exploit_{}_{}_max_pretdp_directLoss".format(
                                             hparams.lambda_entropy,
                                             hparams.exploitation_prob,
                                             hparams.extended_desc,
