@@ -155,7 +155,8 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
         for i, batch in enumerate(val_loader):
             x, em = batch[0].to("cuda"), batch[1].to("cuda")
             intent, cats = intended_saliency(batch_size=batch_size, 
-                                             consistent=consistency)
+                                             consistent=consistency,
+                                             relative_prob=[0., 0.34, 0.33, 0.33, 0.])
             feats, posterior, mask_sample, orig_pred = model_saliency(x, em)
             mask_sample = get_random_mask_chunk(mask_sample)
 
