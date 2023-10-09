@@ -392,7 +392,8 @@ if __name__ == '__main__':
                      "sad":[0.0,0.0,0.0,1.0,0.0],
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
 
-    emo_model_dict = {"angry":98000, "happy":140000, "sad":124000, "fear":20000}
+    # emo_model_dict = {"angry":98000, "happy":140000, "sad":124000, "fear":20000}
+    emo_model_dict = {"angry":67000, "happy":81000, "sad":87000, "fear":52000}
 
     ttest_array = []
     count_gr_zero_array = []
@@ -502,7 +503,7 @@ if __name__ == '__main__':
         #                  showmedians=True, labels=["Angry", "Happy", "Sad", "Fear"])
         # pylab.boxplot([diff_a, diff_h, diff_s, diff_f], labels=["Angry", "Happy", "Sad", "Fear"], sym="")
         pylab.title("Target- {}".format(emo_target))
-        pylab.savefig("./output_wavs/{}_difference_plot.png".format(emo_target))
+        pylab.savefig("./output_wavs/Direct_{}_difference_plot.png".format(emo_target))
        
 
 
