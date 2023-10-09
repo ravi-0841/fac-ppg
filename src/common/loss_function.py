@@ -412,7 +412,7 @@ class BlockPitchRateLoss(nn.Module):
             
 
         rate = 0.25 + 0.15*index_rate
-        pitch = 0.5 + 0.1*index_pitch
+        pitch = 0.25 + 0.15*index_pitch
         
         pitch_mod_speech = OLA(mask=mask_sample[:,:,0], 
                                factor=pitch, speech=x)
@@ -436,13 +436,13 @@ class BlockPitchRateLoss(nn.Module):
         log_corresp_prob_rate = torch.log(corresp_probs_rate)
         log_corresp_prob_pitch = torch.log(corresp_probs_pitch)
         
-        unbiased_multiplier_rate = torch.mul(corresp_probs_rate.detach(), log_corresp_prob_rate)
-        unbiased_multiplier_pitch = torch.mul(corresp_probs_pitch.detach(), log_corresp_prob_pitch)
+        # unbiased_multiplier_rate = torch.mul(corresp_probs_rate.detach(), log_corresp_prob_rate)
+        # unbiased_multiplier_pitch = torch.mul(corresp_probs_pitch.detach(), log_corresp_prob_pitch)
         
         loss_saliency = torch.mean(torch.mul(loss_l1.detach(), 
-                                            unbiased_multiplier_rate))
+                                            log_corresp_prob_rate))
         loss_saliency += torch.mean(torch.mul(loss_l1.detach(), 
-                                            unbiased_multiplier_pitch))
+                                            log_corresp_prob_pitch))
         
         loss_ent = -1*additional_criterion(rate_distribution) + -1*additional_criterion(pitch_distribution)
         loss = loss_saliency + hparams.lambda_entropy * loss_ent

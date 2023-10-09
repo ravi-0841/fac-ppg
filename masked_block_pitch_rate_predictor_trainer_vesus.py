@@ -168,7 +168,7 @@ def validate(model_saliency, model_rate, WSOLA, OLA, criterion, valset,
             # pitch = 0.5 + 0.1*index_pitch # 0.2*index
             
             rate = 0.25 + 0.15*index_rate # 0.2*index
-            pitch = 0.5 + 0.1*index_pitch # 0.2*index
+            pitch = 0.25 + 0.15*index_pitch # 0.2*index
             
             dur_mod_speech = OLA(mask=mask_sample[:,:,0], 
                                  factor=pitch, speech=x)
@@ -312,7 +312,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 
                 # Intended Saliency
                 intent_saliency, intent_cats = intended_saliency(batch_size=hparams.batch_size, 
-                                                                 consistent=hparams.minibatch_consistency)
+                                                                 consistent=hparams.minibatch_consistency,
+                                                                 relative_prob=[0., 0.34, 0.33, 0.33, 0.])
                 
                 # Rate prediction
                 (rate_distribution, 
