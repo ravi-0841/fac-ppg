@@ -118,6 +118,84 @@ def save_checkpoint(model_rate, optimizer_rate, learning_rate_rate,
                 'state_dict_rate': model_rate.state_dict(),
                 'optimizer_rate': optimizer_rate.state_dict(),
                 'learning_rate_rate': learning_rate_rate}, filepath)
+    
+#%% Validation
+def validate(model_saliency, model_rate, WSOLA, OLA, valset, 
+             collate_fn, iteration, batch_size, rate_classes, 
+             consistency, n_gpus, logger, distributed_run, rank):
+    """Handles all the validation scoring and printing"""
+    model_rate.eval()
+    with torch.no_grad():
+        val_loader = DataLoader(
+                                valset,
+                                sampler=None,
+                                num_workers=4,
+                                shuffle=True,
+                                batch_size=batch_size,
+                                collate_fn=collate_fn,
+                                drop_last=True,
+                            )
+
+        val_loss = 0.0
+        for i, batch in enumerate(val_loader):
+            x, em = batch[0].to("cuda"), batch[1].to("cuda")
+            intent, cats = intended_saliency(batch_size=batch_size, 
+                                             consistent=consistency,
+                                             relative_prob=[0., 0.34, 0.33, 0.33, 0.])
+            feats, posterior, mask_sample, orig_pred = model_saliency(x, em)
+            mask_sample = get_random_mask_chunk(mask_sample)
+
+            (_, rate_distribution,
+             pitch_distribution) = model_rate(feats, mask_sample, intent)
+            index_rate = torch.argmax(rate_distribution, dim=-1)
+            index_pitch = torch.argmax(pitch_distribution, dim=-1)
+            
+            # rate = 0.5 + 0.1*index_rate # 0.2*index
+            # pitch = 0.5 + 0.1*index_pitch # 0.2*index
+            
+            rate = 0.25 + 0.15*index_rate # 0.2*index
+            pitch = 0.25 + 0.15*index_pitch # 0.2*index
+            
+            dur_mod_speech = OLA(mask=mask_sample[:,:,0], 
+                                 factor=pitch, speech=x)
+            mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
+                                         rate=rate, speech=dur_mod_speech)
+            mod_speech = mod_speech.to("cuda")
+            mod_e = mod_e.to("cuda")
+            _, _, _, y_pred = model_saliency(mod_speech, mod_e)
+            
+            ## direct score maximization
+            # intent_indices = torch.argmax(intent, dim=-1)
+            loss_rate = 1 - y_pred.gather(1,cats.view(-1,1)).view(-1)
+            
+            ## minimizing a target saliency distribution
+            # loss_rate = torch.sum(torch.abs(y_pred - intent), dim=-1)
+            
+            # corresp_probs = rate_distribution.gather(1,index.view(-1,1)).view(-1)
+            # loss_rate = torch.mean(torch.mul(loss_rate, torch.log(corresp_probs)))
+            reduced_val_loss = torch.mean(loss_rate).item()
+            val_loss += reduced_val_loss
+            
+        val_loss = val_loss / (i + 1)
+
+    model_rate.train()
+    if rank == 0:
+        print("Validation loss {}: {:9f}  ".format(iteration, val_loss))
+        logger.log_validation(
+                                val_loss,
+                                model_saliency,
+                                model_rate,
+                                x,
+                                intent,
+                                y_pred - orig_pred,
+                                posterior[:,:,1:2],
+                                mask_sample[:,:,0:1],
+                                rate_distribution,
+                                pitch_distribution,
+                                rate_classes,
+                                iteration,
+                            )
+        # logger_rate.log_parameters(model_rate, iteration)
 
 #%%
 def environment(hparams, x, WSOLA, OLA, 
@@ -272,7 +350,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
             entropy_loss = -entropy_criterion(pitch_dist) -entropy_criterion(rate_dist)
 
             # Combining all three losses            
-            actor_critic_loss = actor_loss + critic_loss + hparams.lambda_entropy*entropy_loss
+            actor_critic_loss = actor_loss + 10*critic_loss + hparams.lambda_entropy*entropy_loss
             
             # Updating the parameters
             optimizer_rate.zero_grad()
@@ -295,10 +373,10 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                          duration, iteration)
 
             if (iteration % hparams.iters_per_checkpoint == 0):
-            #     validate(model_saliency, model_rate, WSOLA, OLA, criterion1, 
-            #              valset, collate_fn, iteration, hparams.batch_size, 
-            #              rate_classes, hparams.minibatch_consistency, n_gpus, 
-            #              logger, hparams.distributed_run, rank)
+                validate(model_saliency, model_rate, WSOLA, OLA, valset, 
+                         collate_fn, iteration, hparams.batch_size, 
+                         rate_classes, hparams.minibatch_consistency, n_gpus, 
+                         logger, hparams.distributed_run, rank)
                 
             #     if learning_rate_rate > hparams.learning_rate_lb:
             #         learning_rate_rate *= hparams.learning_rate_decay

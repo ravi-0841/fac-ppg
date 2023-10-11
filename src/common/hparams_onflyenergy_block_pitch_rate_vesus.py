@@ -87,13 +87,13 @@ def create_hparams(**kwargs):
         "temp_scale": 5.0, #15.0
         "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,
-        "learning_rate_rate": 2e-7, #1e-7
+        "learning_rate_rate": 1e-5, #2e-7
         "learning_rate_decay": 0.9060305823, #0.912011, #0.955
         "learning_rate_lb": 1e-6, #1e-6
         "learning_rate_ub": 1e-5, #1e-5
         "weight_decay": 1e-6, #1e-6
         "grad_clip_thresh": 1.0,
-        "batch_size": 4, #8
+        "batch_size": 4, #4
         "minibatch_consistency": False,
         "mask_padding": True, # set model's padded outputs to padded values
         "alpha": 0.01, # Bernoulli parameter for sampling 1st entry of the mask
