@@ -337,9 +337,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 advantage = Q_value.detach() - value.view(-1)
                 
                 # Actor loss term
-                actor_loss_rate = torch.mean(torch.mul(-torch.log(rate_dist.gather(1, intent_cats.view(-1,1)).view(-1)), 
+                actor_loss_rate = torch.mean(torch.mul(-torch.log(rate_dist.gather(1, index_rate.view(-1,1)).view(-1)), 
                                               advantage))
-                actor_loss_pitch = torch.mean(torch.mul(-torch.log(pitch_dist.gather(1, intent_cats.view(-1,1)).view(-1)), 
+                actor_loss_pitch = torch.mean(torch.mul(-torch.log(pitch_dist.gather(1, index_pitch.view(-1,1)).view(-1)), 
                                               advantage))
                 actor_loss = actor_loss_rate + actor_loss_pitch
                 
