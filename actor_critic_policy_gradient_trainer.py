@@ -327,14 +327,14 @@ def train(output_directory, log_directory, checkpoint_path_rate,
             rate = 0.25 + 0.15*index_rate
             pitch = 0.25 + 0.15*index_pitch
             
+            # Computing Q-value after taking action
             updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
                                                          rate, pitch, mask_sample)
+            _, _, _, updated_saliency = model_saliency(updated_signal, updated_energy)
+            Q_value = updated_saliency.gather(1, intent_cats.view(-1,1)).view(-1)
             
-            _, _, updated_mask, updated_saliency = model_saliency(updated_signal, 
-                                                                  updated_energy)
-            
-            updated_saliency = updated_saliency.gather(1, intent_cats.view(-1,1)).view(-1) 
-            advantage = updated_saliency.detach() - value.view(-1)
+            # Computing advantage
+            advantage = Q_value.detach() - value.view(-1)
             
             # Actor loss term
             actor_loss_rate = torch.mean(torch.mul(-torch.log(rate_dist.gather(1, intent_cats.view(-1,1)).view(-1)), 
