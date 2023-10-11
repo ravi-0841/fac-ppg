@@ -293,110 +293,110 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     for epoch in range(epoch_offset, hparams.epochs):
         print("Epoch: {}".format(epoch))
         for i, batch in enumerate(train_loader):
-            # try:
-            start = time.perf_counter()
-            for param_group in optimizer_rate.param_groups:
-                param_group['lr'] = learning_rate_rate
-            
-            # Intended Saliency
-            intent_saliency, intent_cats = intended_saliency(batch_size=hparams.batch_size, 
-                                                             consistent=hparams.minibatch_consistency,
-                                                             relative_prob=[0., 0.34, 0.33, 0.33, 0.])
-
-            # model_rate.zero_grad()
-
-            (x, e, l) = (batch[0].to("cuda"), batch[1].to("cuda"),
-                          batch[3])
-            l = torch.div(l, hparams.downsampling_factor, 
-                          rounding_mode="floor")
-
-            # input_shape should be [#batch_size, 1, #time]
-            feats, posterior, mask_sample, y_pred = model_saliency(x, e)
-            # chunked_masks, chunks = get_mask_blocks_inference(mask_sample)
-            mask_sample = get_random_mask_chunk(mask_sample)
-
-            value, rate_dist, pitch_dist = model_rate(feats.detach(), 
-                                                      mask_sample.detach(), 
-                                                      intent_saliency)
-            
-            index_rate = torch.multinomial(rate_dist, 1, 
-                                      replacement=True) #explore
-            index_pitch = torch.multinomial(pitch_dist, 1, 
-                                      replacement=True) #explore
-            
-            rate = 0.25 + 0.15*index_rate
-            pitch = 0.25 + 0.15*index_pitch
-            
-            # Computing Q-value after taking action
-            updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
-                                                         rate, pitch, mask_sample)
-            _, _, _, updated_saliency = model_saliency(updated_signal, updated_energy)
-            Q_value = updated_saliency.gather(1, intent_cats.view(-1,1)).view(-1)
-            
-            # Computing advantage
-            advantage = Q_value.detach() - value.view(-1)
-            
-            # Actor loss term
-            actor_loss_rate = torch.mean(torch.mul(-torch.log(rate_dist.gather(1, intent_cats.view(-1,1)).view(-1)), 
-                                          advantage))
-            actor_loss_pitch = torch.mean(torch.mul(-torch.log(pitch_dist.gather(1, intent_cats.view(-1,1)).view(-1)), 
-                                          advantage))
-            actor_loss = actor_loss_rate + actor_loss_pitch
-            
-            # Critic loss term
-            critic_loss = torch.mean(torch.abs(advantage))
-            
-            # Entropy loss term
-            entropy_loss = -entropy_criterion(pitch_dist) -entropy_criterion(rate_dist)
-
-            # Combining all three losses            
-            actor_critic_loss = actor_loss + 10*critic_loss + hparams.lambda_entropy*entropy_loss
-            
-            # Updating the parameters
-            optimizer_rate.zero_grad()
-            actor_critic_loss.backward()
-            grad_norm_rate = torch.nn.utils.clip_grad_norm_(
-                                                            model_rate.parameters(),
-                                                            hparams.grad_clip_thresh,
-                                                            )
-            optimizer_rate.step()
-
-            # Validation
-            if (not math.isnan(actor_loss.item()) and not math.isnan(critic_loss.item()) and rank == 0):
-                duration = time.perf_counter() - start
-                print("Train loss {} Actor: {:.6f}, Critic: {:.6f} Grad Norm Rate {:.6f} {:.2f}s/it".format(
-                    iteration, actor_loss.item(), critic_loss.item(), grad_norm_rate, duration))
-                logger.log_training_rate(actor_critic_loss.item(), 
-                                         grad_norm_rate, 
-                                         learning_rate_rate, 
-                                         hparams.exploitation_prob, 
-                                         duration, iteration)
-
-            if (iteration % hparams.iters_per_checkpoint == 0):
-                validate(model_saliency, model_rate, WSOLA, OLA, valset, 
-                         collate_fn, iteration, hparams.batch_size, 
-                         rate_classes, hparams.minibatch_consistency, n_gpus, 
-                         logger, hparams.distributed_run, rank)
+            try:
+                start = time.perf_counter()
+                for param_group in optimizer_rate.param_groups:
+                    param_group['lr'] = learning_rate_rate
                 
-            #     if learning_rate_rate > hparams.learning_rate_lb:
-            #         learning_rate_rate *= hparams.learning_rate_decay
-                
-            #     if hparams.exploitation_prob < 0.85: #0.8
-            #         hparams.exploitation_prob *= hparams.exploration_decay
-                
-            #     # Saving the model
-                if rank == 0:
-                    checkpoint_path = os.path.join(output_directory, 
-                                                    "checkpoint_{}".format(iteration))
-                    save_checkpoint(model_rate, 
-                                    optimizer_rate,
-                                    learning_rate_rate,
-                                    iteration, 
-                                    checkpoint_path)
+                # Intended Saliency
+                intent_saliency, intent_cats = intended_saliency(batch_size=hparams.batch_size, 
+                                                                 consistent=hparams.minibatch_consistency,
+                                                                 relative_prob=[0., 0.34, 0.33, 0.33, 0.])
 
-            iteration += 1
-            # except Exception as ex:
-            #     print(ex)
+                # model_rate.zero_grad()
+
+                (x, e, l) = (batch[0].to("cuda"), batch[1].to("cuda"),
+                              batch[3])
+                l = torch.div(l, hparams.downsampling_factor, 
+                              rounding_mode="floor")
+
+                # input_shape should be [#batch_size, 1, #time]
+                feats, posterior, mask_sample, y_pred = model_saliency(x, e)
+                # chunked_masks, chunks = get_mask_blocks_inference(mask_sample)
+                mask_sample = get_random_mask_chunk(mask_sample)
+
+                value, rate_dist, pitch_dist = model_rate(feats.detach(), 
+                                                          mask_sample.detach(), 
+                                                          intent_saliency)
+                
+                index_rate = torch.multinomial(rate_dist, 1, 
+                                          replacement=True) #explore
+                index_pitch = torch.multinomial(pitch_dist, 1, 
+                                          replacement=True) #explore
+                
+                rate = 0.25 + 0.15*index_rate
+                pitch = 0.25 + 0.15*index_pitch
+                
+                # Computing Q-value after taking action
+                updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
+                                                             rate, pitch, mask_sample)
+                _, _, _, updated_saliency = model_saliency(updated_signal, updated_energy)
+                Q_value = updated_saliency.gather(1, intent_cats.view(-1,1)).view(-1)
+                
+                # Computing advantage
+                advantage = Q_value.detach() - value.view(-1)
+                
+                # Actor loss term
+                actor_loss_rate = torch.mean(torch.mul(-torch.log(rate_dist.gather(1, intent_cats.view(-1,1)).view(-1)), 
+                                              advantage))
+                actor_loss_pitch = torch.mean(torch.mul(-torch.log(pitch_dist.gather(1, intent_cats.view(-1,1)).view(-1)), 
+                                              advantage))
+                actor_loss = actor_loss_rate + actor_loss_pitch
+                
+                # Critic loss term
+                critic_loss = torch.mean(torch.abs(advantage))
+                
+                # Entropy loss term
+                entropy_loss = -entropy_criterion(pitch_dist) -entropy_criterion(rate_dist)
+
+                # Combining all three losses            
+                actor_critic_loss = actor_loss + critic_loss + hparams.lambda_entropy*entropy_loss
+                
+                # Updating the parameters
+                optimizer_rate.zero_grad()
+                actor_critic_loss.backward()
+                grad_norm_rate = torch.nn.utils.clip_grad_norm_(
+                                                                model_rate.parameters(),
+                                                                hparams.grad_clip_thresh,
+                                                                )
+                optimizer_rate.step()
+
+                # Validation
+                if (not math.isnan(actor_loss.item()) and not math.isnan(critic_loss.item()) and rank == 0):
+                    duration = time.perf_counter() - start
+                    print("Train loss {} Actor: {:.6f}, Critic: {:.6f} Grad Norm Rate {:.6f} {:.2f}s/it".format(
+                        iteration, actor_loss.item(), critic_loss.item(), grad_norm_rate, duration))
+                    logger.log_training_rate(actor_critic_loss.item(), 
+                                             grad_norm_rate, 
+                                             learning_rate_rate, 
+                                             hparams.exploitation_prob, 
+                                             duration, iteration)
+
+                if (iteration % hparams.iters_per_checkpoint == 0):
+                    validate(model_saliency, model_rate, WSOLA, OLA, valset, 
+                             collate_fn, iteration, hparams.batch_size, 
+                             rate_classes, hparams.minibatch_consistency, n_gpus, 
+                             logger, hparams.distributed_run, rank)
+                    
+                #     if learning_rate_rate > hparams.learning_rate_lb:
+                #         learning_rate_rate *= hparams.learning_rate_decay
+                    
+                #     if hparams.exploitation_prob < 0.85: #0.8
+                #         hparams.exploitation_prob *= hparams.exploration_decay
+                    
+                #     # Saving the model
+                    if rank == 0:
+                        checkpoint_path = os.path.join(output_directory, 
+                                                        "checkpoint_{}".format(iteration))
+                        save_checkpoint(model_rate, 
+                                        optimizer_rate,
+                                        learning_rate_rate,
+                                        iteration, 
+                                        checkpoint_path)
+
+                iteration += 1
+            except Exception as ex:
+                print(ex)
 
 #%% Main function
 if __name__ == '__main__':
