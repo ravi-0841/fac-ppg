@@ -168,7 +168,7 @@ class RatePredictorAC(nn.Module):
         self.bn4_conv = nn.InstanceNorm1d(256)
         
         self.value_linear = nn.Linear(in_features=256, out_features=1)
-        self.value_nonlinear = nn.Sigmoid()
+        # self.value_nonlinear = nn.Sigmoid()
 
         self.emo_projection = nn.Linear(in_features=5, out_features=256)
         self.joint_projection = nn.Linear(in_features=256, out_features=256)
@@ -203,8 +203,7 @@ class RatePredictorAC(nn.Module):
         x = self.elu(self.bn3_conv(self.conv3(x)))
         x = self.elu(self.bn4_conv(self.conv4(x)))
         
-        value = self.value_nonlinear(self.value_linear(torch.mean(x, dim=-1, 
-                                                             keepdim=False)))
+        value = self.value_linear(torch.mean(x, dim=-1, keepdim=False))
         
         e_proj = self.emo_projection(e).unsqueeze(dim=-1)
         joint_x = x + e_proj #torch.cat((x, e_proj), dim=1)
