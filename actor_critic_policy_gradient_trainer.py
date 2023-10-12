@@ -74,7 +74,7 @@ def prepare_directories_and_logger(output_directory, log_directory, rank):
 
 def load_model(hparams):
     model_saliency = MaskedRateModifier(hparams.temp_scale).cuda()
-    model_rate = RatePredictorAC(temp_scale=0.2).cuda()
+    model_rate = RatePredictorAC(temp_scale=1.).cuda()
     return model_saliency, model_rate
 
 
@@ -350,7 +350,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 entropy_loss = -entropy_criterion(pitch_dist) -entropy_criterion(rate_dist)
 
                 # Combining all three losses            
-                actor_critic_loss = actor_loss + critic_loss + hparams.lambda_entropy*entropy_loss
+                actor_critic_loss = actor_loss + hparams.lambda_critic*critic_loss + hparams.lambda_entropy*entropy_loss
                 
                 # Updating the parameters
                 optimizer_rate.zero_grad()
