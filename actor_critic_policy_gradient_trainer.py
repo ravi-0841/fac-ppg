@@ -338,9 +338,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 
                 # Actor loss term
                 actor_loss_rate = torch.mean(torch.mul(-torch.log(rate_dist.gather(1, index_rate.view(-1,1)).view(-1)), 
-                                              advantage.detach()))
+                                              advantage))
                 actor_loss_pitch = torch.mean(torch.mul(-torch.log(pitch_dist.gather(1, index_pitch.view(-1,1)).view(-1)), 
-                                              advantage.detach()))
+                                              advantage))
                 actor_loss = actor_loss_rate + actor_loss_pitch
                 
                 # Critic loss term
@@ -407,7 +407,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_entropy_{}_actor_critic_{}_llr".format(
+                                        "VESUS_Block_entropy_{}_actor_critic_{}_annealedLR".format(
                                             hparams.lambda_entropy,
                                             hparams.lambda_critic,
                                         )
