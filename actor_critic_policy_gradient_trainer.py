@@ -301,7 +301,7 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 # Intended Saliency
                 intent_saliency, intent_cats = intended_saliency(batch_size=hparams.batch_size, 
                                                                  consistent=hparams.minibatch_consistency,
-                                                                 relative_prob=[0., 0.34, 0.33, 0.33, 0.])
+                                                                 relative_prob=[0., 0.3, 0.3, 0.3, 0.1])
 
                 # model_rate.zero_grad()
 
@@ -381,8 +381,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                              rate_classes, hparams.minibatch_consistency, n_gpus, 
                              logger, hparams.distributed_run, rank)
                     
-                #     if learning_rate_rate > hparams.learning_rate_lb:
-                #         learning_rate_rate *= hparams.learning_rate_decay
+                    if learning_rate_rate > hparams.learning_rate_lb:
+                        learning_rate_rate *= hparams.learning_rate_decay
                     
                 #     if hparams.exploitation_prob < 0.85: #0.8
                 #         hparams.exploitation_prob *= hparams.exploration_decay
@@ -407,8 +407,9 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_PitchRate_entropy_{}_actor_critic_bigger".format(
-                                            hparams.lambda_entropy
+                                        "VESUS_Block_entropy_{}_actor_critic_{}_llr".format(
+                                            hparams.lambda_entropy,
+                                            hparams.lambda_critic,
                                         )
                                     )
 
