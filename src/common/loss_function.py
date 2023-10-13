@@ -424,11 +424,11 @@ class BlockPitchRateLoss(nn.Module):
         _, _, mod_mask, mod_saliency = model_saliency(mod_speech, mod_e)
         
         ## directly maximize score of intended index
-        loss_l1 = 1 - mod_saliency.gather(1,intent_cats.view(-1,1)).view(-1)
+        # loss_l1 = 1 - mod_saliency.gather(1,intent_cats.view(-1,1)).view(-1)
         
         ## Minimizing loss on intended saliency
-        # intent_saliency = nn.functional.one_hot(intent_cats, num_classes=5).to("cuda")
-        # loss_l1 = torch.sum(torch.abs(mod_saliency - intent_saliency), dim=-1)
+        intent_saliency = nn.functional.one_hot(intent_cats, num_classes=5).to("cuda")
+        loss_l1 = torch.sum(torch.abs(mod_saliency - intent_saliency), dim=-1)
 
         corresp_probs_rate = rate_distribution.gather(1,index_rate.view(-1,1)).view(-1)
         corresp_probs_pitch = pitch_distribution.gather(1,index_pitch.view(-1,1)).view(-1)
@@ -436,13 +436,13 @@ class BlockPitchRateLoss(nn.Module):
         log_corresp_prob_rate = torch.log(corresp_probs_rate)
         log_corresp_prob_pitch = torch.log(corresp_probs_pitch)
         
-        # unbiased_multiplier_rate = torch.mul(corresp_probs_rate.detach(), log_corresp_prob_rate)
-        # unbiased_multiplier_pitch = torch.mul(corresp_probs_pitch.detach(), log_corresp_prob_pitch)
+        unbiased_multiplier_rate = torch.mul(corresp_probs_rate.detach(), log_corresp_prob_rate)
+        unbiased_multiplier_pitch = torch.mul(corresp_probs_pitch.detach(), log_corresp_prob_pitch)
         
         loss_saliency = torch.mean(torch.mul(loss_l1.detach(), 
-                                            log_corresp_prob_rate))
+                                            unbiased_multiplier_rate))
         loss_saliency += torch.mean(torch.mul(loss_l1.detach(), 
-                                            log_corresp_prob_pitch))
+                                            unbiased_multiplier_pitch))
         
         loss_ent = -1*additional_criterion(rate_distribution) + -1*additional_criterion(pitch_distribution)
         loss = loss_saliency + hparams.lambda_entropy * loss_ent
