@@ -404,7 +404,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_PitchRate_entropy_{}_actor_critic".format(
+                                        "VESUS_Block_PitchRate_entropy_{}_actor_critic_bigger".format(
                                             hparams.lambda_entropy
                                         )
                                     )
