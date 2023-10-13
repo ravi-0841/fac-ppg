@@ -366,6 +366,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                     duration = time.perf_counter() - start
                     print("Train loss {} Actor: {:.6f}, Critic: {:.6f} Grad Norm Rate {:.6f} {:.2f}s/it".format(
                         iteration, actor_loss.item(), critic_loss.item(), grad_norm_rate, duration))
+                    print("Predicted Value: {:.4f} Q_value: {:.4f}".format(
+                                                                            torch.mean(value).item(), 
+                                                                            torch.mean(Q_value).item()))
                     logger.log_training_rate(actor_critic_loss.item(), 
                                              grad_norm_rate, 
                                              learning_rate_rate, 

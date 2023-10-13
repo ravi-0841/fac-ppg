@@ -84,7 +84,7 @@ def create_hparams(**kwargs):
         ################################
         "exploitation_prob": 0.15, #0.15,
         "lambda_entropy": 0.1, #0.05,
-        "lambda_critic": 5,
+        "lambda_critic": 10,
         "temp_scale": 5.0, #15.0
         "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,

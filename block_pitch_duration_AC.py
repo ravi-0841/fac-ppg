@@ -208,8 +208,8 @@ class RatePredictorAC(nn.Module):
 
         # value = self.value_nonlinear(self.value_linear(torch.mean(x, dim=-1, 
         #                                                 keepdim=False)))
-        value = self.value_linear1(torch.max(x, dim=-1, keepdim=True)[0])
-        value = self.elu(self.value_bn(value))
+        value = self.value_linear1(torch.max(x, dim=-1, keepdim=False)[0])
+        value = self.elu(self.value_bn(value.unsqueeze(dim=-1)))
         value = self.value_linear2(value.squeeze(dim=-1))
 
 
