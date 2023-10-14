@@ -163,6 +163,10 @@ class RatePredictorCritic(nn.Module):
         self.bn2_conv = nn.InstanceNorm1d(256)
         self.bn3_conv = nn.InstanceNorm1d(256)
         
+        self.emo_projection = nn.Linear(in_features=5, out_features=256)
+        self.joint_projection = nn.Linear(in_features=256, out_features=256)
+        self.bn_proj = nn.InstanceNorm1d(256)
+
         self.recurrent = nn.LSTM(input_size=256, hidden_size=256,
                                 num_layers=1, bidirectional=False)
 
@@ -171,14 +175,20 @@ class RatePredictorCritic(nn.Module):
 
         self.elu = nn.ELU(inplace=True)
 
-    def forward(self, x, m):
+    def forward(self, x, m, e):
         m = -1*self.thresh(-1*m.permute(0,2,1))
-        # m = m.permute(0,2,1)
         x = x + 10*x*m
         x = self.elu(self.bn1_conv(self.conv1(x)))
         x = self.elu(self.bn2_conv(self.conv2(x)))
         x = self.elu(self.bn3_conv(self.conv3(x)))
 
+        e_proj = self.emo_projection(e).unsqueeze(dim=-1)
+        joint_x = x + e_proj #torch.cat((x, e_proj), dim=1)
+        
+        # joint_x -> [batch, 256, #time] -> [batch, #time, 256] -> [batch, 256, #time]
+        x_proj = self.joint_projection(joint_x.permute(0,2,1)).permute(0,2,1)
+        x_proj = x + self.elu(self.bn_proj(x_proj))
+        
         value = self.recurrent(x.permute(2,0,1))
         value = self.recurrent_bn(value.permute(1,2,0))
         value = self.linear_layer(value)
@@ -208,7 +218,6 @@ class RatePredictorActor(nn.Module):
         self.emo_projection = nn.Linear(in_features=5, out_features=256)
         self.joint_projection = nn.Linear(in_features=256, out_features=256)
         self.bn_proj = nn.InstanceNorm1d(256)
-        # self.bn_proj = nn.BatchNorm1d(256)
 
         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=256, 
                                                                nhead=4, 
@@ -216,8 +225,6 @@ class RatePredictorActor(nn.Module):
                                                                dropout=0.1)
         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
                                                          num_layers=2)
-        # self.bn_trans = nn.InstanceNorm1d(256)
-        # self.bn_trans = nn.BatchNorm1d(256)
         
         self.linear_layer_rate = nn.Linear(in_features=256, out_features=11) #6
         self.linear_layer_pitch = nn.Linear(in_features=256, out_features=11) #6
@@ -230,7 +237,6 @@ class RatePredictorActor(nn.Module):
         # m -> [batch, #time, 512] -> [batch, 512, #time]
         
         m = -1*self.thresh(-1*m.permute(0,2,1))
-        # m = m.permute(0,2,1)
         x = x + 10*x*m
         
         x = self.elu(self.bn1_conv(self.conv1(x)))
@@ -241,34 +247,16 @@ class RatePredictorActor(nn.Module):
         e_proj = self.emo_projection(e).unsqueeze(dim=-1)
         joint_x = x + e_proj #torch.cat((x, e_proj), dim=1)
         
-        # joint_x -> [batch, 256, #time] -> [batch, #time, 256] -> [batch, 256, #time]
         x_proj = self.joint_projection(joint_x.permute(0,2,1)).permute(0,2,1)
         x_proj = x + self.elu(self.bn_proj(x_proj))
         
-        # x_proj -> [batch, 256, #time] -> [#time, batch, 256]
         trans_out = self.transformer_encoder(x_proj.permute(2,0,1))
         trans_out = trans_out.permute(1,2,0)
         trans_out += e_proj/256.
-        
-        # print("trans_out shape: ", trans_out.shape)
-        # weights = self.softmax(self.weighting_layer(trans_out.permute(0,2,1)).squeeze(dim=-1)).unsqueeze(dim=-1)
-        # print("weights_shape: ", weights.shape)
-        # trans_out = torch.einsum('bij,bjk->bik', trans_out, weights).squeeze(dim=-1)
-        # print("trans_out_shape: ", trans_out.shape)
 
         trans_out = torch.max(trans_out, dim=-1, keepdim=False)[0]
         output_rate = self.softmax(self.linear_layer_rate(trans_out)/self.temp_scale)
         output_pitch = self.softmax(self.linear_layer_pitch(trans_out)/self.temp_scale)
-        
-        # xm = trans_out.detach().cpu().numpy()
-        # try:
-        #     corr = np.corrcoef(xm[0], xm[1])
-        #     print("correlation: ", corr[0,1])
-        #     print("Pitch: ", torch.argmax(output_pitch, 1))
-        #     print("Duration: ", torch.argmax(output_rate, 1))
-        #     print("\n")
-        # except Exception as ex:
-        #     pass
         
         return output_rate, output_pitch
 
