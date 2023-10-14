@@ -90,7 +90,7 @@ def warm_start_model(checkpoint_path, model_actor, model_critic):
     return model_actor, model_critic
 
 
-def load_checkpoint_rate(checkpoint_path, model_actor, model_critic, 
+def load_checkpoint_AC(checkpoint_path, model_actor, model_critic, 
                         optimizer_actor, optimizer_critic):
     assert os.path.isfile(checkpoint_path)
     print("Loading checkpoint '{}'".format(checkpoint_path))
@@ -140,15 +140,13 @@ def validate(model_saliency, model_actor, WSOLA, OLA, valset,
     """Handles all the validation scoring and printing"""
     model_rate.eval()
     with torch.no_grad():
-        val_loader = DataLoader(
-                                valset,
+        val_loader = DataLoader(valset,
                                 sampler=None,
                                 num_workers=4,
                                 shuffle=True,
                                 batch_size=batch_size,
                                 collate_fn=collate_fn,
-                                drop_last=True,
-                            )
+                                drop_last=True)
 
         val_loss = 0.0
         for i, batch in enumerate(val_loader):
@@ -163,9 +161,6 @@ def validate(model_saliency, model_actor, WSOLA, OLA, valset,
              pitch_distribution) = model_actor(feats, mask_sample, intent)
             index_rate = torch.argmax(rate_distribution, dim=-1)
             index_pitch = torch.argmax(pitch_distribution, dim=-1)
-            
-            # rate = 0.5 + 0.1*index_rate # 0.2*index
-            # pitch = 0.5 + 0.1*index_pitch # 0.2*index
             
             rate = 0.25 + 0.15*index_rate # 0.2*index
             pitch = 0.25 + 0.15*index_pitch # 0.2*index
@@ -209,7 +204,6 @@ def validate(model_saliency, model_actor, WSOLA, OLA, valset,
                                 rate_classes,
                                 iteration,
                             )
-        # logger_rate.log_parameters(model_rate, iteration)
 
 #%%
 def environment(hparams, x, WSOLA, OLA, 
@@ -244,12 +238,16 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     torch.manual_seed(hparams.seed)
     torch.cuda.manual_seed(hparams.seed)
 
-    model_saliency, model_rate = load_model(hparams)
-    learning_rate_rate = hparams.learning_rate_rate
+    model_saliency, model_actor, model_critic = load_model(hparams)
+    learning_rate_actor = hparams.learning_rate_rate
+    learning_rate_critic = hparams.learning_rate_rate
 
-    optimizer_rate = torch.optim.Adam(model_rate.parameters(), 
-                                      lr=learning_rate_rate, 
+    optimizer_actor = torch.optim.Adam(model_actor.parameters(), 
+                                      lr=learning_rate_actor, 
                                       weight_decay=hparams.weight_decay)
+    optimizer_critic = torch.optim.Adam(model_critic.parameters(),
+                                        lr=learning_rate_critic,
+                                        weight_decay=hparams.weight_decay)
 
     logger = prepare_directories_and_logger(output_directory, log_directory, rank)
 
@@ -271,25 +269,29 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     
     if checkpoint_path_rate:
         if warm_start:
-            model_rate = warm_start_model(checkpoint_path_rate, model_rate)
+            model_actor, model_critic = warm_start_model(checkpoint_path_rate,
+                                                        model_actor, model_critic)
         else:
             (
-                model_rate,
-                optimizer_rate,
-                _learning_rate_rate,
+                model_actor,
+                model_critic,
+                optimizer_actor,
+                optimizer_critic,
+                _learning_rate_aactor,
+                _learning_rate_critic,
                 iteration,
-            ) = load_checkpoint_rate(
-                                    checkpoint_path_rate,
+            ) = load_checkpoint_AC(checkpoint_path_rate,
                                     model_rate,
-                                    optimizer_rate,
-                                    )
+                                    optimizer_rate)
             if hparams.use_saved_learning_rate:
-                learning_rate_rate = _learning_rate_rate
+                learning_rate_actor = _learning_rate_actor
+                learning_rate_critic = _learning_rate_critic
 
             iteration += 1  # next iteration is iteration + 1
             epoch_offset = max(0, int(iteration / len(train_loader)))
 
-    num_params = sum(p.numel() for p in model_rate.parameters() if p.requires_grad)
+    num_params = sum(p.numel() for p in model_actor.parameters() if p.requires_grad)
+    num_params += sum(p.numel() for p in model_critic.parameters() if p.requires_grad)
     print("Total number of trainable parameters are: ", num_params)
     
     WSOLA = BatchWSOLAInterpolationEnergy(win_size=hparams.win_length, 
@@ -301,7 +303,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     entropy_criterion = EntropyLoss()
 
     model_saliency.eval()
-    model_rate.train()
+    model_actor.train()
+    model_critic.train()
 
     # ================ MAIN TRAINING LOOP! ===================
     for epoch in range(epoch_offset, hparams.epochs):
@@ -313,11 +316,10 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                     param_group['lr'] = learning_rate_rate
                 
                 # Intended Saliency
-                intent_saliency, intent_cats = intended_saliency(batch_size=hparams.batch_size, 
-                                                                 consistent=hparams.minibatch_consistency,
-                                                                 relative_prob=[0., 0.3, 0.3, 0.3, 0.1])
-
-                # model_rate.zero_grad()
+                (intent_saliency, 
+                intent_cats) = intended_saliency(batch_size=hparams.batch_size, 
+                                                consistent=hparams.minibatch_consistency,
+                                                relative_prob=[0., 0.3, 0.3, 0.3, 0.1])
 
                 (x, e, l) = (batch[0].to("cuda"), batch[1].to("cuda"),
                               batch[3])
@@ -329,10 +331,12 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 # chunked_masks, chunks = get_mask_blocks_inference(mask_sample)
                 mask_sample = get_random_mask_chunk(mask_sample)
 
-                value, rate_dist, pitch_dist = model_rate(feats.detach(), 
-                                                          mask_sample.detach(), 
-                                                          intent_saliency)
+                # Get the action distribution
+                rate_dist, pitch_dist = model_actor(feats.detach(),
+                                                    mask_sample.detach(),
+                                                    intent_saliency)
                 
+                # Sample an action
                 index_rate = torch.multinomial(rate_dist, 1, 
                                           replacement=True) #explore
                 index_pitch = torch.multinomial(pitch_dist, 1, 
@@ -340,10 +344,17 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 
                 rate = 0.25 + 0.15*index_rate
                 pitch = 0.25 + 0.15*index_pitch
-                
-                # Computing Q-value after taking action
+
+                # Take the action and update the state
                 updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
                                                              rate, pitch, mask_sample)
+                
+                # Getting critic values
+                value = model_critic(feats.detach(), mask_sample.detach(), intent_saliency)
+
+                
+                
+                # Computing Q-value after taking action
                 _, _, _, updated_saliency = model_saliency(updated_signal, updated_energy)
                 Q_value = updated_saliency.gather(1, intent_cats.view(-1,1)).view(-1)
                 
