@@ -158,7 +158,7 @@ def validate(model_saliency, model_actor, WSOLA, OLA, valset,
             mask_sample = get_random_mask_chunk(mask_sample)
 
             (rate_distribution,
-             pitch_distribution) = model_actor(feats, mask_sample, intent)
+             pitch_distribution) = model_actor(x, mask_sample, intent)
             index_rate = torch.argmax(rate_distribution, dim=-1)
             index_pitch = torch.argmax(pitch_distribution, dim=-1)
             
@@ -239,8 +239,8 @@ def train(output_directory, log_directory, checkpoint_path_AC,
     torch.cuda.manual_seed(hparams.seed)
 
     model_saliency, model_actor, model_critic = load_model(hparams)
-    learning_rate_actor = hparams.learning_rate_rate
-    learning_rate_critic = hparams.learning_rate_rate
+    learning_rate_actor = hparams.learning_rate_actor
+    learning_rate_critic = hparams.learning_rate_critic
 
     optimizer_actor = torch.optim.Adam(model_actor.parameters(), 
                                       lr=learning_rate_actor, 
@@ -363,9 +363,9 @@ def train(output_directory, log_directory, checkpoint_path_AC,
                 
                 # Actor loss term
                 actor_loss_rate = torch.mean(torch.mul(-torch.log(rate_dist.gather(1, index_rate.view(-1,1)).view(-1)), 
-                                              advantage))
+                                              advantage.detach()))
                 actor_loss_pitch = torch.mean(torch.mul(-torch.log(pitch_dist.gather(1, index_pitch.view(-1,1)).view(-1)), 
-                                              advantage))
+                                              advantage.detach()))
                 actor_loss = actor_loss_rate + actor_loss_pitch
                 
                 # Critic loss term
@@ -398,8 +398,8 @@ def train(output_directory, log_directory, checkpoint_path_AC,
                 # Validation
                 if (not math.isnan(actor_loss.item()) and not math.isnan(critic_loss.item()) and rank == 0):
                     duration = time.perf_counter() - start
-                    print("Train loss {} Actor: {:.6f}, Critic: {:.6f}, Grad Norm Actor {:.6f} {:.2f}s/it".format(
-                        iteration, actor_loss.item(), critic_loss.item(), grad_norm_actor, duration))
+                    print("Train loss {} Actor: {:.6f}, Critic: {:.6f}, Grad Norm Actor {:.6f}, Grad Norm Critic {:.6f}, {:.2f}s/it".format(
+                        iteration, actor_loss.item(), critic_loss.item(), grad_norm_actor, grad_norm_critic, duration))
                     print("Predicted Value: {:.4f} Q_value: {:.4f}".format(torch.mean(value).item(), 
                                                                            torch.mean(Q_value).item()))
                     logger.log_training_rate(actor_total_loss.item(),
@@ -413,9 +413,9 @@ def train(output_directory, log_directory, checkpoint_path_AC,
 
                 if (iteration % hparams.iters_per_checkpoint == 0):
                     validate(model_saliency, model_actor, WSOLA, OLA, valset, 
-                             collate_fn, iteration, hparams.batch_size, 
-                             rate_classes, hparams.minibatch_consistency, n_gpus, 
-                             logger, hparams.distributed_run, rank)
+                              collate_fn, iteration, hparams.batch_size, 
+                              rate_classes, hparams.minibatch_consistency, n_gpus, 
+                              logger, hparams.distributed_run, rank)
                     
                     # if learning_rate_rate > hparams.learning_rate_lb:
                     #     learning_rate_rate *= hparams.learning_rate_decay
