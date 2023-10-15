@@ -88,8 +88,8 @@ def create_hparams(**kwargs):
         "temp_scale": 5.0, #15.0
         "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,
-        "learning_rate_actor": 1e-3, #2e-7
-        "learning_rate_critic": 1e-3,
+        "learning_rate_actor": 1e-4, #2e-7
+        "learning_rate_critic": 1e-4,
         "learning_rate_decay": 0.954992586, #0.912011, #0.955
         "learning_rate_lb": 1e-6, #1e-6
         "learning_rate_ub": 1e-5, #1e-5
