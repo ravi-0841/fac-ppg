@@ -16,8 +16,8 @@ from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_col
 from block_pitch_duration_AC_decoupled import (MaskedRateModifier,
                                                 RatePredictorActor,
                                                 RatePredictorCritic)
-from src.common.logger_PitchRatePred import SaliencyPredictorLogger
-from src.common.hparams_actor_critic_vesus import create_hparams
+from src.common.logger_ActorCritic import SaliencyPredictorLogger
+from src.common.hparams_actor_critic_decoupled_vesus import create_hparams
 from src.common.loss_function import EntropyLoss
 from src.common.interpolation_block import (WSOLAInterpolation,
                                             BatchWSOLAInterpolation,
@@ -138,7 +138,7 @@ def validate(model_saliency, model_actor, WSOLA, OLA, valset,
              collate_fn, iteration, batch_size, rate_classes, 
              consistency, n_gpus, logger, distributed_run, rank):
     """Handles all the validation scoring and printing"""
-    model_rate.eval()
+    model_actor.eval()
     with torch.no_grad():
         val_loader = DataLoader(valset,
                                 sampler=None,
@@ -187,13 +187,13 @@ def validate(model_saliency, model_actor, WSOLA, OLA, valset,
             
         val_loss = val_loss / (i + 1)
 
-    model_rate.train()
+    model_actor.train()
     if rank == 0:
         print("Validation loss {}: {:9f}  ".format(iteration, val_loss))
         logger.log_validation(
                                 val_loss,
                                 model_saliency,
-                                model_rate,
+                                model_actor,
                                 x,
                                 intent,
                                 y_pred - orig_pred,
@@ -220,7 +220,7 @@ def environment(hparams, x, WSOLA, OLA,
 
 #%%
 
-def train(output_directory, log_directory, checkpoint_path_rate,
+def train(output_directory, log_directory, checkpoint_path_AC,
           checkpoint_path_saliency, warm_start, n_gpus, rank, 
           group_name, hparams):
     """Training and validation logging results to tensorboard and stdout
@@ -267,9 +267,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                                  model_saliency,
                                                  )
     
-    if checkpoint_path_rate:
+    if checkpoint_path_AC:
         if warm_start:
-            model_actor, model_critic = warm_start_model(checkpoint_path_rate,
+            model_actor, model_critic = warm_start_model(checkpoint_path_AC,
                                                         model_actor, model_critic)
         else:
             (
@@ -277,12 +277,14 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 model_critic,
                 optimizer_actor,
                 optimizer_critic,
-                _learning_rate_aactor,
+                _learning_rate_actor,
                 _learning_rate_critic,
                 iteration,
-            ) = load_checkpoint_AC(checkpoint_path_rate,
-                                    model_rate,
-                                    optimizer_rate)
+            ) = load_checkpoint_AC(checkpoint_path_AC,
+                                    model_actor,
+                                    model_critic,
+                                    optimizer_actor,
+                                    optimizer_critic)
             if hparams.use_saved_learning_rate:
                 learning_rate_actor = _learning_rate_actor
                 learning_rate_critic = _learning_rate_critic
@@ -312,14 +314,16 @@ def train(output_directory, log_directory, checkpoint_path_rate,
         for i, batch in enumerate(train_loader):
             try:
                 start = time.perf_counter()
-                for param_group in optimizer_rate.param_groups:
-                    param_group['lr'] = learning_rate_rate
+                for param_group in optimizer_actor.param_groups:
+                    param_group['lr'] = learning_rate_actor
+                for param_group in optimizer_critic.param_groups:
+                    param_group['lr'] = learning_rate_critic
                 
                 # Intended Saliency
                 (intent_saliency, 
                 intent_cats) = intended_saliency(batch_size=hparams.batch_size, 
                                                 consistent=hparams.minibatch_consistency,
-                                                relative_prob=[0., 0.3, 0.3, 0.3, 0.1])
+                                                relative_prob=[0., 0.33, 0.33, 0.34, 0.])
 
                 (x, e, l) = (batch[0].to("cuda"), batch[1].to("cuda"),
                               batch[3])
@@ -332,9 +336,10 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 mask_sample = get_random_mask_chunk(mask_sample)
 
                 # Get the action distribution
-                rate_dist, pitch_dist = model_actor(feats.detach(),
-                                                    mask_sample.detach(),
+                rate_dist, pitch_dist = model_actor(x, mask_sample.detach(),
                                                     intent_saliency)
+                # Getting critic values
+                value = model_critic(x, mask_sample.detach(), intent_saliency)
                 
                 # Sample an action
                 index_rate = torch.multinomial(rate_dist, 1, 
@@ -348,11 +353,6 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 # Take the action and update the state
                 updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
                                                              rate, pitch, mask_sample)
-                
-                # Getting critic values
-                value = model_critic(feats.detach(), mask_sample.detach(), intent_saliency)
-
-                
                 
                 # Computing Q-value after taking action
                 _, _, _, updated_saliency = model_saliency(updated_signal, updated_energy)
@@ -375,50 +375,64 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 entropy_loss = -entropy_criterion(pitch_dist) -entropy_criterion(rate_dist)
 
                 # Combining all three losses            
-                actor_critic_loss = actor_loss + hparams.lambda_critic*critic_loss + hparams.lambda_entropy*entropy_loss
+                actor_total_loss = actor_loss + hparams.lambda_entropy*entropy_loss
                 
-                # Updating the parameters
-                optimizer_rate.zero_grad()
-                actor_critic_loss.backward()
-                grad_norm_rate = torch.nn.utils.clip_grad_norm_(
-                                                                model_rate.parameters(),
+                # Updating the Critic parameters
+                optimizer_critic.zero_grad()
+                critic_loss.backward()
+                grad_norm_critic = torch.nn.utils.clip_grad_norm_(
+                                                                model_critic.parameters(),
                                                                 hparams.grad_clip_thresh,
                                                                 )
-                optimizer_rate.step()
+                optimizer_critic.step()
+                
+                # Updating the Actor parameters
+                optimizer_actor.zero_grad()
+                actor_total_loss.backward()
+                grad_norm_actor = torch.nn.utils.clip_grad_norm_(
+                                                                model_actor.parameters(),
+                                                                hparams.grad_clip_thresh,
+                                                                )
+                optimizer_actor.step()
 
                 # Validation
                 if (not math.isnan(actor_loss.item()) and not math.isnan(critic_loss.item()) and rank == 0):
                     duration = time.perf_counter() - start
-                    print("Train loss {} Actor: {:.6f}, Critic: {:.6f} Grad Norm Rate {:.6f} {:.2f}s/it".format(
-                        iteration, actor_loss.item(), critic_loss.item(), grad_norm_rate, duration))
-                    print("Predicted Value: {:.4f} Q_value: {:.4f}".format(
-                                                                            torch.mean(value).item(), 
-                                                                            torch.mean(Q_value).item()))
-                    logger.log_training_rate(actor_critic_loss.item(), 
-                                             grad_norm_rate, 
-                                             learning_rate_rate, 
+                    print("Train loss {} Actor: {:.6f}, Critic: {:.6f}, Grad Norm Actor {:.6f} {:.2f}s/it".format(
+                        iteration, actor_loss.item(), critic_loss.item(), grad_norm_actor, duration))
+                    print("Predicted Value: {:.4f} Q_value: {:.4f}".format(torch.mean(value).item(), 
+                                                                           torch.mean(Q_value).item()))
+                    logger.log_training_rate(actor_total_loss.item(),
+                                             critic_loss.item(),
+                                             grad_norm_actor, 
+                                             grad_norm_critic,
+                                             learning_rate_actor,
+                                             learning_rate_critic,
                                              hparams.exploitation_prob, 
                                              duration, iteration)
 
                 if (iteration % hparams.iters_per_checkpoint == 0):
-                    validate(model_saliency, model_rate, WSOLA, OLA, valset, 
+                    validate(model_saliency, model_actor, WSOLA, OLA, valset, 
                              collate_fn, iteration, hparams.batch_size, 
                              rate_classes, hparams.minibatch_consistency, n_gpus, 
                              logger, hparams.distributed_run, rank)
                     
-                    if learning_rate_rate > hparams.learning_rate_lb:
-                        learning_rate_rate *= hparams.learning_rate_decay
+                    # if learning_rate_rate > hparams.learning_rate_lb:
+                    #     learning_rate_rate *= hparams.learning_rate_decay
                     
-                #     if hparams.exploitation_prob < 0.85: #0.8
-                #         hparams.exploitation_prob *= hparams.exploration_decay
+                    # if hparams.exploitation_prob < 0.85: #0.8
+                    #     hparams.exploitation_prob *= hparams.exploration_decay
                     
-                #     # Saving the model
+                    # Saving the model
                     if rank == 0:
                         checkpoint_path = os.path.join(output_directory, 
                                                         "checkpoint_{}".format(iteration))
-                        save_checkpoint(model_rate, 
-                                        optimizer_rate,
-                                        learning_rate_rate,
+                        save_checkpoint(model_actor,
+                                        model_critic,
+                                        optimizer_actor,
+                                        optimizer_critic,
+                                        learning_rate_actor,
+                                        learning_rate_critic,
                                         iteration, 
                                         checkpoint_path)
 
@@ -432,7 +446,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_entropy_{}_actor_critic_{}_annealedLR".format(
+                                        "VESUS_Block_entropy_{}_actor_critic_{}_decoupled".format(
                                             hparams.lambda_entropy,
                                             hparams.lambda_critic,
                                         )

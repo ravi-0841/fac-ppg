@@ -152,35 +152,43 @@ class RatePredictorCritic(nn.Module):
         super(RatePredictorCritic, self).__init__()
         self.thresh = nn.Threshold(-1e-7, -1)
         
-        self.conv1 = nn.Conv1d(in_channels=512, out_channels=256,
-                                kernel_size=3, stride=2, padding=1)
-        self.conv2 = nn.Conv1d(in_channels=256, out_channels=256,
-                                kernel_size=3, stride=2, padding=1)
-        self.conv3 = nn.Conv1d(in_channels=256, out_channels=256,
-                                kernel_size=3, stride=2, padding=1)
+        self.conv_encoder = ConvolutionalEncoder()
+        
+        # self.conv1 = nn.Conv1d(in_channels=512, out_channels=256,
+        #                         kernel_size=3, stride=2, padding=1)
+        # self.conv2 = nn.Conv1d(in_channels=256, out_channels=256,
+        #                         kernel_size=3, stride=2, padding=1)
+        # self.conv3 = nn.Conv1d(in_channels=256, out_channels=256,
+        #                         kernel_size=3, stride=2, padding=1)
 
-        self.bn1_conv = nn.InstanceNorm1d(256)
-        self.bn2_conv = nn.InstanceNorm1d(256)
-        self.bn3_conv = nn.InstanceNorm1d(256)
+        # self.bn1_conv = nn.InstanceNorm1d(256)
+        # self.bn2_conv = nn.InstanceNorm1d(256)
+        # self.bn3_conv = nn.InstanceNorm1d(256)
         
         self.emo_projection = nn.Linear(in_features=5, out_features=256)
         self.joint_projection = nn.Linear(in_features=256, out_features=256)
         self.bn_proj = nn.InstanceNorm1d(256)
 
-        self.recurrent = nn.LSTM(input_size=256, hidden_size=256,
-                                num_layers=1, bidirectional=False)
+        # self.recurrent = nn.LSTM(input_size=256, hidden_size=256,
+        #                         num_layers=1, bidirectional=False)
 
-        self.recurrent_bn = nn.InstanceNorm1d(256)
+        # self.recurrent_bn = nn.InstanceNorm1d(256)
         self.linear_layer = nn.Linear(in_features=256, out_features=1)
 
         self.elu = nn.ELU(inplace=True)
 
     def forward(self, x, m, e):
+        # x -> [batch, 1, #time]
+        # e -> [batch, 5] one-hot encoding for [Neutral, Angry, Happy, Sad, Fearful]
+        # m -> [batch, #time, 512] -> [batch, 512, #time]
+        conv_features = self.conv_encoder(x)
+
         m = -1*self.thresh(-1*m.permute(0,2,1))
-        x = x + 10*x*m
-        x = self.elu(self.bn1_conv(self.conv1(x)))
-        x = self.elu(self.bn2_conv(self.conv2(x)))
-        x = self.elu(self.bn3_conv(self.conv3(x)))
+        conv_features = conv_features + 10*conv_features*m
+
+        # x = self.elu(self.bn1_conv(self.conv1(x)))
+        # x = self.elu(self.bn2_conv(self.conv2(x)))
+        # x = self.elu(self.bn3_conv(self.conv3(x)))
 
         e_proj = self.emo_projection(e).unsqueeze(dim=-1)
         joint_x = x + e_proj #torch.cat((x, e_proj), dim=1)
@@ -189,9 +197,9 @@ class RatePredictorCritic(nn.Module):
         x_proj = self.joint_projection(joint_x.permute(0,2,1)).permute(0,2,1)
         x_proj = x + self.elu(self.bn_proj(x_proj))
         
-        value = self.recurrent(x.permute(2,0,1))
-        value = self.recurrent_bn(value.permute(1,2,0))
-        value = self.linear_layer(value)
+        # value = self.recurrent(x.permute(2,0,1))
+        # value = self.recurrent_bn(value.permute(1,2,0))
+        value = self.linear_layer(torch.max(x_proj, dim=-1, keepdim=False)[0])
         return value
 
 
@@ -201,19 +209,21 @@ class RatePredictorActor(nn.Module):
         self.thresh = nn.Threshold(-1e-7, -1)
         self.temp_scale = temp_scale
         
-        self.conv1 = nn.Conv1d(in_channels=512, out_channels=512, 
-                                    kernel_size=3, stride=2, padding=1)
-        self.conv2 = nn.Conv1d(in_channels=512, out_channels=512, 
-                                    kernel_size=3, stride=2, padding=1)
-        self.conv3 = nn.Conv1d(in_channels=512, out_channels=256,
-                                    kernel_size=1, stride=1)
-        self.conv4 = nn.Conv1d(in_channels=256, out_channels=256,
-                                    kernel_size=1, stride=1)
+        self.conv_encoder = ConvolutionalEncoder()
         
-        self.bn1_conv = nn.InstanceNorm1d(512)
-        self.bn2_conv = nn.InstanceNorm1d(512)
-        self.bn3_conv = nn.InstanceNorm1d(256)
-        self.bn4_conv = nn.InstanceNorm1d(256)
+        # self.conv1 = nn.Conv1d(in_channels=512, out_channels=512, 
+        #                             kernel_size=3, stride=2, padding=1)
+        # self.conv2 = nn.Conv1d(in_channels=512, out_channels=512, 
+        #                             kernel_size=3, stride=2, padding=1)
+        # self.conv3 = nn.Conv1d(in_channels=512, out_channels=256,
+        #                             kernel_size=1, stride=1)
+        # self.conv4 = nn.Conv1d(in_channels=256, out_channels=256,
+        #                             kernel_size=1, stride=1)
+        
+        # self.bn1_conv = nn.InstanceNorm1d(512)
+        # self.bn2_conv = nn.InstanceNorm1d(512)
+        # self.bn3_conv = nn.InstanceNorm1d(256)
+        # self.bn4_conv = nn.InstanceNorm1d(256)
 
         self.emo_projection = nn.Linear(in_features=5, out_features=256)
         self.joint_projection = nn.Linear(in_features=256, out_features=256)
@@ -232,9 +242,14 @@ class RatePredictorActor(nn.Module):
         self.elu = nn.ELU(inplace=True)
     
     def forward(self, x, m, e): #(x, p, e)
-        # x -> [batch, 512, #time]
+        # x -> [batch, 1, #time]
         # e -> [batch, 5] one-hot encoding for [Neutral, Angry, Happy, Sad, Fearful]
         # m -> [batch, #time, 512] -> [batch, 512, #time]
+        
+        conv_features = self.conv_encoder(x)
+
+        m = -1*self.thresh(-1*m.permute(0,2,1))
+        conv_features = conv_features + 10*conv_features*m
         
         m = -1*self.thresh(-1*m.permute(0,2,1))
         x = x + 10*x*m
