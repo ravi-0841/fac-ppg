@@ -158,7 +158,8 @@ class RatePredictorCritic(nn.Module):
         self.joint_projection = nn.Linear(in_features=512, out_features=512)
         self.bn_proj = nn.InstanceNorm1d(512)
 
-        self.linear_layer = nn.Linear(in_features=512, out_features=1)
+        self.linear_layer1 = nn.Linear(in_features=512, out_features=256)
+        self.linear_layer2 = nn.Linear(in_features=256, out_features=1)
 
         self.elu = nn.ELU(inplace=True)
 
@@ -178,7 +179,8 @@ class RatePredictorCritic(nn.Module):
         x_proj = self.joint_projection(joint_x.permute(0,2,1)).permute(0,2,1)
         x_proj = conv_features + self.elu(self.bn_proj(x_proj))
 
-        value = self.linear_layer(torch.max(x_proj, dim=-1, keepdim=False)[0])
+        value = self.linear_layer1(torch.max(x_proj, dim=-1, keepdim=False)[0])
+        value = self.linear_layer2(self.elu(value))
         return value
 
 
