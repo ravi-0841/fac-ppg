@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH -t 40:00:00
+#SBATCH -t 45:00:00
 #SBATCH -A avenka14_gpu
 
 ###load modules
@@ -27,7 +27,9 @@ pip install --user matplotlib
 
 # python3 masked_saliency_predictor_trainer_vesus.py
 # python3 masked_rate_predictor_trainer_experiment.py
-#python3 masked_block_pitch_rate_predictor_trainer_vesus.py
-python3 actor_critic_policy_gradient_trainer.py
+# python3 masked_block_pitch_rate_predictor_trainer_vesus.py
+# python3 actor_critic_policy_gradient_trainer.py
+# python3 actor_critic_decoupled_policy_gradient_trainer.py
+python3 actor_critic_encoder_policy_gradient_trainer.py
 # python3 masked_saliency_predictor_class_specific_trainer_vesus.py
 # python3 masked_pitch_rate_predictor_class_specific_multicat_trainer_vesus.py
