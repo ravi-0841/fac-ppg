@@ -276,19 +276,27 @@ def get_blocks(mask):
     return chunks
 
 
-def get_random_mask_chunk(mask):
+def get_random_mask_chunk(mask, sampling_info=False):
     # mask --> [batch, T, 512]
-
     mask = mask.detach().cpu().numpy()
     new_chunked_mask = np.zeros_like(mask)
+    sampled_chunks = []
+    active_chunks = []
     
     for i, m in enumerate(mask):
         blocks = get_blocks(m[:,0])
+        active_chunks.append(blocks)
         random_position = np.random.choice(np.arange(len(blocks)))
         random_chunk = blocks[random_position]
+        sampled_chunks.append(random_chunk)
         new_chunked_mask[i,random_chunk[0]:random_chunk[1]+1,:] = mask[i,random_chunk[0]:random_chunk[1]+1,:]
     
-    return torch.from_numpy(new_chunked_mask).float().to("cuda")
+    if not sampling_info:
+        return torch.from_numpy(new_chunked_mask).float().to("cuda")
+    else:
+        return (torch.from_numpy(new_chunked_mask).float().to("cuda"), 
+                active_chunks, 
+                sampled_chunks)
         
 
 def get_mask_blocks_inference(mask):

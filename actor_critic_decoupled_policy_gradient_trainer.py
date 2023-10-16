@@ -332,8 +332,8 @@ def train(output_directory, log_directory, checkpoint_path_AC,
 
                 # input_shape should be [#batch_size, 1, #time]
                 feats, posterior, mask_sample, y_pred = model_saliency(x, e)
-                # chunked_masks, chunks = get_mask_blocks_inference(mask_sample)
-                mask_sample = get_random_mask_chunk(mask_sample)
+                mask_sample, active_chunks, sampled_chunks = get_random_mask_chunk(mask_sample, 
+                                                                                   sampling_info=True)
 
                 # Get the action distribution
                 rate_dist, pitch_dist = model_actor(x, mask_sample.detach(),
