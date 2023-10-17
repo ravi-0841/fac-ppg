@@ -220,6 +220,23 @@ def environment(hparams, x, WSOLA, OLA,
 
 
 #%%
+def create_modified_patches(active_chunks, sampled_chunk, rate, total):
+    z = np.empty((0,))
+    # t = [(20, 49, 30), (60, 80, 21)]
+    # total = 200
+    proxy_end = 0
+    final_zeros = total - active_chunks[-1][1] - 1
+    for i, chunk in enumerate(active_chunks):
+        z = np.concatenate((z, np.zeros((chunk[0] - proxy_end,))), axis=0)
+        if sampled_chunk == i:
+            z = np.concatenate((z, np.ones((int(np.ceil(chunk[2]*rate)),))), axis=0)
+        else:
+            z = np.concatenate((z, np.ones((chunk[2],))), axis=0)
+        proxy_end = chunk[1]+1
+    z = np.concatenate((z, np.zeros((final_zeros,))), axis=0)
+    return z
+
+#%%
 def updated_environment(hparams, x, WSOLA, OLA, 
                         duration_factor, pitch_factor, 
                         mask, active_chunks, sampled_chunks):
@@ -235,7 +252,22 @@ def updated_environment(hparams, x, WSOLA, OLA,
     mod_speech = mod_speech.to("cuda")
     mod_energy = mod_energy.to("cuda")
     
-    return mod_speech, mod_energy
+    # Carrying out mask transformation
+    mask = mask.detach().cpu().numpy()[:,:,0]
+    updated_masks = []
+    max_len = 0
+    for i in range(mask.shape[0]):
+        updated_mask = create_modified_patches(active_chunks[i], 
+                                               sampled_chunks[i], 
+                                               duration_factor[i].item(), 
+                                               len(mask[i]))
+        updated_masks.append(updated_mask)
+        max_len = max(max_len, len(updated_mask))
+
+    mod_mask = [np.concatenate((u, np.zeros((max_len - len(u),))), axis=0) for u in updated_masks]
+    mod_mask = torch.from_numpy(np.asarray(mod_mask)).float().to("cuda")
+    mod_mask = mod_mask[:,:mod_energy.size()[2]].unsqueeze(dim=-1).repeat(1,1,512)
+    return mod_speech, mod_energy, mod_mask
 
 #%%
 
@@ -370,11 +402,15 @@ def train(output_directory, log_directory, checkpoint_path_AC,
                 pitch = 0.25 + 0.15*index_pitch
 
                 # Take the action and update the state
-                updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
-                                                             rate, pitch, mask_sample)
+                (updated_signal, 
+                 updated_energy, 
+                 updated_mask) = updated_environment(hparams, x, WSOLA, OLA, 
+                                                     rate, pitch, mask_sample,
+                                                     active_chunks, sampled_chunks)
                 
                 # Computing Q-value after taking action
-                _, _, _, updated_saliency = model_saliency(updated_signal, updated_energy)
+                _, _, _, updated_saliency = model_saliency(x=updated_signal, e=updated_energy, 
+                                                           pre_computed_mask=updated_mask)
                 Q_value = updated_saliency.gather(1, intent_cats.view(-1,1)).view(-1)
                 
                 # Computing advantage

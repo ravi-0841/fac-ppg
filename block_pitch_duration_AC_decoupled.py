@@ -265,7 +265,7 @@ class MaskedRateModifier(nn.Module):
         mask = mask.repeat(1,512,1)
 
         if pre_computed_mask is not None:
-            mask = pre_computed_mask
+            mask = pre_computed_mask.permute(0,2,1)
 
         if not use_posterior:
             salience = self.salience_predictor(conv_features, mask)
