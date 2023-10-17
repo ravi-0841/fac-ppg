@@ -218,6 +218,25 @@ def environment(hparams, x, WSOLA, OLA,
     
     return mod_speech, mod_energy
 
+
+#%%
+def updated_environment(hparams, x, WSOLA, OLA, 
+                        duration_factor, pitch_factor, 
+                        mask, active_chunks, sampled_chunks):
+    # mask -> [batch, #Time, 512]
+    # x -> [batch, 1, #time]
+    # active_chunks -> list of size #batch, each element is active regions
+    # sampled_chunks -> list of size #batch, each element is sampled region
+
+    pitch_mod_speech = OLA(mask=mask[:,:,0], factor=pitch_factor, speech=x)
+    mod_speech, mod_energy, _ = WSOLA(mask=mask[:,:,0], 
+                                      rate=duration_factor, 
+                                      speech=pitch_mod_speech)
+    mod_speech = mod_speech.to("cuda")
+    mod_energy = mod_energy.to("cuda")
+    
+    return mod_speech, mod_energy
+
 #%%
 
 def train(output_directory, log_directory, checkpoint_path_AC,
@@ -446,7 +465,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_entropy_{}_actor_critic_{}_decoupled".format(
+                                        "VESUS_Block_entropy_{}_actor_critic_{}_decoupled_test".format(
                                             hparams.lambda_entropy,
                                             hparams.lambda_critic,
                                         )

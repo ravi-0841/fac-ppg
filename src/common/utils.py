@@ -288,7 +288,7 @@ def get_random_mask_chunk(mask, sampling_info=False):
         active_chunks.append(blocks)
         random_position = np.random.choice(np.arange(len(blocks)))
         random_chunk = blocks[random_position]
-        sampled_chunks.append(random_chunk)
+        sampled_chunks.append(random_position)
         new_chunked_mask[i,random_chunk[0]:random_chunk[1]+1,:] = mask[i,random_chunk[0]:random_chunk[1]+1,:]
     
     if not sampling_info:
