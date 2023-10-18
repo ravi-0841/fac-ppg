@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH -t 8:00:00
+#SBATCH -t 10:00:00
 #SBATCH -A avenka14_gpu
 
 ###load modules
@@ -25,7 +25,12 @@ pip install --user inflect
 pip install --user Unidecode
 pip install --user matplotlib
 
-python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py angry
-python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py happy
-python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py sad
-python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py fear
+#python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py angry
+#python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py happy
+#python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py sad
+#python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py fear
+
+python3 inference_actor_critic_encoder_vesus.py angry
+python3 inference_actor_critic_encoder_vesus.py happy
+python3 inference_actor_critic_encoder_vesus.py sad
+python3 inference_actor_critic_encoder_vesus.py fear
