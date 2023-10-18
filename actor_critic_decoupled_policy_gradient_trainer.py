@@ -153,7 +153,7 @@ def validate(model_saliency, model_actor, WSOLA, OLA, valset,
             x, em = batch[0].to("cuda"), batch[1].to("cuda")
             intent, cats = intended_saliency(batch_size=batch_size, 
                                              consistent=consistency,
-                                             relative_prob=[0., 0.34, 0.33, 0.33, 0.])
+                                             relative_prob=[0., 0.25, 0.25, 0.25, 0.25])
             feats, posterior, mask_sample, orig_pred = model_saliency(x, em)
             mask_sample = get_random_mask_chunk(mask_sample)
 
@@ -374,7 +374,7 @@ def train(output_directory, log_directory, checkpoint_path_AC,
                 (intent_saliency, 
                 intent_cats) = intended_saliency(batch_size=hparams.batch_size, 
                                                 consistent=hparams.minibatch_consistency,
-                                                relative_prob=[0., 0.33, 0.33, 0.34, 0.])
+                                                relative_prob=[0., 0.25, 0.25, 0.25, 0.25])
 
                 (x, e, l) = (batch[0].to("cuda"), batch[1].to("cuda"),
                               batch[3])

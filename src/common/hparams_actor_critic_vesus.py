@@ -83,12 +83,12 @@ def create_hparams(**kwargs):
         # Optimization Hyperparameters #
         ################################
         "exploitation_prob": 0.15, #0.15,
-        "lambda_entropy": 0.01, #0.05,
+        "lambda_entropy": 0.05, #0.05,
         "lambda_critic": 5,
         "temp_scale": 5.0, #15.0
         "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,
-        "learning_rate_rate": 1e-4, #2e-7
+        "learning_rate_rate": 1e-6, #1e-4
         "learning_rate_decay": 0.954992586, #0.912011, #0.955
         "learning_rate_lb": 1e-6, #1e-6
         "learning_rate_ub": 1e-5, #1e-5

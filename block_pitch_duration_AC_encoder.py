@@ -215,7 +215,7 @@ class RatePredictorAC(nn.Module):
         self.elu = nn.ELU(inplace=True)
     
     def forward(self, x, m, e): #(x, p, e)
-        # x -> [batch, 512, #time]
+        # x -> [batch, 1, #time]
         # e -> [batch, 5] one-hot encoding for [Neutral, Angry, Happy, Sad, Fearful]
         # m -> [batch, #time, 512] -> [batch, 512, #time]
         x = self.conv_encoder(x)
