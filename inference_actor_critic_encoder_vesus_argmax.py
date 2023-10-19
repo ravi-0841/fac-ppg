@@ -254,12 +254,12 @@ def test(output_directory, checkpoint_path_rate,
 
         # print("rate_distribution.shape: ", rate_distribution.shape)
 
-        indices_rate = torch.multinomial(rate_distribution, 1)
+        indices_rate = torch.argmax(rate_distribution, 1)
         # print("indices_rate: ", indices_rate)
         rates = 0.25 + 0.15*indices_rate.reshape(-1,)
         # print("rates: ", rates)
         
-        indices_pitch = torch.multinomial(pitch_distribution, 1)
+        indices_pitch = torch.argmax(pitch_distribution, 1)
         # print("indices_pitch: ", indices_pitch)
         pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
         # print("pitches: ", pitches)
@@ -286,49 +286,12 @@ def test(output_directory, checkpoint_path_rate,
         mod_speech1 = mod_speech1.to("cuda")
         mod_e1 = mod_e1.to("cuda")
         _, _, m1, s1 = model_saliency(mod_speech1, mod_e1)
-
-
-        # modification 2
-        indices_rate = torch.multinomial(rate_distribution, 1)
-        rates2 = 0.25 + 0.15*indices_rate.reshape(-1,)
-        mod_speech2, mod_e2, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                        rates=rates2, 
-                                        speech=pitch_mod_speech,
-                                        chunks=chunks)
-    
-        mod_speech2 = mod_speech2.to("cuda")
-        mod_e2 = mod_e2.to("cuda")
-        _, _, m2, s2 = model_saliency(mod_speech2, mod_e2)
-        
-        # modification 3
-        indices_rate = torch.multinomial(rate_distribution, 1)
-        rates3 = 0.25 + 0.15*indices_rate.reshape(-1,)
-        mod_speech3, mod_e3, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                        rates=rates3, 
-                                        speech=pitch_mod_speech,
-                                        chunks=chunks)    
-        mod_speech3 = mod_speech3.to("cuda")
-        mod_e3 = mod_e3.to("cuda")
-        _, _, m3, s3 = model_saliency(mod_speech3, mod_e3)
         
         argmax_index = np.argmax(relative_prob)
 
-        if s1[0,argmax_index] > s2[0,argmax_index]: #and s1[0,argmax_index] > s3[0,argmax_index]:
-            mod_speech = mod_speech1
-            rate = torch.mean(rates)
-            s = s1
-        elif s2[0,argmax_index] >= s1[0,argmax_index]: #and s2[0,argmax_index] > s3[0,argmax_index]:
-            mod_speech = mod_speech2
-            rate = torch.mean(rates2)
-            s = s2
-        else:
-            mod_speech = mod_speech3
-            rate = torch.mean(rates3)
-            s = s3
-        
-        # mod_speech = mod_speech1
-        # rate = torch.mean(rates)
-        # s = s1
+        mod_speech = mod_speech1
+        rate = torch.mean(rates)
+        s = s1
 
         loss = criterion(intent_saliency, s)
         rate_reduced_loss = loss.item()
@@ -403,7 +366,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(1000, 241000, 1000): # max
+    for m in range(1000, 276000, 1000): # max
     # for m in range(90000, 91000, 1000): # wt
     # for m in range(7000, 8000, 1000): #max2
     
