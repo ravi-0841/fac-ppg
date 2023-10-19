@@ -13,17 +13,17 @@ import torch
 import numpy as np
 from torch.utils.data import DataLoader
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
-from block_pitch_duration_AC_encoder import MaskedRateModifier, RatePredictorAC
+from block_pitch_duration_energy_AC_encoder import MaskedRateModifier, RatePredictorAC
 from src.common.logger_PitchRatePred import SaliencyPredictorLogger
 from src.common.hparams_actor_critic_vesus import create_hparams
 from src.common.loss_function import EntropyLoss
 from src.common.interpolation_block import (WSOLAInterpolation,
                                             BatchWSOLAInterpolation,
                                             BatchWSOLAInterpolationEnergy)
-from src.common.pitch_modification_block import (PitchModification,
-                                                 BatchPitchModification,
-                                                 LocalPitchModification,
-                                                 BatchLocalPitchModification)
+from src.common.pitch_energy_modification_block import (PitchEnergyModification,
+                                                 BatchPitchEnergyModification,
+                                                 LocalPitchEnergyModification,
+                                                 BatchLocalPitchEnergyModification)
 from src.common.utils import (intended_saliency, 
                               get_random_mask_chunk, 
                               get_mask_blocks_inference)
@@ -146,20 +146,27 @@ def validate(model_saliency, model_rate, WSOLA, OLA, valset,
             mask_sample = get_random_mask_chunk(mask_sample)
 
             (_, rate_distribution,
-             pitch_distribution) = model_rate(x, mask_sample, intent)
+             pitch_distribution,
+             energy_distribution) = model_rate(x, mask_sample, intent)
             index_rate = torch.argmax(rate_distribution, dim=-1)
             index_pitch = torch.argmax(pitch_distribution, dim=-1)
+            index_energy = torch.argmax(energy_distribution, dim=-1)
             
             # rate = 0.5 + 0.1*index_rate # 0.2*index
             # pitch = 0.5 + 0.1*index_pitch # 0.2*index
             
             rate = 0.25 + 0.15*index_rate # 0.2*index
             pitch = 0.25 + 0.15*index_pitch # 0.2*index
+            energy = 0.25 + 0.15*index_energy
             
-            pitch_mod_speech = OLA(mask=mask_sample[:,:,0], 
-                                 factor=pitch, speech=x)
+            pitch_energy_mod_speech = OLA(mask=mask_sample[:,:,0], 
+                                          factor_pitch=pitch, 
+                                          factor_energy=energy, 
+                                          speech=x)
             mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                         rate=rate, speech=pitch_mod_speech)
+                                         rate=rate, 
+                                         speech=pitch_energy_mod_speech)
+            
             mod_speech = mod_speech.to("cuda")
             mod_e = mod_e.to("cuda")
             _, _, _, y_pred = model_saliency(mod_speech, mod_e)
@@ -200,11 +207,14 @@ def validate(model_saliency, model_rate, WSOLA, OLA, valset,
 #%%
 def environment(hparams, x, WSOLA, OLA, 
                 duration_factor, pitch_factor, 
-                mask):
-    pitch_mod_speech = OLA(mask=mask[:,:,0], factor=pitch_factor, speech=x)
+                energy_factor, mask):
+    pitch_energy_mod_speech = OLA(mask=mask[:,:,0], 
+                                  factor_pitch=pitch_factor, 
+                                  factor_energy=energy_factor, 
+                                  speech=x)
     mod_speech, mod_energy, _ = WSOLA(mask=mask[:,:,0], 
                                       rate=duration_factor, 
-                                      speech=pitch_mod_speech)
+                                      speech=pitch_energy_mod_speech)
     mod_speech = mod_speech.to("cuda")
     mod_energy = mod_energy.to("cuda")
     
@@ -279,10 +289,10 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     print("Total number of trainable parameters are: ", num_params)
     
     WSOLA = BatchWSOLAInterpolationEnergy(win_size=hparams.win_length, 
-                                   hop_size=hparams.hop_length,
-                                   tolerance=hparams.hop_length,
-                                   thresh=1e-3)
-    OLA = BatchLocalPitchModification(frame_period=10)
+                                          hop_size=hparams.hop_length,
+                                          tolerance=hparams.hop_length,
+                                          thresh=1e-3)
+    OLA = BatchLocalPitchEnergyModification(frame_period=10)
     
     entropy_criterion = EntropyLoss()
 
@@ -315,21 +325,27 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 # chunked_masks, chunks = get_mask_blocks_inference(mask_sample)
                 mask_sample = get_random_mask_chunk(mask_sample)
 
-                value, rate_dist, pitch_dist = model_rate(x, 
-                                                          mask_sample.detach(), 
-                                                          intent_saliency)
+                (value, 
+                 rate_dist, 
+                 pitch_dist, 
+                 energy_dist) = model_rate(x, mask_sample.detach(), 
+                                           intent_saliency)
                 
                 index_rate = torch.multinomial(rate_dist, 1, 
-                                          replacement=True) #explore
+                                               replacement=True) #explore
                 index_pitch = torch.multinomial(pitch_dist, 1, 
-                                          replacement=True) #explore
+                                                replacement=True) #explore
+                index_energy = torch.multinomial(energy_dist, 1, 
+                                                 replacement=True) #explore
                 
                 rate = 0.25 + 0.15*index_rate
                 pitch = 0.25 + 0.15*index_pitch
+                energy = 0.25 + 0.15*index_energy
                 
                 # Computing Q-value after taking action
                 updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
-                                                             rate, pitch, mask_sample)
+                                                             rate, pitch, energy, 
+                                                             mask_sample)
                 _, _, _, updated_saliency = model_saliency(updated_signal, updated_energy)
                 Q_value = updated_saliency.gather(1, intent_cats.view(-1,1)).view(-1)
                 
@@ -341,7 +357,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                                               advantage))
                 actor_loss_pitch = torch.mean(torch.mul(-torch.log(pitch_dist.gather(1, index_pitch.view(-1,1)).view(-1)), 
                                               advantage))
-                actor_loss = actor_loss_rate + actor_loss_pitch
+                actor_loss_energy = torch.mean(torch.mul(-torch.log(energy_dist.gather(1, index_energy.view(-1,1)).view(-1)), 
+                                              advantage))
+                actor_loss = actor_loss_rate + actor_loss_pitch + actor_loss_energy
                 
                 # Critic loss term
                 critic_loss = torch.mean(torch.abs(advantage))
@@ -407,9 +425,9 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_Block_entropy_{}_actor_critic_{}_encoder".format(
-                                            hparams.lambda_entropy,
-                                            hparams.lambda_critic,
+                                        "VESUS_Block_entropy_{}_actor_critic_{}_energy_encoder".format(
+                                        hparams.lambda_entropy,
+                                        hparams.lambda_critic,
                                         )
                                     )
 

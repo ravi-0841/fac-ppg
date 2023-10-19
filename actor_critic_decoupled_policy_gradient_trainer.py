@@ -165,10 +165,10 @@ def validate(model_saliency, model_actor, WSOLA, OLA, valset,
             rate = 0.25 + 0.15*index_rate # 0.2*index
             pitch = 0.25 + 0.15*index_pitch # 0.2*index
             
-            dur_mod_speech = OLA(mask=mask_sample[:,:,0], 
+            pitch_mod_speech = OLA(mask=mask_sample[:,:,0], 
                                  factor=pitch, speech=x)
             mod_speech, mod_e, _ = WSOLA(mask=mask_sample[:,:,0], 
-                                         rate=rate, speech=dur_mod_speech)
+                                         rate=rate, speech=pitch_mod_speech)
             mod_speech = mod_speech.to("cuda")
             mod_e = mod_e.to("cuda")
             _, _, _, y_pred = model_saliency(mod_speech, mod_e)
