@@ -429,7 +429,7 @@ if __name__ == '__main__':
                                                 hparams,
                                                 emo_prob_dict[emo_target],
                                                 emo_target=emo_target,
-                                                valid=False,
+                                                valid=True,
                                             )
         
         pred_array = np.asarray(pred_array)
@@ -503,8 +503,8 @@ if __name__ == '__main__':
         # pylab.violinplot([diff_a, diff_h, diff_s, diff_f], positions=[0,1,2,3], vert=True, 
         #                  showmedians=True, labels=["Angry", "Happy", "Sad", "Fear"])
         # pylab.boxplot([diff_a, diff_h, diff_s, diff_f], labels=["Angry", "Happy", "Sad", "Fear"], sym="")
-        pylab.title("Target- {}".format(emo_target))
-        pylab.savefig("./output_wavs/{}_difference_plot.png".format(emo_target))
+        # pylab.title("Target- {}".format(emo_target))
+        # pylab.savefig("./output_wavs/{}_difference_plot.png".format(emo_target))
        
 
 
