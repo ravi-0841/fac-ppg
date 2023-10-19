@@ -432,7 +432,7 @@ if __name__ == '__main__':
         joblib.dump({"ttest_scores": ttest_array, 
                     "count_scores": count_gr_zero_array,
                     "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores.pkl"))
+                                                                "ttest_scores_argmax.pkl"))
 
 
         # joblib.dump({"indices": indices_flips}, 
