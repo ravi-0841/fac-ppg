@@ -366,7 +366,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 critic_loss = torch.mean(torch.abs(advantage))
                 
                 # Entropy loss term
-                entropy_loss = -entropy_criterion(pitch_dist) -entropy_criterion(rate_dist)
+                entropy_loss = (-entropy_criterion(pitch_dist) 
+                                -entropy_criterion(rate_dist) 
+                                -entropy_criterion(energy_dist))
 
                 # Combining all three losses            
                 actor_critic_loss = actor_loss + hparams.lambda_critic*critic_loss + hparams.lambda_entropy*entropy_loss
