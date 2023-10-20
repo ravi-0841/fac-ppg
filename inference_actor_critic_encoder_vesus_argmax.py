@@ -366,7 +366,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(1000, 276000, 1000): # max
+    for m in range(1000, 251000, 1000): # max
     # for m in range(90000, 91000, 1000): # wt
     # for m in range(7000, 8000, 1000): #max2
     

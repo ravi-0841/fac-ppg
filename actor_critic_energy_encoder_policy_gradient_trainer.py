@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from block_pitch_duration_energy_AC_encoder import MaskedRateModifier, RatePredictorAC
 from src.common.logger_ActorCritic_energy import SaliencyPredictorLogger
-from src.common.hparams_actor_critic_vesus import create_hparams
+from src.common.hparams_actor_critic_energy_vesus import create_hparams
 from src.common.loss_function import EntropyLoss
 from src.common.interpolation_block import (WSOLAInterpolation,
                                             BatchWSOLAInterpolation,
