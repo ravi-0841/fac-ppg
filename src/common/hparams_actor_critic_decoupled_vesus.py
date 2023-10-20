@@ -18,7 +18,7 @@ def create_hparams(**kwargs):
         ################################
         # Experiment Parameters        #
         ################################
-        "epochs": 500,
+        "epochs": 700,
         "iters_per_checkpoint": 1000,
         "seed": 1107,
         "dynamic_loss_scaling": True,
@@ -34,7 +34,7 @@ def create_hparams(**kwargs):
         "extended_desc": "temp_0.2_RE_L1_loss", # extra description for logging/identification
         "checkpoint_path": "",  # Path to a checkpoint file.
         "checkpoint_path_saliency": "./masked_predictor_output/vesus_1e-05_10.0_0.0002_5.0_BiLSTM_maskGen_evm_wsola_aug/checkpoint_78000",
-        "checkpoint_path_rate": "",#"./masked_predictor_output/VESUS_PitchRate_entropy_0.035_exploit_0.15_temp_0.2_RE_L1_loss/checkpoint_233000",
+        "checkpoint_path_AC": "./masked_predictor_output/VESUS_Block_entropy_0.05_actor_critic_5_decoupled/checkpoint_198000",
         "checkpoint_path_inference": "./masked_predictor_output/VESUS_Block_Local_PitchRate_entropy_0.05_exploit_0.15_temp_0.2_RE_L1_loss_max_pretdp_directLoss/checkpoint",
         "warm_start": False,  # Load the model only (warm start)
         "n_gpus": 1,  # Number of GPUs

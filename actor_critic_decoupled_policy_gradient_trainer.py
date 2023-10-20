@@ -531,7 +531,7 @@ if __name__ == '__main__':
     train(
         hparams.output_directory, 
         hparams.log_directory,
-        hparams.checkpoint_path_rate,
+        hparams.checkpoint_path_AC,
         hparams.checkpoint_path_saliency,
         hparams.warm_start,
         hparams.n_gpus,
