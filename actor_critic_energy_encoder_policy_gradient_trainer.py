@@ -14,7 +14,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from block_pitch_duration_energy_AC_encoder import MaskedRateModifier, RatePredictorAC
-from src.common.logger_PitchRatePred import SaliencyPredictorLogger
+from src.common.logger_ActorCritic_energy import SaliencyPredictorLogger
 from src.common.hparams_actor_critic_vesus import create_hparams
 from src.common.loss_function import EntropyLoss
 from src.common.interpolation_block import (WSOLAInterpolation,
@@ -199,6 +199,7 @@ def validate(model_saliency, model_rate, WSOLA, OLA, valset,
                                 mask_sample[:,:,0:1],
                                 rate_distribution,
                                 pitch_distribution,
+                                energy_distribution,
                                 rate_classes,
                                 iteration,
                             )

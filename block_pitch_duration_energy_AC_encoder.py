@@ -244,7 +244,7 @@ class RatePredictorAC(nn.Module):
         trans_out = torch.max(trans_out, dim=-1, keepdim=False)[0]
         output_rate = self.softmax(self.linear_layer_rate(trans_out)/self.temp_scale)
         output_pitch = self.softmax(self.linear_layer_pitch(trans_out)/self.temp_scale)
-        output_energy = self.softmax(self.linear_layer_pitch(trans_out)/self.temp_scale)
+        output_energy = self.softmax(self.linear_layer_energy(trans_out)/self.temp_scale)
         
         return value, output_rate, output_pitch, output_energy
 
