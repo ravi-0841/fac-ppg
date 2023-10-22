@@ -322,11 +322,11 @@ def test(output_directory, checkpoint_path_rate,
         factor_dist_array.append(rate_distribution)
         factor_array.append(rate.item())
 
-        # plot_figures(feats, x, mod_speech, posterior, 
-        #               mask_sample, y, y_pred, 
-        #               rate_distribution,
-        #               pitch_distribution,
-        #               iteration+1, hparams)
+        plot_figures(feats, x, mod_speech, posterior, 
+                      mask_sample, y, y_pred, 
+                      rate_distribution,
+                      pitch_distribution,
+                      iteration+1, hparams)
 
         if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
             duration = time.perf_counter() - start
@@ -356,7 +356,7 @@ if __name__ == '__main__':
                      "sad":[0.0,0.0,0.0,1.0,0.0],
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
 
-    emo_model_dict = {"angry":37000, "happy":199000, "sad":54000, "fear":115000}
+    emo_model_dict = {"angry":147000, "happy":199000, "sad":54000, "fear":115000}
 
     ttest_array = []
     count_gr_zero_array = []
