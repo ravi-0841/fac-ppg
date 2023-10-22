@@ -362,6 +362,7 @@ if __name__ == '__main__':
     # ckpt_path = hparams.checkpoint_path_inference.split("/")[2]
     ckpt_path = "VESUS_Block_entropy_{}_actor_critic_{}_energy_encoder".format(entropy_target, 
                                                                                 lambda_critic)
+    print("Actor critic folder path: ", ckpt_path)
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
                                         ckpt_path,
@@ -373,7 +374,10 @@ if __name__ == '__main__':
     # for m in range(7000, 8000, 1000): #max2
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
-        hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
+        hparams.checkpoint_path_inference = os.path.join("masked_predictor_output", 
+                                                        ckpt_path,
+                                                        "checkpoint_{}".format(m))
+        # print("Inference model path: ", hparams.checkpoint_path_inference)
 
         if not hparams.output_directory:
             raise FileExistsError('Please specify the output dir.')

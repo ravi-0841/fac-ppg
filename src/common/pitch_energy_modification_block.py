@@ -138,7 +138,7 @@ def local_chunk_modification(f0, ec, chunks,
     f0_modified[np.where(f0_modified>600)[0]] = 600
     f0_modified[zeros_idx] = 0.
     
-    ec_modified = smooth(z, winddow_len=7)
+    ec_modified = np.reshape(smooth(z.reshape(-1,), window_len=7), (-1,1))
     return f0_modified, ec_modified
     
 
