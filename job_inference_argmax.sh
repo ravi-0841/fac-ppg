@@ -35,7 +35,9 @@ pip install --user matplotlib
 # python3 inference_actor_critic_encoder_vesus_argmax.py sad
 # python3 inference_actor_critic_encoder_vesus_argmax.py fear
 
-python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py angry $1 $2
-python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py happy $1 $2
-python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py sad $1 $2
-python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py fear $1 $2
+# python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py angry $1 $2
+# python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py happy $1 $2
+# python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py sad $1 $2
+# python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py fear $1 $2
+
+python3 inference_actor_critic_decoupled_vesus_argmax.py angry
