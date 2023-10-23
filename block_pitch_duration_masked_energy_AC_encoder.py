@@ -215,6 +215,7 @@ class RatePredictorAC(nn.Module):
         self.linear_layer_energy = nn.Linear(in_features=256, out_features=11) #6
         self.softmax = nn.Softmax(dim=-1)
         self.elu = nn.ELU(inplace=True)
+        self.sigmoid = nn.Sigmoid()
     
     def forward(self, x, m, e): #(x, p, e)
         # x -> [batch, 1, #time]
@@ -229,7 +230,7 @@ class RatePredictorAC(nn.Module):
 
         value = self.value_linear1(torch.max(x, dim=-1, keepdim=False)[0])
         value = self.elu(value)
-        value = self.value_linear2(value)
+        value = self.sigmoid(self.value_linear2(value))
 
         e_proj = self.emo_projection(e).unsqueeze(dim=-1)
         joint_x = x + e_proj
