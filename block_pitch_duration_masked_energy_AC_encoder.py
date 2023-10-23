@@ -103,12 +103,19 @@ class ConvolutionalEncoderSmall(nn.Module):
         self.conv6_enc = nn.Conv1d(in_channels=256, out_channels=256, 
                                     kernel_size=3, stride=2, padding=1)
         
-        self.bn1_enc = nn.BatchNorm1d(256)
-        self.bn2_enc = nn.BatchNorm1d(512)
-        self.bn3_enc = nn.BatchNorm1d(512)
-        self.bn4_enc = nn.BatchNorm1d(256)
-        self.bn5_enc = nn.BatchNorm1d(256)
-        self.bn6_enc = nn.BatchNorm1d(256)
+        # self.bn1_enc = nn.BatchNorm1d(256)
+        # self.bn2_enc = nn.BatchNorm1d(512)
+        # self.bn3_enc = nn.BatchNorm1d(512)
+        # self.bn4_enc = nn.BatchNorm1d(256)
+        # self.bn5_enc = nn.BatchNorm1d(256)
+        # self.bn6_enc = nn.BatchNorm1d(256)
+        
+        self.bn1_enc = nn.InstanceNorm1d(256)
+        self.bn2_enc = nn.InstanceNorm1d(512)
+        self.bn3_enc = nn.InstanceNorm1d(512)
+        self.bn4_enc = nn.InstanceNorm1d(256)
+        self.bn5_enc = nn.InstanceNorm1d(256)
+        self.bn6_enc = nn.InstanceNorm1d(256)
 
         self.elu = nn.ELU(inplace=True)
 
@@ -198,7 +205,7 @@ class RatePredictorAC(nn.Module):
 
         self.emo_projection = nn.Linear(in_features=5, out_features=256)
         self.joint_projection = nn.Linear(in_features=256, out_features=256)
-        self.bn_joint = nn.InstanceNorm1d(256)
+        # self.bn_joint = nn.InstanceNorm1d(256)
         self.bn_proj = nn.InstanceNorm1d(256)
 
         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=256, 
@@ -208,14 +215,15 @@ class RatePredictorAC(nn.Module):
         self.transformer_encoder = nn.TransformerEncoder(transformer_encoder_layer, 
                                                          num_layers=2)
         # self.bn_trans = nn.InstanceNorm1d(256)
-        # self.bn_trans = nn.BatchNorm1d(256)
-        
-        self.linear_layer_rate = nn.Linear(in_features=256, out_features=11) #6
-        self.linear_layer_pitch = nn.Linear(in_features=256, out_features=11) #6
-        self.linear_layer_energy = nn.Linear(in_features=256, out_features=11) #6
+
+        self.linear_layer_rate = nn.Linear(in_features=256, out_features=11)
+        self.linear_layer_pitch = nn.Linear(in_features=256, out_features=11)
+        self.linear_layer_energy = nn.Linear(in_features=256, out_features=11)
         self.softmax = nn.Softmax(dim=-1)
         self.elu = nn.ELU(inplace=True)
-        self.sigmoid = nn.Sigmoid()
+        # self.sigmoid = nn.Sigmoid()
+        # self.relu = nn.ReLU()
+        self.silu = nn.SiLU()
     
     def forward(self, x, m, e): #(x, p, e)
         # x -> [batch, 1, #time]
@@ -229,12 +237,12 @@ class RatePredictorAC(nn.Module):
         x = x*m[:,:256,:]
 
         value = self.value_linear1(torch.max(x, dim=-1, keepdim=False)[0])
-        value = self.elu(value)
-        value = self.sigmoid(self.value_linear2(value))
+        value = self.silu(value)
+        value = self.silu(self.value_linear2(value))
 
         e_proj = self.emo_projection(e).unsqueeze(dim=-1)
         joint_x = x + e_proj
-        joint_x = self.bn_joint(joint_x)
+        # joint_x = self.bn_joint(joint_x)
         
         # joint_x -> [batch, 256, #time] -> [batch, #time, 256] -> [batch, 256, #time]
         x_proj = self.joint_projection(joint_x.permute(0,2,1)).permute(0,2,1)
