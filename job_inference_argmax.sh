@@ -40,4 +40,4 @@ pip install --user matplotlib
 # python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py sad $1 $2
 # python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py fear $1 $2
 
-python3 inference_actor_critic_decoupled_vesus_argmax.py angry
+python3 inference_actor_critic_decoupled_vesus_argmax.py happy
