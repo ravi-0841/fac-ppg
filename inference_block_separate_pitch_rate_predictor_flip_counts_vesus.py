@@ -387,6 +387,7 @@ if __name__ == '__main__':
     hparams = create_hparams()
 
     emo_target = sys.argv[1]
+    emo_target_proxy = "fear" if emo_target == "sad" else emo_target
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
                      "sad":[0.0,0.0,0.0,1.0,0.0],
@@ -405,8 +406,8 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    if emo_target in emo_model_dict.keys():
-        m = emo_model_dict[emo_target]
+    if emo_target_proxy in emo_model_dict.keys():
+        m = emo_model_dict[emo_target_proxy]
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
@@ -427,8 +428,8 @@ if __name__ == '__main__':
                                                 hparams.checkpoint_path_inference,
                                                 hparams.checkpoint_path_saliency,
                                                 hparams,
-                                                emo_prob_dict[emo_target],
-                                                emo_target=emo_target,
+                                                emo_prob_dict[emo_target_proxy],
+                                                emo_target=emo_target_proxy,
                                                 valid=True,
                                             )
         
@@ -437,7 +438,7 @@ if __name__ == '__main__':
         rate_array = np.asarray(rate_array)
 
         #%% Checking difference in predictions
-        index = np.argmax(emo_prob_dict[emo_target])
+        index = np.argmax(emo_prob_dict[emo_target_proxy])
         saliency_diff = (rate_array[:,index] - pred_array[:,index]) / (pred_array[:,index] + 1e-10)
         count = len(np.where(np.asarray(saliency_diff)>0)[0])
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
@@ -503,8 +504,8 @@ if __name__ == '__main__':
         # pylab.violinplot([diff_a, diff_h, diff_s, diff_f], positions=[0,1,2,3], vert=True, 
         #                  showmedians=True, labels=["Angry", "Happy", "Sad", "Fear"])
         # pylab.boxplot([diff_a, diff_h, diff_s, diff_f], labels=["Angry", "Happy", "Sad", "Fear"], sym="")
-        # pylab.title("Target- {}".format(emo_target))
-        # pylab.savefig("./output_wavs/{}_difference_plot.png".format(emo_target))
+        pylab.title("Target- {}".format(emo_target))
+        pylab.savefig("./output_wavs/REINFORCE_{}_difference_plot.png".format(emo_target))
        
 
 
