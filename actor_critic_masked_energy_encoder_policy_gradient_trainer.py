@@ -430,12 +430,12 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 critic_loss = torch.mean(torch.abs(advantage))
                 
                 # Entropy loss term
-                entropy_loss = (-entropy_criterion(pitch_dist) 
-                                -entropy_criterion(rate_dist) 
-                                -entropy_criterion(energy_dist))
+                entropy_loss = (-hparams.lambda_entropy_rate*entropy_criterion(rate_dist) 
+                                -hparams.lambda_entropy_pitch*entropy_criterion(pitch_dist) 
+                                -hparams.lambda_entropy_energy*entropy_criterion(energy_dist))
 
                 # Combining all three losses            
-                actor_critic_loss = actor_loss + hparams.lambda_critic*critic_loss + hparams.lambda_entropy*entropy_loss
+                actor_critic_loss = actor_loss + entropy_loss + hparams.lambda_critic*critic_loss
                 
                 # Updating the parameters
                 optimizer_rate.zero_grad()
@@ -492,8 +492,8 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_entropy_{}_AC_{}_masked_energy_encoder_update_env".format(
-                                        hparams.lambda_entropy,
+                                        "VESUS_separate_entropy_{}_AC_{}_masked_encoder".format(
+                                        hparams.lambda_entropy_rate,
                                         hparams.lambda_critic,
                                         )
                                     )
