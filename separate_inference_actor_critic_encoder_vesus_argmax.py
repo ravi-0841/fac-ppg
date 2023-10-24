@@ -401,7 +401,7 @@ if __name__ == '__main__':
         rate_array = np.asarray(rate_array)
 
         #%% Checking difference in predictions
-        index = np.argmax(emo_prob_dict[emo_target])
+        index = np.argmax(emo_prob_dict[emo_target_proxy])
         saliency_diff = (rate_array[:,index] - pred_array[:,index]) / (pred_array[:,index] + 1e-10)
         count = len(np.where(np.asarray(saliency_diff)>0)[0])
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
