@@ -19,22 +19,16 @@ import scipy.stats as scistat
 import soundfile as sf
 import joblib
 
-from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from block_pitch_duration_AC_encoder import MaskedRateModifier, RatePredictorAC
+from block_pitch_duration_energy_AC_encoder import MaskedRateModifier, RatePredictorAC
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
-from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
-                                        ExpectedKLDivergence,
-                                        VecExpectedKLDivergence, 
-                                        SparsityKLDivergence,
-                                    )
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
                               get_mask_blocks_inference,
                               )
-from src.common.hparams_actor_critic_vesus import create_hparams
+from src.common.hparams_actor_critic_energy_vesus import create_hparams
 from src.common.interpolation_block import WSOLAInterpolationBlockEnergy
-from src.common.pitch_modification_block import LocalPitchModification
+from src.common.pitch_energy_modification_block import LocalPitchEnergyModification
 from pprint import pprint
 
 
@@ -207,7 +201,7 @@ def test(output_directory, checkpoint_path_rate,
     WSOLA = WSOLAInterpolationBlockEnergy(win_size=hparams.win_length, 
                                    hop_size=hparams.hop_length,
                                    tolerance=hparams.hop_length)
-    OLA = LocalPitchModification(frame_period=10)
+    OLA = LocalPitchEnergyModification(frame_period=10)
 
     model_saliency.eval()
     model_rate.eval()
@@ -248,9 +242,10 @@ def test(output_directory, checkpoint_path_rate,
 
         # print("intent_saliency.shape: ", intent_saliency.shape)
         (_, rate_distribution,
-         pitch_distribution) = model_rate(x.repeat(chunked_masks.shape[0],1,1), 
-                                        chunked_masks, 
-                                        intent_saliency.repeat(chunked_masks.shape[0],1))
+         pitch_distribution,
+         energy_distribution) = model_rate(x.repeat(chunked_masks.shape[0],1,1), 
+                                           chunked_masks, 
+                                           intent_saliency.repeat(chunked_masks.shape[0],1))
 
         # print("rate_distribution.shape: ", rate_distribution.shape)
 
@@ -264,23 +259,22 @@ def test(output_directory, checkpoint_path_rate,
         pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
         # print("pitches: ", pitches)
         
+        indices_energy = torch.argmax(energy_distribution, 1)
+        # print("indices_pitch: ", indices_pitch)
+        energies = 0.25 + 0.15*indices_energy.reshape(-1,)
+        # print("pitches: ", pitches)
+        
         # index_pitch = torch.multinomial(pitch_distribution[0], 1)
         # pitch = 0.5 + 0.1*index_pitch
-        pitch_mod_speech = OLA(factors=pitches, 
-                               speech=x, 
-                               chunks=chunks)
-
-        # Only pitch modification
-        # pms = pitch_mod_speech.to("cuda")
-        # _, _, mp, sp = model_saliency(pms, e)
-        # mod_speech = pms
-        # rate = torch.Tensor([0.1])
-        # s = sp
+        energy_pitch_mod_speech = OLA(factors_pitch=pitches,
+                                      factors_energy=energies,
+                                      speech=x,
+                                      chunks=chunks)
 
         # modification 1
         mod_speech1, mod_e1, _ = WSOLA(mask=mask_sample[:,:,0], 
                                         rates=rates, 
-                                        speech=pitch_mod_speech,
+                                        speech=energy_pitch_mod_speech,
                                         chunks=chunks)
     
         mod_speech1 = mod_speech1.to("cuda")
@@ -357,7 +351,7 @@ if __name__ == '__main__':
                      "sad":[0.0,0.0,0.0,1.0,0.0],
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
 
-    emo_model_dict = {"angry":147000, "happy":199000, "sad":54000, "fear":115000}
+    emo_model_dict = {"angry":55000, "happy":211000, "sad":161000, "fear":154000}
 
     ttest_array = []
     count_gr_zero_array = []
@@ -401,7 +395,7 @@ if __name__ == '__main__':
         rate_array = np.asarray(rate_array)
 
         #%% Checking difference in predictions
-        index = np.argmax(emo_prob_dict[emo_target])
+        index = np.argmax(emo_prob_dict[emo_target_proxy])
         saliency_diff = (rate_array[:,index] - pred_array[:,index]) / (pred_array[:,index] + 1e-10)
         count = len(np.where(np.asarray(saliency_diff)>0)[0])
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
@@ -431,10 +425,10 @@ if __name__ == '__main__':
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
         # print("Total neutral: {}".format(count_neutral))
         
-        joblib.dump({"ttest_scores": ttest_array, 
-                    "count_scores": count_gr_zero_array,
-                    "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
-                                                                "ttest_scores_argmax.pkl"))
+        # joblib.dump({"ttest_scores": ttest_array, 
+        #             "count_scores": count_gr_zero_array,
+        #             "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
+        #                                                         "ttest_scores_argmax.pkl"))
 
 
         # joblib.dump({"indices": indices_flips}, 
@@ -468,7 +462,7 @@ if __name__ == '__main__':
         #                  showmedians=True, labels=["Angry", "Happy", "Sad", "Fear"])
         # pylab.boxplot([diff_a, diff_h, diff_s, diff_f], labels=["Angry", "Happy", "Sad", "Fear"], sym="")
         pylab.title("Target- {}".format(emo_target))
-        pylab.savefig("./output_wavs/AC_{}_difference_plot.png".format(emo_target))
+        pylab.savefig("./output_wavs/AC_energy_{}_difference_plot.png".format(emo_target))
        
 
 
