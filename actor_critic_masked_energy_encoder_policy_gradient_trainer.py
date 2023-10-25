@@ -307,8 +307,8 @@ def train(output_directory, log_directory, checkpoint_path_rate,
 
     train_loader, valset, collate_fn = prepare_dataloaders(hparams)
 
-    # rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.1)]
-    rate_classes = [str(np.round(x,2)) for x in np.arange(0.25, 1.9, 0.15)]
+    rate_classes = [str(np.round(x,2)) for x in np.arange(0.5, 1.6, 0.1)]
+    # rate_classes = [str(np.round(x,2)) for x in np.arange(0.25, 1.9, 0.15)]
     
 
     # Load checkpoint if one exists
