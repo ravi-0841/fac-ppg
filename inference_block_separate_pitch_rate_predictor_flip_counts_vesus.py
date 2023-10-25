@@ -497,10 +497,10 @@ if __name__ == '__main__':
         diff_f = rate_array[idx, 4] - pred_array[idx, 4]
         pylab.figure()
         ax = pylab.subplot(111)
-        pylab.violinplot([diff_n, diff_a, diff_h, diff_s, diff_f], 
-                         positions=[0,1,2,3,4], vert=True, showmedians=True)
-        ax.set_xticks([0,1,2,3,4])
-        ax.set_xticklabels(["Neutral", "Angry", "Happy", "Sad", "Fear"])
+        pylab.violinplot([diff_n, diff_a, diff_h, diff_f], 
+                         positions=[0,1,2,3], vert=True, showmedians=True)
+        ax.set_xticks([0,1,2,3])
+        ax.set_xticklabels(["Neutral", "Angry", "Happy", "Sad"])
         # pylab.violinplot([diff_a, diff_h, diff_s, diff_f], positions=[0,1,2,3], vert=True, 
         #                  showmedians=True, labels=["Angry", "Happy", "Sad", "Fear"])
         # pylab.boxplot([diff_a, diff_h, diff_s, diff_f], labels=["Angry", "Happy", "Sad", "Fear"], sym="")
