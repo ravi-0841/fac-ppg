@@ -103,7 +103,7 @@ def intended_saliency(batch_size, relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
 
 def plot_figures(feats, waveform, mod_waveform, posterior, 
                  mask, y, y_pred, rate_dist, pitch_dist, 
-                 iteration, hparams):
+                 energy_dist, iteration, hparams):
     
     mask_thresh = np.zeros((len(mask), ))
     mask_thresh[np.where(mask>0)[0]] = 1
@@ -111,7 +111,7 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
-    fig, ax = pylab.subplots(6, 1, figsize=(30, 24))
+    fig, ax = pylab.subplots(7, 1, figsize=(40, 24))
     
     ax[0].plot(waveform, linewidth=1.5, label="original")
     ax[0].plot(mod_waveform, linewidth=1.5, label="modified")
@@ -142,17 +142,24 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     # pylab.tight_layout()
     
     classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
-    ax[4].bar(classes, rate_dist, alpha=0.5, color="r", label="pred")
+    ax[4].bar(classes, rate_dist, alpha=0.5, color="r", label="Duration")
     ax[4].legend(loc=1)
     ax[4].set_xlabel('Classes',fontsize=15) #xlabel
     ax[4].set_ylabel('Softmax Score', fontsize=15) #ylabel
     # pylab.tight_layout()
     
     classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
-    ax[5].bar(classes, pitch_dist, alpha=0.5, color="r", label="pred")
+    ax[5].bar(classes, pitch_dist, alpha=0.5, color="g", label="Pitch")
     ax[5].legend(loc=1)
     ax[5].set_xlabel('Classes',fontsize=15) #xlabel
     ax[5].set_ylabel('Softmax Score', fontsize=15) #ylabel
+    # pylab.tight_layout()
+    
+    classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
+    ax[6].bar(classes, energy_dist, alpha=0.5, color="b", label="Energy")
+    ax[6].legend(loc=1)
+    ax[6].set_xlabel('Classes',fontsize=15) #xlabel
+    ax[6].set_ylabel('Softmax Score', fontsize=15) #ylabel
     # pylab.tight_layout()
 
     pylab.suptitle("Utterance- {}".format(iteration), fontsize=24)
@@ -299,6 +306,7 @@ def test(output_directory, checkpoint_path_rate,
         mask_sample = mask_sample.squeeze().detach().cpu().numpy()[:,1]
         rate_distribution = rate_distribution[0].squeeze().detach().cpu().numpy()
         pitch_distribution = pitch_distribution[0].squeeze().detach().cpu().numpy()
+        energy_distribution = energy_distribution[0].squeeze().detach().cpu().numpy()
         mod_speech = mod_speech.squeeze().cpu().numpy()
 
         # Writing the wav file
@@ -320,6 +328,7 @@ def test(output_directory, checkpoint_path_rate,
         #               mask_sample, y, y_pred, 
         #               rate_distribution,
         #               pitch_distribution,
+        #               energy_distribution,
         #               iteration+1, hparams)
 
         if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
