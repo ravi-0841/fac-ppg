@@ -17,7 +17,7 @@ import numpy as np
 import seaborn as sns
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from saliency_predictor_energy_guided import MaskedSaliencePredictor
+from saliency_predictor import MaskedSaliencePredictor
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -317,6 +317,8 @@ if __name__ == '__main__':
 
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
+    
+    # hparams.testing_files = "/home/ravi/Desktop/cgan_unsup_model_sad.txt"
 
     chunk_array, targ_array, pred_array = test(
                                                 hparams.output_directory,
@@ -331,11 +333,16 @@ if __name__ == '__main__':
     top_1 = [best_k_class_metric(t, p, k=0) for (t, p) in zip(targ_array, pred_array)]
     top_2 = [best_k_class_metric(t, p, k=1) for (t, p) in zip(targ_array, pred_array)]
     
-    print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),4)))
-    print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
+    top1_score = np.round(np.sum(top_1)/len(top_1),4)
+    top2_score = np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)
+    print("Top-1 Accuracy is: {}".format(top1_score))
+    print("Top-2 Accuracy is: {}".format(top2_score))
+    print("Average of top-1 and top2: {}".format(0.5*(top1_score+top2_score)))
+    
+    
 
-    joblib.dump({"prediction":pred_array, "target":targ_array},
-            "./masked_predictor_output/test_pred.pkl")
+    # joblib.dump({"prediction":pred_array, "target":targ_array},
+    #         "./masked_predictor_output/test_pred.pkl")
 
     #%% Energy Posterior correlation
     # pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)
