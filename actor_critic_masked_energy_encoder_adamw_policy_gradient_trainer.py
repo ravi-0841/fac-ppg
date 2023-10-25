@@ -152,13 +152,12 @@ def validate(model_saliency, model_rate, WSOLA, OLA, valset,
             index_pitch = torch.argmax(pitch_distribution, dim=-1)
             index_energy = torch.argmax(energy_distribution, dim=-1)
             
-            rate = 0.5 + 0.1*index_rate # 0.2*index
-            pitch = 0.5 + 0.1*index_pitch # 0.2*index
-            energy = 0.5 + 0.1*index_energy # 0.2*index
+            # rate = 0.5 + 0.1*index_rate # 0.2*index
+            # pitch = 0.5 + 0.1*index_pitch # 0.2*index
             
-            # rate = 0.25 + 0.15*index_rate # 0.2*index
-            # pitch = 0.25 + 0.15*index_pitch # 0.2*index
-            # energy = 0.25 + 0.15*index_energy # 0.2*index
+            rate = 0.25 + 0.15*index_rate # 0.2*index
+            pitch = 0.25 + 0.15*index_pitch # 0.2*index
+            energy = 0.25 + 0.15*index_energy
             
             pitch_energy_mod_speech = OLA(mask=mask_sample[:,:,0], 
                                           factor_pitch=pitch, 
@@ -299,8 +298,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
     model_saliency, model_rate = load_model(hparams)
     learning_rate_rate = hparams.learning_rate_rate
 
-    optimizer_rate = torch.optim.Adam(model_rate.parameters(), 
-                                      lr=learning_rate_rate, 
+    optimizer_rate = torch.optim.AdamW(model_rate.parameters(), 
+                                      lr=learning_rate_rate,
+                                      betas=(0.9, 0.95),
                                       weight_decay=hparams.weight_decay)
 
     logger = prepare_directories_and_logger(output_directory, log_directory, rank)
@@ -397,13 +397,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 index_energy = torch.multinomial(energy_dist, 1, 
                                                  replacement=True) #explore
                 
-                # rate = 0.25 + 0.15*index_rate
-                # pitch = 0.25 + 0.15*index_pitch
-                # energy = 0.25 + 0.15*index_energy
-
-                rate = 0.5 + 0.1*index_rate
-                pitch = 0.5 + 0.1*index_pitch
-                energy = 0.5 + 0.1*index_energy
+                rate = 0.25 + 0.15*index_rate
+                pitch = 0.25 + 0.15*index_pitch
+                energy = 0.25 + 0.15*index_energy
                 
                 # Computing Q-value after taking action
                 (updated_signal, 
@@ -497,7 +493,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_separate_entropy_{}_AC_{}_masked_encoder_small_subset".format(
+                                        "VESUS_separate_entropy_{}_AC_{}_masked_encoder_AdamW".format(
                                         hparams.lambda_entropy_rate,
                                         hparams.lambda_critic,
                                         )

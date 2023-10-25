@@ -20,7 +20,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from block_pitch_duration_energy_AC_encoder import MaskedRateModifier, RatePredictorAC
+from block_pitch_duration_masked_energy_AC_encoder import MaskedRateModifier, RatePredictorAC
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -348,7 +348,7 @@ if __name__ == '__main__':
     hparams = create_hparams()
 
     emo_target = sys.argv[1]
-    entropy_target = sys.argv[2]
+    lambda_entropy = sys.argv[2]
     lambda_critic = sys.argv[3]
 
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
@@ -360,8 +360,10 @@ if __name__ == '__main__':
     count_gr_zero_array = []
     count_flips_array = []
     # ckpt_path = hparams.checkpoint_path_inference.split("/")[2]
-    ckpt_path = "VESUS_Block_entropy_{}_actor_critic_{}_energy_encoder".format(entropy_target, 
-                                                                                lambda_critic)
+    # ckpt_path = "VESUS_Block_entropy_{}_actor_critic_{}_energy_encoder".format(lambda_entropy, 
+    #                                                                             lambda_critic)
+    ckpt_path = "VESUS_separate_entropy_{}_AC_{}_masked_encoder".format(lambda_entropy,
+                                                                        lambda_critic)
     print("Actor critic folder path: ", ckpt_path)
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
