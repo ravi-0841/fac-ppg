@@ -318,7 +318,7 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
     
-    hparams.testing_files = "/home/ravi/Desktop/vcgan_model_angry.txt"
+    hparams.testing_files = "./speechbrain_data/baselines/gmm_model_angry.txt"
 
     chunk_array, targ_array, pred_array = test(
                                                 hparams.output_directory,

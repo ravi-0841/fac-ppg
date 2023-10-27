@@ -395,7 +395,7 @@ if __name__ == '__main__':
                                                 hparams,
                                                 emo_prob_dict[emo_target],
                                                 emo_target=emo_target,
-                                                valid=True,
+                                                valid=False,
                                             )
         
         pred_array = np.asarray(pred_array)
