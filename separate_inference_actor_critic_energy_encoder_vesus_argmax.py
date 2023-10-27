@@ -354,13 +354,12 @@ if __name__ == '__main__':
     hparams = create_hparams()
 
     emo_target = "angry" if len(sys.argv)<2 else sys.argv[1]
-    emo_target_proxy = "fear" if emo_target == "sad" else emo_target
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
-                     "sad":[0.0,0.0,0.0,1.0,0.0],
+                     "sad":[0.0,0.0,0.0,0.0,1.0],
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
 
-    emo_model_dict = {"angry":55000, "happy":211000, "sad":161000, "fear":154000}
+    emo_model_dict = {"angry":55000, "happy":211000, "sad":154000, "fear":154000}
 
     ttest_array = []
     count_gr_zero_array = []
@@ -372,8 +371,8 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    if emo_target_proxy in emo_model_dict.keys():
-        m = emo_model_dict[emo_target_proxy]
+    if emo_target in emo_model_dict.keys():
+        m = emo_model_dict[emo_target]
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
         hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
@@ -394,8 +393,8 @@ if __name__ == '__main__':
                                                 hparams.checkpoint_path_inference,
                                                 hparams.checkpoint_path_saliency,
                                                 hparams,
-                                                emo_prob_dict[emo_target_proxy],
-                                                emo_target=emo_target_proxy,
+                                                emo_prob_dict[emo_target],
+                                                emo_target=emo_target,
                                                 valid=True,
                                             )
         
@@ -404,7 +403,7 @@ if __name__ == '__main__':
         rate_array = np.asarray(rate_array)
 
         #%% Checking difference in predictions
-        index = np.argmax(emo_prob_dict[emo_target_proxy])
+        index = np.argmax(emo_prob_dict[emo_target])
         saliency_diff = (rate_array[:,index] - pred_array[:,index]) / (pred_array[:,index] + 1e-10)
         count = len(np.where(np.asarray(saliency_diff)>0)[0])
         ttest = scistat.ttest_1samp(a=saliency_diff, popmean=0, alternative="greater")
@@ -421,9 +420,15 @@ if __name__ == '__main__':
             # if np.argmax(pred_array[i,:])!=index and np.argmax(rate_array[i,:])==index:
             #     count_flips += 1
             #     indices_flips.append(i+1)
-            if (index not in np.argsort(pred_array[i,:])[-2:]) and (index in np.argsort(rate_array[i,:])[-2:]):
+            
+            if (pred_array[i,index] <= 0.25) and (index in np.argsort(rate_array[i,:])[-2:]):
                 count_flips += 1
                 indices_flips.append(i+1)
+            
+            elif (index not in np.argsort(pred_array[i,:])[-2:]) and (index in np.argsort(rate_array[i,:])[-2:]):
+                count_flips += 1
+                indices_flips.append(i+1)
+            
             if np.argmax(pred_array[i,:])==0 and np.argmax(rate_array[i,:])==index:
                 count_neutral_flips += 1
 
@@ -432,7 +437,7 @@ if __name__ == '__main__':
         
         count_flips_array.append(count_flips)
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
-        # print("Total neutral: {}".format(count_neutral))
+        print("Total neutral: {}".format(count_neutral))
         
         # joblib.dump({"ttest_scores": ttest_array, 
         #             "count_scores": count_gr_zero_array,
@@ -459,19 +464,19 @@ if __name__ == '__main__':
         diff_n = rate_array[idx, 0] - pred_array[idx, 0]
         diff_a = rate_array[idx, 1] - pred_array[idx, 1]
         diff_h = rate_array[idx, 2] - pred_array[idx, 2]
-        diff_s = rate_array[idx, 3] - pred_array[idx, 3]
-        diff_f = rate_array[idx, 4] - pred_array[idx, 4]
+        diff_s = rate_array[idx, 4] - pred_array[idx, 4]
+        # diff_f = rate_array[idx, 4] - pred_array[idx, 4]
         pylab.figure()
         ax = pylab.subplot(111)
-        pylab.violinplot([diff_n, diff_a, diff_h, diff_f], 
+        pylab.violinplot([diff_n, diff_a, diff_h, diff_s], 
                          positions=[0,1,2,3], vert=True, showmedians=True)
         ax.set_xticks([0,1,2,3])
         ax.set_xticklabels(["Neutral", "Angry", "Happy", "Sad"])
         # pylab.violinplot([diff_a, diff_h, diff_s, diff_f], positions=[0,1,2,3], vert=True, 
         #                  showmedians=True, labels=["Angry", "Happy", "Sad", "Fear"])
         # pylab.boxplot([diff_a, diff_h, diff_s, diff_f], labels=["Angry", "Happy", "Sad", "Fear"], sym="")
-        pylab.title("Target- {}".format(emo_target))
-        pylab.savefig("./output_wavs/AC_energy_{}_difference_plot.png".format(emo_target))
+        # pylab.title("Target- {}".format(emo_target))
+        # pylab.savefig("./output_wavs/AC_energy_{}_difference_plot.png".format(emo_target))
        
 
 
