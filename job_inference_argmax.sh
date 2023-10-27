@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH -t 8:00:00
+#SBATCH -t 15:00:00
 #SBATCH -A avenka14_gpu
 
 ###load modules

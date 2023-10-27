@@ -256,17 +256,17 @@ def test(output_directory, checkpoint_path_rate,
 
         indices_rate = torch.argmax(rate_distribution, 1)
         # print("indices_rate: ", indices_rate)
-        rates = 0.25 + 0.15*indices_rate.reshape(-1,)
+        rates = 0.5 + 0.1*indices_rate.reshape(-1,)
         # print("rates: ", rates)
         
         indices_pitch = torch.argmax(pitch_distribution, 1)
         # print("indices_pitch: ", indices_pitch)
-        pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
+        pitches = 0.5 + 0.1*indices_pitch.reshape(-1,)
         # print("pitches: ", pitches)
 
         indices_energy = torch.argmax(energy_distribution, 1)
         # print("indices_energy: ", indices_energy)
-        energies = 0.25 + 0.15*indices_energy.reshape(-1,)
+        energies = 0.5 + 0.1*indices_energy.reshape(-1,)
         # print("energies: ", energies)
         
         energy_pitch_mod_speech = OLA(factors_pitch=pitches,
@@ -362,7 +362,7 @@ if __name__ == '__main__':
     # ckpt_path = hparams.checkpoint_path_inference.split("/")[2]
     # ckpt_path = "VESUS_Block_entropy_{}_actor_critic_{}_energy_encoder".format(lambda_entropy, 
     #                                                                             lambda_critic)
-    ckpt_path = "VESUS_separate_entropy_{}_AC_{}_masked_encoder".format(lambda_entropy,
+    ckpt_path = "VESUS_separate_entropy_{}_AC_{}_masked_encoder_small_subset".format(lambda_entropy,
                                                                         lambda_critic)
     print("Actor critic folder path: ", ckpt_path)
     hparams.output_directory = os.path.join(
@@ -371,7 +371,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(1000, 251000, 1000): # max
+    for m in range(1000, 381000, 1000): # max
     # for m in range(90000, 91000, 1000): # wt
     # for m in range(7000, 8000, 1000): #max2
     
