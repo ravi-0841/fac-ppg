@@ -395,7 +395,7 @@ if __name__ == '__main__':
                                                 hparams,
                                                 emo_prob_dict[emo_target],
                                                 emo_target=emo_target,
-                                                valid=False,
+                                                valid=True,
                                             )
         
         pred_array = np.asarray(pred_array)
@@ -418,11 +418,11 @@ if __name__ == '__main__':
         indices_flips = []
         for i in range(targ_array.shape[0]):
 
-            if (pred_array[i,index] <= 0.25) and (index in np.argsort(rate_array[i,:])[-2:]):
-                count_flips += 1
-                indices_flips.append(i+1)
+            # if (pred_array[i,index] <= 0.2) and (index in np.argsort(rate_array[i,:])[-2:]):
+            #     count_flips += 1
+            #     indices_flips.append(i+1)
             
-            elif (index not in np.argsort(pred_array[i,:])[-2:]) and (index in np.argsort(rate_array[i,:])[-2:]):
+            if (index not in np.argsort(pred_array[i,:])[-2:]) and (index in np.argsort(rate_array[i,:])[-2:]):
                 count_flips += 1
                 indices_flips.append(i+1)
 
@@ -469,9 +469,6 @@ if __name__ == '__main__':
                          positions=[0,1,2,3], vert=True, showmedians=True)
         ax.set_xticks([0,1,2,3])
         ax.set_xticklabels(["Neutral", "Angry", "Happy", "Sad"])
-        # pylab.violinplot([diff_a, diff_h, diff_s, diff_f], positions=[0,1,2,3], vert=True, 
-        #                  showmedians=True, labels=["Angry", "Happy", "Sad", "Fear"])
-        # pylab.boxplot([diff_a, diff_h, diff_s, diff_f], labels=["Angry", "Happy", "Sad", "Fear"], sym="")
         # pylab.title("Target- {}".format(emo_target))
         # pylab.savefig("./output_wavs/AC_masked_energy_{}_difference_plot.png".format(emo_target))
        
