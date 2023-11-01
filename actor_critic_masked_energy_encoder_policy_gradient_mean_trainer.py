@@ -406,19 +406,21 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 energy = 0.25 + 0.15*index_energy
                 
                 # Computing Q-value after taking action
-                (updated_signal, 
-                 updated_energy, 
-                 updated_mask) = updated_environment(hparams, x, WSOLA, OLA, 
-                                                     rate, pitch, energy, mask_sample,
-                                                     active_chunks, sampled_chunks)
-                # updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
-                #                                              rate, pitch, energy, 
-                #                                              mask_sample)
-                _, _, _, updated_saliency = model_saliency(updated_signal, 
-                                                           updated_energy,
-                                                           pre_computed_mask=updated_mask)
-                Q_value = updated_saliency.gather(1, intent_cats.view(-1,1)).view(-1)
+                # (updated_signal, 
+                #  updated_energy, 
+                #  updated_mask) = updated_environment(hparams, x, WSOLA, OLA, 
+                #                                      rate, pitch, energy, mask_sample,
+                #                                      active_chunks, sampled_chunks)
+                updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
+                                                             rate, pitch, energy, 
+                                                             mask_sample)
+                # _, _, _, updated_saliency = model_saliency(updated_signal, 
+                #                                            updated_energy,
+                #                                            pre_computed_mask=updated_mask)
+                _, _, _, updated_saliency = model_saliency(updated_signal, updated_energy)
                 
+                Q_value = updated_saliency.gather(1, intent_cats.view(-1,1)).view(-1)
+
                 # Computing advantage
                 advantage = Q_value.detach() - value.view(-1)
                 
@@ -497,7 +499,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_sepent_{}_AC_{}_masked_encoder_sepset_mean".format(
+                                        "VESUS_sepent_{}_AC_{}_masked_encoder_sepset_mean_oldEnv".format(
                                         hparams.lambda_entropy_rate,
                                         hparams.lambda_critic,
                                         )

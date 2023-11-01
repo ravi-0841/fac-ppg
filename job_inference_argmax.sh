@@ -27,17 +27,14 @@ pip install --user matplotlib
 
 #python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py angry
 #python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py happy
-#python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py sad
 #python3 inference_block_pitch_rate_predictor_flip_counts_vesus.py fear
 
 # python3 inference_actor_critic_encoder_vesus_argmax.py angry
 # python3 inference_actor_critic_encoder_vesus_argmax.py happy
-# python3 inference_actor_critic_encoder_vesus_argmax.py sad
 # python3 inference_actor_critic_encoder_vesus_argmax.py fear
 
-python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py angry $1 $2
-python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py happy $1 $2
-python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py sad $1 $2
-python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py fear $1 $2
+python3 inference_actor_critic_energy_encoder_mean_vesus_argmax_variable.py angry $1 $2
+python3 inference_actor_critic_energy_encoder_mean_vesus_argmax_variable.py happy $1 $2
+python3 inference_actor_critic_energy_encoder_mean_vesus_argmax_variable.py fear $1 $2
 
 # python3 inference_actor_critic_decoupled_vesus_argmax.py happy
