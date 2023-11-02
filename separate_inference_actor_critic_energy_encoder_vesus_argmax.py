@@ -57,7 +57,7 @@ def prepare_dataloaders(hparams, valid=True):
     test_loader = DataLoader(
                             testset,
                             num_workers=1,
-                            shuffle=False,
+                            shuffle=True,
                             sampler=None,
                             batch_size=1,
                             drop_last=False,
@@ -340,8 +340,8 @@ def test(output_directory, checkpoint_path_rate,
 
         iteration += 1
     
-    # if iteration >= 100:
-    #     break
+        if iteration >= 250:
+            break
     
     print("Saliency | Avg. Loss: {:.3f}".format(np.mean(saliency_loss_array)))
     print("Rate     | Avg. Loss: {:.3f}".format(np.mean(rate_loss_array)))
@@ -395,7 +395,7 @@ if __name__ == '__main__':
                                                 hparams,
                                                 emo_prob_dict[emo_target],
                                                 emo_target=emo_target,
-                                                valid=True,
+                                                valid=False,
                                             )
         
         pred_array = np.asarray(pred_array)
