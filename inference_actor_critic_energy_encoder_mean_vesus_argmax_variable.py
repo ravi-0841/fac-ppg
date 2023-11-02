@@ -362,7 +362,7 @@ if __name__ == '__main__':
     # ckpt_path = hparams.checkpoint_path_inference.split("/")[2]
     # ckpt_path = "VESUS_Block_entropy_{}_actor_critic_{}_energy_encoder".format(lambda_entropy, 
     #                                                                             lambda_critic)
-    ckpt_path = "VESUS_sepent_{}_AC_{}_masked_encoder_sepset_mean_oldEnv".format(lambda_entropy,
+    ckpt_path = "VESUS_sepent_{}_AC_{}_masked_encoder_sepset_mean".format(lambda_entropy,
                                                                         lambda_critic)
     print("Actor critic folder path: ", ckpt_path)
     hparams.output_directory = os.path.join(
@@ -371,7 +371,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(200000, 509000, 1000): # max
+    for m in range(1000, 435000, 1000): # max
     # for m in range(90000, 91000, 1000): # wt
     # for m in range(7000, 8000, 1000): #max2
     
@@ -440,7 +440,7 @@ if __name__ == '__main__':
         joblib.dump({"ttest_scores": ttest_array, 
                     "count_scores": count_gr_zero_array,
                     "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
-                                                                    "ttest_scores_argmax_2.pkl"))
+                                                                    "ttest_scores_argmax.pkl"))
 
 
         # joblib.dump({"indices": indices_flips}, 
