@@ -47,7 +47,7 @@ def create_hparams(**kwargs):
         # Passed as a txt file, see data/filelists/training-set.txt for an
         # example.
         "complete_files": "./speechbrain_data/VESUS_saliency_complete.txt",
-        "training_files": './speechbrain_data/VESUS_saliency_training_small.txt',
+        "training_files": './speechbrain_data/VESUS_saliency_training.txt',
         "validation_files": './speechbrain_data/VESUS_saliency_validation_big.txt',
         "testing_files": "./speechbrain_data/VESUS_saliency_testing_big.txt",
         "is_full_ppg": True,  # Whether to use the full PPG or not.
