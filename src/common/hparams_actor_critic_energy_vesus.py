@@ -19,7 +19,7 @@ def create_hparams(**kwargs):
         # Experiment Parameters        #
         ################################
         "epochs": 500,
-        "iters_per_checkpoint": 1000,
+        "iters_per_checkpoint": 500,
         "seed": 1107,
         "dynamic_loss_scaling": True,
         "fp16_run": False,
@@ -49,7 +49,7 @@ def create_hparams(**kwargs):
         "complete_files": "./speechbrain_data/VESUS_saliency_complete.txt",
         "training_files": './speechbrain_data/VESUS_saliency_training.txt',
         "validation_files": './speechbrain_data/VESUS_saliency_validation_big.txt',
-        "testing_files": "./speechbrain_data/VESUS_saliency_testing_big.txt",
+        "testing_files": "./speechbrain_data/VESUS_saliency_testing_small.txt",
         "is_full_ppg": True,  # Whether to use the full PPG or not.
         "is_append_f0": False,  # Currently only effective at sentence level
         "ppg_subsampling_factor": 1,  # Sub-sample the ppg & acoustic sequence.
@@ -88,11 +88,11 @@ def create_hparams(**kwargs):
         "temp_scale": 5.0, #15.0
         "exploration_decay": 1.03183,
         "use_saved_learning_rate": False,
-        "learning_rate_rate": 1e-6, #1e-4
+        "learning_rate_rate": 1e-5, #1e-4
         "learning_rate_decay": 0.954992586, #0.912011, #0.955
         "learning_rate_lb": 1e-6, #1e-6
         "learning_rate_ub": 1e-5, #1e-5
-        "weight_decay": 1e-6, #1e-6
+        "weight_decay": 1e-8, #1e-6
         "grad_clip_thresh": 1.0,
         "batch_size": 2, #4
         "minibatch_consistency": False,

@@ -49,7 +49,7 @@ def create_hparams(**kwargs):
         "complete_files": "./speechbrain_data/VESUS_saliency_complete.txt",
         "training_files": './speechbrain_data/VESUS_saliency_training.txt',
         "validation_files": './speechbrain_data/VESUS_saliency_validation_big.txt',
-        "testing_files": "./speechbrain_data/VESUS_saliency_testing_big.txt",
+        "testing_files": "./speechbrain_data/VESUS_saliency_testing_small.txt",
         "is_full_ppg": True,  # Whether to use the full PPG or not.
         "is_append_f0": False,  # Currently only effective at sentence level
         "ppg_subsampling_factor": 1,  # Sub-sample the ppg & acoustic sequence.
