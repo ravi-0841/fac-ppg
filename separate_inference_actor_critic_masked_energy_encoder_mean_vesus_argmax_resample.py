@@ -310,10 +310,10 @@ def test(output_directory, checkpoint_path_rate,
         mod_speech = mod_speech.squeeze().cpu().numpy()
 
         # Writing the wav file
-        # mod_speech = (mod_speech - np.min(mod_speech)) / (np.max(mod_speech) - np.min(mod_speech))
-        # mod_speech = mod_speech - np.mean(mod_speech)
-        # sf.write("./output_wavs/{}/{}.wav".format(emo_target, i+1), 
-        #             mod_speech.reshape(-1,), 16000)
+        mod_speech = (mod_speech - np.min(mod_speech)) / (np.max(mod_speech) - np.min(mod_speech))
+        mod_speech = mod_speech - np.mean(mod_speech)
+        sf.write("./output_wavs/mean_encoder/{}/{}.wav".format(emo_target, i+1), 
+                    mod_speech.reshape(-1,), 16000)
 
         #%% Plotting
         saliency_loss_array.append(saliency_reduced_loss)

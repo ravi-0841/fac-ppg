@@ -107,7 +107,7 @@ def local_modification(f0, ec, mask,
     y = smooth(generate_interpolation(f0), window_len=13)
     y[modif_idx] *= factor_pitch
     f0_modified = smooth(y, window_len=13)
-    f0_modified[np.where(f0_modified<50)[0]] = 50
+    f0_modified[np.where(f0_modified<80)[0]] = 80
     f0_modified[np.where(f0_modified>600)[0]] = 600
     f0_modified[zeros_idx] = 0.
     
@@ -134,7 +134,7 @@ def local_chunk_modification(f0, ec, chunks,
             pass
     
     f0_modified = smooth(y, window_len=13)
-    f0_modified[np.where(f0_modified<50)[0]] = 50
+    f0_modified[np.where(f0_modified<80)[0]] = 80
     f0_modified[np.where(f0_modified>600)[0]] = 600
     f0_modified[zeros_idx] = 0.
     
