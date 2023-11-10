@@ -20,7 +20,7 @@ import joblib
 
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from block_pitch_duration_masked_energy_AC_encoder import MaskedRateModifier, RatePredictorAC
+from block_pitch_duration_energy_AC_encoder import MaskedRateModifier, RatePredictorAC
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
@@ -256,17 +256,17 @@ def test(output_directory, checkpoint_path_rate,
 
         indices_rate = torch.argmax(rate_distribution, 1)
         # print("indices_rate: ", indices_rate)
-        rates = 0.5 + 0.1*indices_rate.reshape(-1,)
+        rates = 0.25 + 0.15*indices_rate.reshape(-1,)
         # print("rates: ", rates)
         
         indices_pitch = torch.argmax(pitch_distribution, 1)
         # print("indices_pitch: ", indices_pitch)
-        pitches = 0.5 + 0.1*indices_pitch.reshape(-1,)
+        pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
         # print("pitches: ", pitches)
 
         indices_energy = torch.argmax(energy_distribution, 1)
         # print("indices_energy: ", indices_energy)
-        energies = 0.5 + 0.1*indices_energy.reshape(-1,)
+        energies = 0.25 + 0.15*indices_energy.reshape(-1,)
         # print("energies: ", energies)
         
         energy_pitch_mod_speech = OLA(factors_pitch=pitches,
