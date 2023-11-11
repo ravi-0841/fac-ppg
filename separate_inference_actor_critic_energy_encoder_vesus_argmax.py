@@ -360,7 +360,7 @@ if __name__ == '__main__':
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
 
     # emo_model_dict = {"angry":55000, "happy":211000, "sad":154000, "fear":154000}
-    emo_model_dict = {"angry":146500, "happy":1000, "sad":154000, "fear":154000} # For testing purpose
+    emo_model_dict = {"angry":187000, "happy":80500, "sad":154000, "fear":154000} # For testing purpose
 
     ttest_array = []
     count_gr_zero_array = []
