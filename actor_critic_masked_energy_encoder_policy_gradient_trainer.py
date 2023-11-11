@@ -153,7 +153,7 @@ def validate(model_saliency, model_rate, WSOLA, OLA, valset,
             index_energy = torch.argmax(energy_distribution, dim=-1)
             
             rate = 0.25 + 0.15*index_rate # 0.2*index
-            pitch = 0.5 + 0.1*index_pitch # 0.2*index
+            pitch = 0.25 + 0.15*index_pitch # 0.2*index
             energy = 0.25 + 0.15*index_energy # 0.2*index
             
             # rate = 0.25 + 0.15*index_rate # 0.2*index
@@ -402,21 +402,21 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 # energy = 0.25 + 0.15*index_energy
 
                 rate = 0.25 + 0.15*index_rate
-                pitch = 0.5 + 0.1*index_pitch
+                pitch = 0.25 + 0.15*index_pitch
                 energy = 0.25 + 0.15*index_energy
                 
                 # Computing Q-value after taking action
-                (updated_signal, 
-                 updated_energy, 
-                 updated_mask) = updated_environment(hparams, x, WSOLA, OLA, 
-                                                     rate, pitch, energy, mask_sample,
-                                                     active_chunks, sampled_chunks)
-                # updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
-                #                                              rate, pitch, energy, 
-                #                                              mask_sample)
+                # (updated_signal, 
+                #  updated_energy, 
+                #  updated_mask) = updated_environment(hparams, x, WSOLA, OLA, 
+                #                                      rate, pitch, energy, mask_sample,
+                #                                      active_chunks, sampled_chunks)
+                updated_signal, updated_energy = environment(hparams, x, WSOLA, OLA, 
+                                                             rate, pitch, energy, 
+                                                             mask_sample)
                 _, _, _, updated_saliency = model_saliency(updated_signal, 
                                                            updated_energy,
-                                                           pre_computed_mask=updated_mask)
+                                                           pre_computed_mask=None)
                 Q_value = updated_saliency.gather(1, intent_cats.view(-1,1)).view(-1)
                 
                 # Computing advantage
@@ -435,9 +435,9 @@ def train(output_directory, log_directory, checkpoint_path_rate,
                 critic_loss = torch.mean(torch.abs(advantage))
                 
                 # Entropy loss term
-                entropy_loss = (-hparams.lambda_entropy_rate*entropy_criterion(rate_dist) 
-                                -hparams.lambda_entropy_pitch*entropy_criterion(pitch_dist) 
-                                -hparams.lambda_entropy_energy*entropy_criterion(energy_dist))
+                entropy_loss = (-hparams.lambda_entropy*entropy_criterion(rate_dist) 
+                                -hparams.lambda_entropy*entropy_criterion(pitch_dist) 
+                                -hparams.lambda_entropy*entropy_criterion(energy_dist))
 
                 # Combining all three losses            
                 actor_critic_loss = actor_loss + entropy_loss + hparams.lambda_critic*critic_loss
@@ -497,8 +497,8 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_separate_entropy_{}_AC_{}_masked_encoder_separate_subset".format(
-                                        hparams.lambda_entropy_rate,
+                                        "VESUS_entropy_{}_AC_{}_masked_encoder_updated_data".format(
+                                        hparams.lambda_entropy,
                                         hparams.lambda_critic,
                                         )
                                     )

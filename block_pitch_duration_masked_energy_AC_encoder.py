@@ -205,7 +205,6 @@ class RatePredictorAC(nn.Module):
 
         self.emo_projection = nn.Linear(in_features=5, out_features=256)
         self.joint_projection = nn.Linear(in_features=256, out_features=256)
-        # self.bn_joint = nn.InstanceNorm1d(256)
         self.bn_proj = nn.InstanceNorm1d(256)
 
         transformer_encoder_layer = nn.TransformerEncoderLayer(d_model=256, 
