@@ -450,7 +450,7 @@ if __name__ == '__main__':
         #%%
         count_not_targ = 0
         for t in pred_array:
-            if index not in list(np.argsort(t)[-2:]):
+            if (index not in list(np.argsort(t)[-2:])) and t[index]<0.2:
                 count_not_targ += 1
         
         print("Target not in top 2 predictions: ", count_not_targ)
