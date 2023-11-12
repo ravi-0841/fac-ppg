@@ -340,7 +340,7 @@ def test(output_directory, checkpoint_path_rate,
 
         iteration += 1
     
-        if iteration >= 250:
+        if iteration >= 100:
             break
     
     print("Saliency | Avg. Loss: {:.3f}".format(np.mean(saliency_loss_array)))
@@ -360,7 +360,7 @@ if __name__ == '__main__':
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
 
     # emo_model_dict = {"angry":55000, "happy":211000, "sad":154000, "fear":154000}
-    emo_model_dict = {"angry":187000, "happy":80500, "sad":154000, "fear":154000} # For testing purpose
+    emo_model_dict = {"angry":146500, "happy":1000, "sad":141000, "fear":141000} # For testing purpose
 
     ttest_array = []
     count_gr_zero_array = []
@@ -454,7 +454,7 @@ if __name__ == '__main__':
         #%%
         count_not_targ = 0
         for t in pred_array:
-            if (index not in list(np.argsort(t)[-2:])) and t[index]<0.2:
+            if (index not in list(np.argsort(t)[-2:])) and t[index]<0.1:
                 count_not_targ += 1
         
         print("Target not in top 2 predictions: ", count_not_targ)
