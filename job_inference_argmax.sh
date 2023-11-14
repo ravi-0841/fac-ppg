@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH -t 20:00:00
+#SBATCH -t 30:00:00
 #SBATCH -A avenka14_gpu
 
 ###load modules
@@ -33,8 +33,8 @@ pip install --user matplotlib
 # python3 inference_actor_critic_encoder_vesus_argmax.py happy
 # python3 inference_actor_critic_encoder_vesus_argmax.py fear
 
-# python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py angry $1 $2
-# python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py happy $1 $2
-python3 inference_actor_critic_energy_encoder_vesus_argmax_variable.py fear $1 $2
+python3 inference_actor_critic_masked_energy_encoder_vesus_argmax_variable.py angry $1 $2
+python3 inference_actor_critic_masked_energy_encoder_vesus_argmax_variable.py happy $1 $2
+python3 inference_actor_critic_masked_energy_encoder_vesus_argmax_variable.py fear $1 $2
 
 # python3 inference_actor_critic_decoupled_vesus_argmax.py happy

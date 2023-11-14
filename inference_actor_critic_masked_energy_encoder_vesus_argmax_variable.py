@@ -6,7 +6,6 @@ Created on Mon May 29 14:19:09 2023
 @author: ravi
 """
 
-
 import os
 import sys
 import time
@@ -19,14 +18,20 @@ import scipy.stats as scistat
 import soundfile as sf
 import joblib
 
+from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from block_pitch_duration_energy_AC_encoder import MaskedRateModifier, RatePredictorAC
+from block_pitch_duration_masked_energy_AC_encoder import MaskedRateModifier, RatePredictorAC
 from on_the_fly_augmentor_raw_voice_mask import OnTheFlyAugmentor, acoustics_collate_raw
+from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
+                                        ExpectedKLDivergence,
+                                        VecExpectedKLDivergence, 
+                                        SparsityKLDivergence,
+                                    )
 from src.common.utils import (median_mask_filtering, 
                               refining_mask_sample,
                               get_mask_blocks_inference,
                               )
-from src.common.hparams_actor_critic_energy_vesus import create_hparams
+from src.common.hparams_actor_critic_masked_energy_vesus import create_hparams
 from src.common.interpolation_block import WSOLAInterpolationBlockEnergy
 from src.common.pitch_energy_modification_block import LocalPitchEnergyModification
 from pprint import pprint
@@ -57,7 +62,7 @@ def prepare_dataloaders(hparams, valid=True):
     test_loader = DataLoader(
                             testset,
                             num_workers=1,
-                            shuffle=True,
+                            shuffle=False,
                             sampler=None,
                             batch_size=1,
                             drop_last=False,
@@ -103,7 +108,7 @@ def intended_saliency(batch_size, relative_prob=[0.0, 1.0, 0.0, 0.0, 0.0]):
 
 def plot_figures(feats, waveform, mod_waveform, posterior, 
                  mask, y, y_pred, rate_dist, pitch_dist, 
-                 energy_dist, iteration, hparams):
+                 iteration, hparams):
     
     mask_thresh = np.zeros((len(mask), ))
     mask_thresh[np.where(mask>0)[0]] = 1
@@ -111,7 +116,7 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     # Plotting details
     pylab.xticks(fontsize=18)
     pylab.yticks(fontsize=18)
-    fig, ax = pylab.subplots(7, 1, figsize=(40, 24))
+    fig, ax = pylab.subplots(6, 1, figsize=(30, 24))
     
     ax[0].plot(waveform, linewidth=1.5, label="original")
     ax[0].plot(mod_waveform, linewidth=1.5, label="modified")
@@ -142,24 +147,17 @@ def plot_figures(feats, waveform, mod_waveform, posterior,
     # pylab.tight_layout()
     
     classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
-    ax[4].bar(classes, rate_dist, alpha=0.5, color="r", label="Duration")
+    ax[4].bar(classes, rate_dist, alpha=0.5, color="r", label="pred")
     ax[4].legend(loc=1)
     ax[4].set_xlabel('Classes',fontsize=15) #xlabel
     ax[4].set_ylabel('Softmax Score', fontsize=15) #ylabel
     # pylab.tight_layout()
     
     classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
-    ax[5].bar(classes, pitch_dist, alpha=0.5, color="g", label="Pitch")
+    ax[5].bar(classes, pitch_dist, alpha=0.5, color="r", label="pred")
     ax[5].legend(loc=1)
     ax[5].set_xlabel('Classes',fontsize=15) #xlabel
     ax[5].set_ylabel('Softmax Score', fontsize=15) #ylabel
-    # pylab.tight_layout()
-    
-    classes = [str(np.round(r,1)) for r in np.arange(0.5, 1.6, 0.1)]
-    ax[6].bar(classes, energy_dist, alpha=0.5, color="b", label="Energy")
-    ax[6].legend(loc=1)
-    ax[6].set_xlabel('Classes',fontsize=15) #xlabel
-    ax[6].set_ylabel('Softmax Score', fontsize=15) #ylabel
     # pylab.tight_layout()
 
     pylab.suptitle("Utterance- {}".format(iteration), fontsize=24)
@@ -265,20 +263,17 @@ def test(output_directory, checkpoint_path_rate,
         # print("indices_pitch: ", indices_pitch)
         pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
         # print("pitches: ", pitches)
-        
+
         indices_energy = torch.argmax(energy_distribution, 1)
-        # print("indices_pitch: ", indices_pitch)
+        # print("indices_energy: ", indices_energy)
         energies = 0.25 + 0.15*indices_energy.reshape(-1,)
-        # print("pitches: ", pitches)
+        # print("energies: ", energies)
         
-        # index_pitch = torch.multinomial(pitch_distribution[0], 1)
-        # pitch = 0.5 + 0.1*index_pitch
         energy_pitch_mod_speech = OLA(factors_pitch=pitches,
                                       factors_energy=energies,
                                       speech=x,
                                       chunks=chunks)
 
-        # modification 1
         mod_speech1, mod_e1, _ = WSOLA(mask=mask_sample[:,:,0], 
                                         rates=rates, 
                                         speech=energy_pitch_mod_speech,
@@ -310,10 +305,10 @@ def test(output_directory, checkpoint_path_rate,
         mod_speech = mod_speech.squeeze().cpu().numpy()
 
         # Writing the wav file
-        mod_speech = (mod_speech - np.min(mod_speech)) / (np.max(mod_speech) - np.min(mod_speech))
-        mod_speech = mod_speech - np.mean(mod_speech)
-        sf.write("./output_wavs/{}/{}.wav".format(emo_target, i+1), 
-                    mod_speech.reshape(-1,), 16000)
+        # mod_speech = (mod_speech - np.min(mod_speech)) / (np.max(mod_speech) - np.min(mod_speech))
+        # mod_speech = mod_speech - np.mean(mod_speech)
+        # sf.write("./output_wavs/{}/{}.wav".format(emo_target, i+1), 
+        #             mod_speech.reshape(-1,), 16000)
 
         #%% Plotting
         saliency_loss_array.append(saliency_reduced_loss)
@@ -328,7 +323,6 @@ def test(output_directory, checkpoint_path_rate,
         #               mask_sample, y, y_pred, 
         #               rate_distribution,
         #               pitch_distribution,
-        #               energy_distribution,
         #               iteration+1, hparams)
 
         if not math.isnan(saliency_reduced_loss) and not math.isnan(rate_reduced_loss):
@@ -340,8 +334,8 @@ def test(output_directory, checkpoint_path_rate,
 
         iteration += 1
     
-        if iteration >= 100:
-            break
+    # if iteration >= 100:
+    #     break
     
     print("Saliency | Avg. Loss: {:.3f}".format(np.mean(saliency_loss_array)))
     print("Rate     | Avg. Loss: {:.3f}".format(np.mean(rate_loss_array)))
@@ -353,30 +347,39 @@ def test(output_directory, checkpoint_path_rate,
 if __name__ == '__main__':
     hparams = create_hparams()
 
-    emo_target = "angry" if len(sys.argv)<2 else sys.argv[1]
+    emo_target = sys.argv[1]
+    lambda_entropy = sys.argv[2]
+    lambda_critic = sys.argv[3]
+
     emo_prob_dict = {"angry":[0.0,1.0,0.0,0.0,0.0],
                      "happy":[0.0,0.0,1.0,0.0,0.0],
-                     "sad":[0.0,0.0,0.0,0.0,1.0],
+                     "sad":[0.0,0.0,0.0,1.0,0.0],
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
-
-    # emo_model_dict = {"angry":55000, "happy":211000, "sad":154000, "fear":154000}
-    emo_model_dict = {"angry":146500, "happy":1000, "sad":141000, "fear":141000} # For testing purpose
 
     ttest_array = []
     count_gr_zero_array = []
     count_flips_array = []
-    ckpt_path = hparams.checkpoint_path_inference
+    # ckpt_path = hparams.checkpoint_path_inference.split("/")[2]
+    # ckpt_path = "VESUS_Block_entropy_{}_actor_critic_{}_energy_encoder".format(lambda_entropy, 
+    #                                                                             lambda_critic)
+    ckpt_path = "VESUS_entropy_{}_AC_{}_masked_encoder_updated_data".format(lambda_entropy,
+                                                                        lambda_critic)
+    print("Actor critic folder path: ", ckpt_path)
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        ckpt_path.split("/")[2],
+                                        ckpt_path,
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    if emo_target in emo_model_dict.keys():
-        m = emo_model_dict[emo_target]
+    for m in range(1000, 400000, 500): # max
+    # for m in range(90000, 91000, 1000): # wt
+    # for m in range(7000, 8000, 1000): #max2
     
         print("\n \t Current_model: ckpt_{}, Emotion: {}".format(m, emo_target))
-        hparams.checkpoint_path_inference = ckpt_path + "_" + str(m)
+        hparams.checkpoint_path_inference = os.path.join("masked_predictor_output", 
+                                                        ckpt_path,
+                                                        "checkpoint_{}".format(m))
+        # print("Inference model path: ", hparams.checkpoint_path_inference)
 
         if not hparams.output_directory:
             raise FileExistsError('Please specify the output dir.')
@@ -396,7 +399,7 @@ if __name__ == '__main__':
                                                 hparams,
                                                 emo_prob_dict[emo_target],
                                                 emo_target=emo_target,
-                                                valid=False,
+                                                valid=True,
                                             )
         
         pred_array = np.asarray(pred_array)
@@ -421,15 +424,9 @@ if __name__ == '__main__':
             # if np.argmax(pred_array[i,:])!=index and np.argmax(rate_array[i,:])==index:
             #     count_flips += 1
             #     indices_flips.append(i+1)
-            
-            # if (pred_array[i,index] <= 0.25) and (index in np.argsort(rate_array[i,:])[-2:]):
-            #     count_flips += 1
-            #     indices_flips.append(i+1)
-            
             if (index not in np.argsort(pred_array[i,:])[-2:]) and (index in np.argsort(rate_array[i,:])[-2:]):
                 count_flips += 1
                 indices_flips.append(i+1)
-            
             if np.argmax(pred_array[i,:])==0 and np.argmax(rate_array[i,:])==index:
                 count_neutral_flips += 1
 
@@ -438,43 +435,18 @@ if __name__ == '__main__':
         
         count_flips_array.append(count_flips)
         print("Flip Counts: {} and Neutral Flips: {}".format(count_flips, count_neutral_flips))
-        print("Total neutral: {}".format(count_neutral))
+        # print("Total neutral: {}".format(count_neutral))
         
-        # joblib.dump({"ttest_scores": ttest_array, 
-        #             "count_scores": count_gr_zero_array,
-        #             "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
-        #                                                         "ttest_scores_argmax.pkl"))
+        joblib.dump({"ttest_scores": ttest_array, 
+                    "count_scores": count_gr_zero_array,
+                    "count_flips": count_flips_array}, os.path.join(hparams.output_directory,
+                                                                    "ttest_scores_argmax.pkl"))
 
 
         # joblib.dump({"indices": indices_flips}, 
         #             "./output_wavs/{}/indices.pkl".format(emo_target))
         
         # print("average difference: ", np.mean(rate_array - pred_array, axis=0))
-        
-        #%%
-        count_not_targ = 0
-        for t in pred_array:
-            if (index not in list(np.argsort(t)[-2:])) and t[index]<0.1:
-                count_not_targ += 1
-        
-        print("Target not in top 2 predictions: ", count_not_targ)
-        print("Flipping ratio: ", count_flips/count_not_targ)
-        #%%
-        idx = np.where(saliency_diff>0)[0]
-        # idx = np.arange(0, len(rate_array))
-        diff_n = rate_array[idx, 0] - pred_array[idx, 0]
-        diff_a = rate_array[idx, 1] - pred_array[idx, 1]
-        diff_h = rate_array[idx, 2] - pred_array[idx, 2]
-        diff_s = rate_array[idx, 4] - pred_array[idx, 4]
-        # diff_f = rate_array[idx, 4] - pred_array[idx, 4]
-        # pylab.figure()
-        # ax = pylab.subplot(111)
-        # pylab.violinplot([diff_n, diff_a, diff_h, diff_s], 
-        #                  positions=[0,1,2,3], vert=True, showmedians=True)
-        # ax.set_xticks([0,1,2,3])
-        # ax.set_xticklabels(["Neutral", "Angry", "Happy", "Sad"])
-        # pylab.title("Target- {}".format(emo_target))
-        # pylab.savefig("./output_wavs/AC_energy_{}_difference_plot.png".format(emo_target))
        
 
 
