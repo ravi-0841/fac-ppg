@@ -36,8 +36,8 @@ pip install --user matplotlib
 # python3 actor_critic_decoupled_policy_gradient_trainer.py
 
 # python3 actor_critic_encoder_policy_gradient_trainer.py
-# python3 actor_critic_energy_encoder_policy_gradient_trainer.py
-python3 actor_critic_masked_energy_encoder_policy_gradient_trainer.py
+python3 actor_critic_energy_encoder_policy_gradient_trainer.py
+# python3 actor_critic_masked_energy_encoder_policy_gradient_trainer.py
 
 # python3 masked_saliency_predictor_class_specific_trainer_vesus.py
 # python3 masked_pitch_rate_predictor_class_specific_multicat_trainer_vesus.py

@@ -256,17 +256,17 @@ def test(output_directory, checkpoint_path_rate,
 
         # print("rate_distribution.shape: ", rate_distribution.shape)
 
-        indices_rate = torch.argmax(rate_distribution, 1)
+        indices_rate = torch.multinomial(rate_distribution, 1)
         # print("indices_rate: ", indices_rate)
         rates = 0.25 + 0.15*indices_rate.reshape(-1,)
         # print("rates: ", rates)
         
-        indices_pitch = torch.argmax(pitch_distribution, 1)
+        indices_pitch = torch.multinomial(pitch_distribution, 1)
         # print("indices_pitch: ", indices_pitch)
         pitches = 0.25 + 0.15*indices_pitch.reshape(-1,)
         # print("pitches: ", pitches)
         
-        indices_energy = torch.argmax(energy_distribution, 1)
+        indices_energy = torch.multinomial(energy_distribution, 1)
         # print("indices_pitch: ", indices_pitch)
         energies = 0.25 + 0.15*indices_energy.reshape(-1,)
         # print("pitches: ", pitches)

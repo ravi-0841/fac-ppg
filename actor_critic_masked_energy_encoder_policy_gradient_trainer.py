@@ -497,7 +497,7 @@ if __name__ == '__main__':
 
     hparams.output_directory = os.path.join(
                                         hparams.output_directory, 
-                                        "VESUS_entropy_{}_AC_{}_masked_encoder_updated_data".format(
+                                        "VESUS_entropy_{}_AC_{}_masked_encoder_updated_data_hlr".format(
                                         hparams.lambda_entropy,
                                         hparams.lambda_critic,
                                         )

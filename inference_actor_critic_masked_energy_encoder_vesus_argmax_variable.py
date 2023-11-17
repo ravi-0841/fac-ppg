@@ -362,7 +362,7 @@ if __name__ == '__main__':
     # ckpt_path = hparams.checkpoint_path_inference.split("/")[2]
     # ckpt_path = "VESUS_Block_entropy_{}_actor_critic_{}_energy_encoder".format(lambda_entropy, 
     #                                                                             lambda_critic)
-    ckpt_path = "VESUS_entropy_{}_AC_{}_masked_encoder_updated_data".format(lambda_entropy,
+    ckpt_path = "VESUS_entropy_{}_AC_{}_masked_encoder_updated_data_hlr".format(lambda_entropy,
                                                                         lambda_critic)
     print("Actor critic folder path: ", ckpt_path)
     hparams.output_directory = os.path.join(
@@ -371,7 +371,7 @@ if __name__ == '__main__':
                                         "images_valid_{}".format(emo_target),
                                     )
 
-    for m in range(1000, 400000, 500): # max
+    for m in range(1000, 500000, 500): # max
     # for m in range(90000, 91000, 1000): # wt
     # for m in range(7000, 8000, 1000): #max2
     
