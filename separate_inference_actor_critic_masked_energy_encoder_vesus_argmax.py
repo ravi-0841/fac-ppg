@@ -340,8 +340,8 @@ def test(output_directory, checkpoint_path_rate,
 
         iteration += 1
     
-    # if iteration >= 100:
-    #     break
+        if iteration >= 100:
+            break
     
     print("Saliency | Avg. Loss: {:.3f}".format(np.mean(saliency_loss_array)))
     print("Rate     | Avg. Loss: {:.3f}".format(np.mean(rate_loss_array)))
@@ -359,7 +359,8 @@ if __name__ == '__main__':
                      "sad":[0.0,0.0,0.0,0.0,1.0],
                      "fear":[0.0,0.0,0.0,0.0,1.0]}
 
-    emo_model_dict = {"angry":88000, "happy":225000, "sad":104000, "fear":104000}
+    # emo_model_dict = {"angry":88000, "happy":225000, "sad":104000, "fear":104000}
+    emo_model_dict = {"angry": 186500, "happy": 150000, "sad": 310000, "fear":310000}
 
     ttest_array = []
     count_gr_zero_array = []
@@ -450,7 +451,7 @@ if __name__ == '__main__':
         #%%
         count_not_targ = 0
         for t in pred_array:
-            if (index not in list(np.argsort(t)[-2:])) and t[index]<0.2:
+            if (index not in list(np.argsort(t)[-2:])) and t[index]<0.1:
                 count_not_targ += 1
         
         print("Target not in top 2 predictions: ", count_not_targ)
@@ -463,12 +464,12 @@ if __name__ == '__main__':
         diff_h = rate_array[idx, 2] - pred_array[idx, 2]
         diff_s = rate_array[idx, 4] - pred_array[idx, 4]
         # diff_f = rate_array[idx, 4] - pred_array[idx, 4]
-        pylab.figure()
-        ax = pylab.subplot(111)
-        pylab.violinplot([diff_n, diff_a, diff_h, diff_s], 
-                         positions=[0,1,2,3], vert=True, showmedians=True)
-        ax.set_xticks([0,1,2,3])
-        ax.set_xticklabels(["Neutral", "Angry", "Happy", "Sad"])
+        # pylab.figure()
+        # ax = pylab.subplot(111)
+        # pylab.violinplot([diff_n, diff_a, diff_h, diff_s], 
+        #                  positions=[0,1,2,3], vert=True, showmedians=True)
+        # ax.set_xticks([0,1,2,3])
+        # ax.set_xticklabels(["Neutral", "Angry", "Happy", "Sad"])
         # pylab.title("Target- {}".format(emo_target))
         # pylab.savefig("./output_wavs/AC_masked_energy_{}_difference_plot.png".format(emo_target))
        
