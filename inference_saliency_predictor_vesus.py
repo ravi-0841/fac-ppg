@@ -29,6 +29,7 @@ from src.common.utils import (median_mask_filtering,
                               )
 from src.common.hparams_onflyenergy_vesus import create_hparams
 from pprint import pprint
+from sklearn.metrics import f1_score
 
 
 def prepare_dataloaders(hparams, valid=True):
@@ -318,7 +319,7 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams.cudnn_enabled
     torch.backends.cudnn.benchmark = hparams.cudnn_benchmark
     
-    hparams.testing_files = "./speechbrain_data/baselines/lstm_model_sad.txt"
+    # hparams.testing_files = "./speechbrain_data/baselines/lstm_model_sad.txt"
 
     chunk_array, targ_array, pred_array = test(
                                                 hparams.output_directory,
@@ -337,12 +338,20 @@ if __name__ == '__main__':
     top2_score = np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)
     print("Top-1 Accuracy is: {}".format(top1_score))
     print("Top-2 Accuracy is: {}".format(top2_score))
-    print("Average of top-1 and top2: {}".format(0.5*(top1_score+top2_score)))
+    # print("Average of top-1 and top2: {}".format(0.5*(top1_score+top2_score)))
     
     
 
     # joblib.dump({"prediction":pred_array, "target":targ_array},
     #         "./masked_predictor_output/test_pred.pkl")
+
+    #%% Compute F1 scores
+    one_hot_pred = np.argmax(pred_array, axis=1)
+    one_hot_targ = np.argmax(targ_array, axis=1)
+    f1_macro = f1_score(y_true=one_hot_targ, y_pred=one_hot_pred, average="macro")
+    f1_wt = f1_score(y_true=one_hot_targ, y_pred=one_hot_pred, average="weighted")
+    print(f"F1 score (macro): {f1_macro}")
+    print(f"F1 score (weighted): {f1_wt}")
 
     #%% Energy Posterior correlation
     # pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)

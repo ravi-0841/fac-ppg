@@ -28,6 +28,7 @@ from src.common.utils import (median_mask_filtering,
                               )
 from src.common.hparams_onflyenergy_cremad import create_hparams
 from pprint import pprint
+from sklearn.metrics import f1_score
 
 
 def prepare_dataloaders(hparams, valid=True):
@@ -287,8 +288,8 @@ def test(output_directory, checkpoint_path, hparams, valid=True):
         pred_array.append(y_pred)
         targ_array.append(y)
 
-        plot_figures(x, feats, posterior, mask_sample, y, 
-                      y_pred, iteration+1, hparams)
+        # plot_figures(x, feats, posterior, mask_sample, y, 
+        #               y_pred, iteration+1, hparams)
 
         # if not math.isnan(reduced_loss):
         #     duration = time.perf_counter() - start
@@ -325,7 +326,7 @@ if __name__ == '__main__':
                                                 hparams.output_directory,
                                                 hparams.checkpoint_path_inference,
                                                 hparams,
-                                                valid=True,
+                                                valid=False,
                                                 )
     
     pred_array = np.asarray(pred_array)
@@ -336,6 +337,14 @@ if __name__ == '__main__':
     
     print("Top-1 Accuracy is: {}".format(np.round(np.sum(top_1)/len(top_1),4)))
     print("Top-2 Accuracy is: {}".format(np.round((np.sum(top_1) + np.sum(top_2))/len(top_1),4)))
+
+    #%% Compute F1 scores
+    one_hot_pred = np.argmax(pred_array, axis=1)
+    one_hot_targ = np.argmax(targ_array, axis=1)
+    f1_macro = f1_score(y_true=one_hot_targ, y_pred=one_hot_pred, average="macro")
+    f1_wt = f1_score(y_true=one_hot_targ, y_pred=one_hot_pred, average="weighted")
+    print(f"F1 score (macro): {f1_macro}")
+    print(f"F1 score (weighted): {f1_wt}")
 
     #%% Energy Posterior correlation
     # pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)
