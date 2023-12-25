@@ -28,7 +28,7 @@ from src.common.utils import (median_mask_filtering,
                               )
 from src.common.hparams_onflyenergy_cremad import create_hparams
 from pprint import pprint
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, confusion_matrix
 
 
 def prepare_dataloaders(hparams, valid=True):
@@ -345,6 +345,13 @@ if __name__ == '__main__':
     f1_wt = f1_score(y_true=one_hot_targ, y_pred=one_hot_pred, average="weighted")
     print(f"F1 score (macro): {f1_macro}")
     print(f"F1 score (weighted): {f1_wt}")
+
+    #%% Plot confusion matrix and save it
+    conf_mat = confusion_matrix(y_true=one_hot_targ, y_pred=one_hot_pred)
+    pylab.figure(figsize=(12, 8))
+    sns.heatmap(conf_mat, annot=True, annot_kws={'size':10})
+    pylab.savefig('./confusion_matrix_cremad.png')
+    pylab.close('all')
 
     #%% Energy Posterior correlation
     # pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)
