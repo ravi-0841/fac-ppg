@@ -347,11 +347,11 @@ if __name__ == '__main__':
     print(f"F1 score (weighted): {f1_wt}")
 
     #%% Plot confusion matrix and save it
-    conf_mat = confusion_matrix(y_true=one_hot_targ, y_pred=one_hot_pred)
-    pylab.figure(figsize=(12, 8))
-    sns.heatmap(conf_mat, annot=True, annot_kws={'size':10})
-    pylab.savefig('./confusion_matrix_cremad.png')
-    pylab.close('all')
+    # conf_mat = confusion_matrix(y_true=one_hot_targ, y_pred=one_hot_pred)
+    # pylab.figure(figsize=(12, 8))
+    # sns.heatmap(conf_mat, annot=True, cmap='mako', annot_kws={'size':13})
+    # pylab.savefig('./confusion_matrix_cremad.png')
+    # pylab.close('all')
 
     #%% Energy Posterior correlation
     # pylab.figure(figsize=(10,10)), sns.histplot(corr_array[:,0], bins=30, kde=True)
