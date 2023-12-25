@@ -16,7 +16,7 @@ import numpy as np
 import seaborn as sns
 from scipy.signal import medfilt
 from torch.utils.data import DataLoader
-from saliency_predictor_energy_guided import MaskedSaliencePredictor
+from saliency_predictor import MaskedSaliencePredictor
 from on_the_fly_augmentor_raw_voice_mask_cremad import OnTheFlyAugmentor, acoustics_collate_raw
 from src.common.loss_function import (MaskedSpectrogramL1LossReduced,
                                         ExpectedKLDivergence,
